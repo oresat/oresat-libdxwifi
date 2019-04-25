@@ -1,5 +1,5 @@
 # oresat-dxwifi-software
-Software and firmware used on the "DxWiFi" OreSat satellite system that will broadcast 2.4 GHz WiFi video.
+Software and firmware used on the OreSat satellite system that will transmit bulk science mission data on S-Band. Also used for the 2.4 GHz _DxWiFi video experiment_.
 
 This is software for the **satellite** only; please see the other repos if you're looking for the [OreSat Live Handheld Ground Station](https://github.com/oresat/oresat-live-handheld-ground-station) or the [Mini-OreSat testing platform for high altitude balloons](https://github.com/oresat/oresat-live-mini-oresat).
 
