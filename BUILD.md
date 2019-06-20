@@ -5,7 +5,7 @@ Alternately, you can use a USB Ethernet dongle on a Raspberry Pi Zero W.  A USB 
 # Theory of Operation
 On boot up /etc/rc.local calls /root/oresatlive.sh
 
-oresatmini.sh configures the wifi interface, then starts jpeg_stream_tx_stdout.py and wifibroadcast tx.
+oresatlive.sh configures the wifi interface, then starts jpeg_stream_tx_stdout.py and wifibroadcast tx.
 
 jpeg_stream_tx_stdout.py repeatedly takes a JPEG photo with the Pi Camera, adds a header with image size and integrity check information and then outputs a stream of bytes to stdout.  The byte stream is piped into wifibroadcast tx which adds forward error correction information, splits up the data to fit into wifi sized packets, and then sends the packets to the wifi chip for transmission.
 
