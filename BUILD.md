@@ -29,10 +29,7 @@ enable_uart=1
 
 
 # Enable SSH
-sudo raspi-config
-choose interface options
-enable ssh
-
+`sudo raspi-config` choose **Interface Options** then **Enable SSH**
 
 # Enable serial console (optional)
 Having access to a serial console can be handy for debug.  Connect a [USB serial cable](https://elinux.org/RPi_Serial_Connection) to the Raspberry Pi.
@@ -45,20 +42,21 @@ sudo screen /dev/ttyUSB0 115200
 
 
 # Enable Pi Camera
-```
-sudo raspi-config
-choose interface
-enable camera
-apt install python-picamera
-```
+`sudo apt install python-picamera`
+
+`sudo raspi-config` choose **Interface Options** then **Enable Camera**
+
+
 # Test Pi Camera
 ```
 raspistill -v -o test.jpg
 ```
 
+
 # Compile wifibroadcast
 ```
-apt-get install libpcap-dev
+sudo su
+apt install libpcap-dev
 cd /root/wifibroadcast
 make
 ```
