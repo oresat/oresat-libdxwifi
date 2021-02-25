@@ -1,9 +1,9 @@
 /**
- *  DxWiFi project includes, definitions, and types
+ *  dxwifi.h
+ * 
+ *  DESCRIPTION: DxWiFi project includes, definitions, and types
  * 
  *  https://github.com/oresat/oresat-dxwifi-software
- * 
- *  GPL-3.0 License
  * 
  */
 
