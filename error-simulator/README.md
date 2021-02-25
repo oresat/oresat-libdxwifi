@@ -1,3 +1,3 @@
 ## error-simulator
 
-TODO
+Software to simulate bit errors and packet loss.
