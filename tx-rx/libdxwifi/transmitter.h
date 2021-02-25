@@ -1,12 +1,12 @@
 /**
- *  Transmitter reads blocks of data from an input source, attaches required 
- *  headers, and then injects the packet with Pcap
- * 
- *  Note: struct fields prefixed with a '__' denote private scope
+ *  transmitter.h
+ *  
+ *  DESCRIPTION: Transmitter reads blocks of data from an input source, attaches 
+ *  required headers, and then injects the packet with Pcap
  * 
  *  https://github.com/oresat/oresat-dxwifi-software
  * 
- *  GPL-3.0 License 
+ *  NOTES: struct fields prefixed with a '__' denote private scope
  * 
  */
 
@@ -172,39 +172,48 @@ typedef struct {
 
 
 /**
- *  Initializes the transmitter object
+ *  DESCRIPTION:    Initializes the transmitter object
  * 
- *  @transmitter:       pointer to an allocated transmitter object
- *  @device_name:       Name of the WiFi device to send packets over. The 
- *                      specified device must be enabled in monitor mode.
+ *  ARGUMENTS:
+ * 
+ *     transmitter: pointer to an allocated transmitter object
+ * 
+ *     device_name: Name of the WiFi device to send packets over. The 
+ *                  specified device must be enabled in monitor mode.
  *  
  */
 void init_transmitter(dxwifi_transmitter* transmitter, const char* device_name);
 
 
 /**
- *  Tearsdown any resources associated with the transmitter
+ *  DESCRIPTION:    Tearsdown any resources associated with the transmitter
  * 
- *  @transmitter:       pointer to an allocated transmitter object
+ *  ARGUMENTS: 
+ * 
+ *      transmitter: pointer to an allocated transmitter object
  * 
  */
 void close_transmitter(dxwifi_transmitter* transmitter);
 
 
 /**
- *  Attaches a frame handler to the first available slot in the preinjection 
- *  pipeline
+ *  DESCRIPTION:    Attaches a frame handler to the first available slot in the 
+ *                  preinjection pipeline
  * 
- *  @tx:            pointer to an allocated transmitter object
+ *  ARGUMENTS: 
  * 
- *  @callback:      function pointer to callback function
+ *      tx:         pointer to an allocated transmitter object
  * 
- *  @user:          pointer to user allocated callback parameters
+ *      callback:   function pointer to callback function
  * 
- *  @returns:       integer index to the handler for reference or -1 if the 
- *                  pipline is full
+ *      user:       pointer to user allocated callback parameters
  * 
- *  Note: Attached handlers will be called in the order they were attached!
+ *  RETURNS:
+ * 
+ *      int:        index to the handler for reference or -1 if the 
+ *                  pipeline is full
+ * 
+ *  NOTES: Attached handlers will be called in the order they were attached!
  *  If you have a dependency between handlers, ensure that you attach them 
  *  in the order you wish them to be called.
  * 
@@ -213,34 +222,42 @@ int attach_preinject_handler(dxwifi_transmitter* tx, dxwifi_tx_frame_cb callback
 
 
 /**
- *  Removes the specified frame handler from the preinjection pipeline
+ *  DESCRIPTION:    Removes the specified frame handler from the preinjection pipeline
  * 
- *  @tx:            pointer to an allocated transmitter object
+ *  ARGUMENTS:
+ *  
+ *      tx:         pointer to an allocated transmitter object
  * 
- *  @index:         index to the handler to be removed. Note, a negative value 
+ *      index:      index to the handler to be removed. Note, a negative value 
  *                  will instruct the transmitter to remove all preinject 
  *                  handlers
  * 
- *  @returns:       true if the handler was successfully removed
+ *  RETURNS:       
+ * 
+ *      bool:       true if the handler was successfully removed
  * 
  */
 bool remove_preinject_handler(dxwifi_transmitter* tx, int index);
 
 
 /**
- *  Attaches a frame handler to the first available slot in the postinjection 
- *  pipeline
+ *  DESCRIPTION:    Attaches a frame handler to the first available slot in the 
+ *                  postinjection pipeline
  * 
- *  @tx:            pointer to an allocated transmitter object
+ *  ARGUMENTS:
  * 
- *  @callback:      function pointer to callback function
+ *      tx:         pointer to an allocated transmitter object
  * 
- *  @user:          pointer to user allocated callback parameters
+ *      callback:   function pointer to callback function
  * 
- *  @returns:       integer index to the handler for reference or -1 if the
+ *      user:       pointer to user allocated callback parameters
+ * 
+ *  RETURNS:
+ * 
+ *      int:        index to the handler for reference or -1 if the 
  *                  pipeline is full
  * 
- *  Note: Attached handlers will be called in the order they were attached!
+ *  NOTES: Attached handlers will be called in the order they were attached!
  *  If you have a dependency between handlers, ensure that you attach them 
  *  in the order you wish them to be called
  * 
@@ -249,41 +266,52 @@ int attach_postinject_handler(dxwifi_transmitter* tx, dxwifi_tx_frame_cb callbac
 
 
 /**
- *  Removes the specified frame handler from the postinjection pipeline
+ *  DESCRIPTION:    Removes the specified frame handler from the postinjection pipeline
  * 
- *  @tx:            pointer to an allocated transmitter object
+ *  ARGUMENTS:
+ *  
+ *      tx:         pointer to an allocated transmitter object
  * 
- *  @index:         index to the handler to be removed. Note, a negative value 
+ *      index:      index to the handler to be removed. Note, a negative value 
  *                  will instruct the transmitter to remove all preinject 
  *                  handlers
  * 
- *  @returns:       true if the handler was successfully removed
+ *  RETURNS:       
+ * 
+ *      bool:       true if the handler was successfully removed
  * 
  */
 bool remove_postinject_handler(dxwifi_transmitter* tx, int index);
 
 
 /**
- *  Reads blocks of data from @fd and transmits data until transmission is 
- *  stopped, timeout occurs, or end of file is reached
+ *  DESCRIPTION:    Reads blocks of data from @fd and transmits data until transmission is 
+ *                  stopped, timeout occurs, or end of file is reached
  * 
- *  @transmitter:   pointer to an allocated transmitter object
+ *  ARGUMENTS:
  * 
- *  @fd:            File descriptor of the data to be sent. Note, fd can be 
- *                  any unix file descriptor. device, stdin, regular file, etc. 
- *                  In the case of a stream like stdin, unless a timeout is
- *                  specified in the transmitter this function will never return.
+ *      transmitter:    pointer to an allocated transmitter object
+ * 
+ *      fd:             File descriptor of the data to be sent. 
+ * 
+ * 
+ *  NOTES: fd can be any unix file descriptor. device, stdin, regular file, etc. 
+ *  In the case of a stream like stdin, unless a timeout is specified in the 
+ *  transmitter this function will never return.
+ * 
  */
 dxwifi_tx_stats start_transmission(dxwifi_transmitter* transmitter, int fd);
 
 
 /**
- *  Signals to the transmitter to stop transmitting packets
+ *  DESCRIPTION:    Signals to the transmitter to stop transmitting packets
  * 
- *  @transmitter: pointer to an allocated transmitter object
+ *  ARGUMENTS:
+ *      transmitter:    pointer to an allocated transmitter object
  * 
- *  Note:   There are no guarantees that no more packets will be transmitted. At 
- *          most one more packet may be transmitted.
+ *  NOTES: There are no guarantees that no more packets will be transmitted. At 
+ *  most one more packet may be transmitted. Also, this function is idempotent.
+ * 
  */
 void stop_transmission(dxwifi_transmitter* transmitter);
 

@@ -1,11 +1,7 @@
 /**
- *  DxWiFi Transmission program
+ *  tx.c
  * 
- *  Note: struct fields prefixed with a '__' denote private scope
- * 
- *  https://github.com/oresat/oresat-dxwifi-software
- * 
- *  GPL-3.0 License 
+ *  DESCRIPTION: DxWiFi Transmission program
  * 
  */
 

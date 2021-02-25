@@ -1,9 +1,9 @@
 /**
- *  DxWiFi collection of utility macros/functions
+ *  utils.h
+ * 
+ *  DESCRIPTION: DxWiFi collection of utility macros/functions
  * 
  *  https://github.com/oresat/oresat-dxwifi-software
- * 
- *  GPL-3.0 License 
  * 
  */
 
