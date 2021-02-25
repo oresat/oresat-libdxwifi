@@ -1,0 +1,19 @@
+# Editor files
+*/.vscode/
+
+
+# Object files
+*.o
+*.obj
+
+# Libraries
+*.lib
+*.a
+*.so
+*.so.*
+
+# Build Output
+*/bin/*
+*/build/*
+*/lib/*
+
