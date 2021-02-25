@@ -1,13 +1,15 @@
 /**
- * DxWiFi project includes, definitions, and types
+ *  DxWiFi project includes, definitions, and types
  * 
- * https://github.com/oresat/oresat-dxwifi-software
+ *  https://github.com/oresat/oresat-dxwifi-software
  * 
- * GPL-3.0 License
+ *  GPL-3.0 License
+ * 
  */
 
 #ifndef LIBDXWIFI_H
 #define LIBDXWIFI_H
+
 
 /************************
  *  Constants
@@ -21,13 +23,14 @@
 #define DXWIFI_FRAME_CONTROL_DATA_SIZE 256
 #define DXWIFI_FRAME_CONTROL_CHECK_THRESHOLD 0.75
 
+
 /************************
  *  Types
  ***********************/
 
 /**
- * Control frames are used to signal file boundaries to the receiver 
- * during multi-file transmission
+ * Control frames are used to signal file boundaries to the receiver during 
+ * multi-file transmission
  */
 typedef enum {
     CONTROL_FRAME_NONE                  = 0x00,

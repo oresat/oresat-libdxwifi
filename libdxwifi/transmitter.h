@@ -1,12 +1,12 @@
 /**
- * Transmitter reads blocks of data from an input source, attaches required 
- * headers, and then injects the packet with Pcap
+ *  Transmitter reads blocks of data from an input source, attaches required 
+ *  headers, and then injects the packet with Pcap
  * 
- * Note: struct fields prefixed with a '__' denote private scope
+ *  Note: struct fields prefixed with a '__' denote private scope
  * 
- * https://github.com/oresat/oresat-dxwifi-software
+ *  https://github.com/oresat/oresat-dxwifi-software
  * 
- * GPL-3.0 License 
+ *  GPL-3.0 License 
  * 
  */
 
@@ -27,6 +27,11 @@
 
 #define DXWIFI_TX_HEADER_SIZE \
     (sizeof(dxwifi_tx_radiotap_hdr) + sizeof(ieee80211_hdr))
+
+#define DXWIFI_TX_FRAME_SIZE_MAX IEEE80211_MTU_MAX_LEN
+
+#define DXWIFI_TX_PAYLOAD_SIZE_MAX \
+    (DXWIFI_TX_FRAME_SIZE_MAX - DXWIFI_TX_HEADER_SIZE - IEEE80211_FCS_SIZE)
 
 #define DXWIFI_TX_RADIOTAP_PRESENCE_BIT_FIELD \
     ( 0x1 << IEEE80211_RADIOTAP_FLAGS    \
@@ -83,7 +88,7 @@ typedef struct {
     ieee80211_hdr           *mac_hdr;       /* link-layer header            */
     uint8_t                 *payload;       /* packet data                  */
 
-    uint8_t                 __frame[IEEE80211_MTU_MAX_LEN];       
+    uint8_t                 __frame[DXWIFI_TX_FRAME_SIZE_MAX];       
                                             /* The actual data frame        */
 } dxwifi_tx_frame;
 
@@ -92,8 +97,8 @@ typedef struct {
     uint32_t frame_count;                   /* number of frames sent        */
     uint32_t total_bytes_read;              /* total bytes read from source */
     uint32_t total_bytes_sent;              /* total of bytes sent via pcap */
-    uint32_t last_bytes_read;               /* Size of last read            */
-    uint32_t last_bytes_sent;               /* Size of last transmission    */
+    uint32_t prev_bytes_read;               /* Size of last read            */
+    uint32_t prev_bytes_sent;               /* Size of last transmission    */
 } dxwifi_tx_stats;
 
 
@@ -130,7 +135,7 @@ typedef size_t (*dxwifi_tx_frame_cb)(
 typedef struct {
     dxwifi_tx_frame_cb  callback;
     void*               user_args;
-} dxwifi_frame_handler;
+} dxwifi_tx_frame_handler;
 
 
 /**
@@ -152,9 +157,9 @@ typedef struct {
     ieee80211_frame_control fctl;   /* Frame control settings               */
 
 
-    dxwifi_frame_handler __preinjection[DXWIFI_TX_FRAME_HANDLER_MAX];
+    dxwifi_tx_frame_handler __preinjection[DXWIFI_TX_FRAME_HANDLER_MAX];
                                     /* Called before injection              */
-    dxwifi_frame_handler __postinjection[DXWIFI_TX_FRAME_HANDLER_MAX];
+    dxwifi_tx_frame_handler __postinjection[DXWIFI_TX_FRAME_HANDLER_MAX];
                                     /* Called after injection               */
     volatile bool   __activated;    /* Current transmitting?                */
     pcap_t*         __handle;       /* Session handle for Pcap              */
@@ -178,7 +183,7 @@ void init_transmitter(dxwifi_transmitter* transmitter, const char* device_name);
 
 
 /**
- *  Tearsdown any resources asssocitated with the transmitter
+ *  Tearsdown any resources associated with the transmitter
  * 
  *  @transmitter:       pointer to an allocated transmitter object
  * 
@@ -187,7 +192,8 @@ void close_transmitter(dxwifi_transmitter* transmitter);
 
 
 /**
- *  Attaches a frame handler to the preinject pipeline
+ *  Attaches a frame handler to the first available slot in the preinjection 
+ *  pipeline
  * 
  *  @tx:            pointer to an allocated transmitter object
  * 
@@ -195,12 +201,35 @@ void close_transmitter(dxwifi_transmitter* transmitter);
  * 
  *  @user:          pointer to user allocated callback parameters
  * 
+ *  @returns:       integer index to the handler for reference or -1 if the 
+ *                  pipline is full
+ * 
+ *  Note: Attached handlers will be called in the order they were attached!
+ *  If you have a dependency between handlers, ensure that you attach them 
+ *  in the order you wish them to be called.
+ * 
  */
-void attach_preinject_handler(dxwifi_transmitter* tx, dxwifi_tx_frame_cb callback, void* user);
+int attach_preinject_handler(dxwifi_transmitter* tx, dxwifi_tx_frame_cb callback, void* user);
 
 
 /**
- *  Attaches a frame handler to the postinject pipeline
+ *  Removes the specified frame handler from the preinjection pipeline
+ * 
+ *  @tx:            pointer to an allocated transmitter object
+ * 
+ *  @index:         index to the handler to be removed. Note, a negative value 
+ *                  will instruct the transmitter to remove all preinject 
+ *                  handlers
+ * 
+ *  @returns:       true if the handler was successfully removed
+ * 
+ */
+bool remove_preinject_handler(dxwifi_transmitter* tx, int index);
+
+
+/**
+ *  Attaches a frame handler to the first available slot in the postinjection 
+ *  pipeline
  * 
  *  @tx:            pointer to an allocated transmitter object
  * 
@@ -208,8 +237,30 @@ void attach_preinject_handler(dxwifi_transmitter* tx, dxwifi_tx_frame_cb callbac
  * 
  *  @user:          pointer to user allocated callback parameters
  * 
+ *  @returns:       integer index to the handler for reference or -1 if the
+ *                  pipeline is full
+ * 
+ *  Note: Attached handlers will be called in the order they were attached!
+ *  If you have a dependency between handlers, ensure that you attach them 
+ *  in the order you wish them to be called
+ * 
  */
-void attach_postinject_handler(dxwifi_transmitter* tx, dxwifi_tx_frame_cb callback, void* user);
+int attach_postinject_handler(dxwifi_transmitter* tx, dxwifi_tx_frame_cb callback, void* user);
+
+
+/**
+ *  Removes the specified frame handler from the postinjection pipeline
+ * 
+ *  @tx:            pointer to an allocated transmitter object
+ * 
+ *  @index:         index to the handler to be removed. Note, a negative value 
+ *                  will instruct the transmitter to remove all preinject 
+ *                  handlers
+ * 
+ *  @returns:       true if the handler was successfully removed
+ * 
+ */
+bool remove_postinject_handler(dxwifi_transmitter* tx, int index);
 
 
 /**
