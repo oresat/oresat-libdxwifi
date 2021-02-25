@@ -22,6 +22,7 @@
 #include <libdxwifi/transmitter.h>
 #include <libdxwifi/details/utils.h>
 #include <libdxwifi/details/assert.h>
+#include <libdxwifi/details/logging.h>
 
 
 static void setup_dxwifi_tx_frame(dxwifi_tx_frame* frame) {
@@ -125,19 +126,45 @@ static bool remove_handler(dxwifi_tx_frame_handler* pipeline, int index) {
 static size_t invoke_handlers(dxwifi_tx_frame_handler* pipeline, dxwifi_tx_frame* frame, dxwifi_tx_stats tx_stats) {
     debug_assert(pipeline && frame);
 
-    size_t payload_size = tx_stats.prev_bytes_read;
+    size_t sz = tx_stats.prev_bytes_read;
     for(int i = 0; i < DXWIFI_TX_FRAME_HANDLER_MAX; ++i) {
         if(pipeline[i].callback != NULL) {
-            payload_size = pipeline[i].callback(
+            sz = pipeline[i].callback(
                 frame, 
-                payload_size, 
+                sz, 
                 tx_stats, 
                 pipeline[i].user_args
                 );
-            debug_assert(0 < payload_size && payload_size < DXWIFI_TX_PAYLOAD_SIZE_MAX);
+
+            assert_continue(
+                0 < sz && sz < DXWIFI_TX_PAYLOAD_SIZE_MAX, 
+                "Payload size: %d, exceeds defined bounds", 
+                sz
+                );
         }
     }
-    return payload_size;
+    return sz;
+}
+
+
+static void log_tx_configuration(const dxwifi_transmitter* tx, const char* device_name) {
+    log_info(
+            "DxWifi Transmitter Settings\n"
+            "\tDevice:              %s\n"
+            "\tBlock Size:          %ld\n"
+            "\tTransmit Timeout:    %d\n"
+            "\tRedundant Ctrl:      %d\n"
+            "\tData Rate:           %dMbps\n"
+            "\tRTAP flags:          0x%x\n"
+            "\tRTAP Tx flags:       0x%x\n",
+            device_name,
+            tx->blocksize,
+            tx->transmit_timeout,
+            tx->redundant_ctrl_frames,
+            tx->rtap_rate,
+            tx->rtap_flags,
+            tx->rtap_tx_flags
+    );
 }
 
 
@@ -162,7 +189,7 @@ void init_transmitter(dxwifi_transmitter* tx, const char* device_name) {
     // Hard assert here because if pcap fails it's all FUBAR anyways
     assert_M(tx->__handle != NULL, err_buff);
 
-    //log_tx_configuration(tx);
+    log_tx_configuration(tx, device_name);
 }
 
 
@@ -171,7 +198,7 @@ void close_transmitter(dxwifi_transmitter* transmitter) {
 
     pcap_close(transmitter->__handle);
 
-    //log_info("DxWifi transmitter closed");
+    log_info("DxWifi transmitter closed");
 }
 
 
@@ -230,7 +257,7 @@ dxwifi_tx_stats start_transmission(dxwifi_transmitter* tx, int fd) {
 
     construct_ieee80211_header(data_frame.mac_hdr, tx->fctl, 0xffff, tx->address);
 
-    //log_info("Starting DxWiFi Transmission...");
+    log_info("Starting DxWiFi Transmission...");
 
     tx->__activated = true;
 
@@ -240,12 +267,12 @@ dxwifi_tx_stats start_transmission(dxwifi_transmitter* tx, int fd) {
         status = poll(&request, 1, tx->transmit_timeout * 1000);
 
         if(status == 0) {
-            //log_info("Transmitter timeout occured");
+            log_info("Transmitter timeout occured");
             tx->__activated = false;
         } 
         else if (status < 0) {
             if(tx->__activated) {
-                //log_error("Error occured: %s", strerror(errno));
+                log_error("Error occured: %s", strerror(errno));
             }
             tx->__activated = false;
         }
@@ -268,7 +295,7 @@ dxwifi_tx_stats start_transmission(dxwifi_transmitter* tx, int fd) {
         }
     } while(tx->__activated && stats.prev_bytes_read > 0);
 
-    //log_info("DxWiFI Transmission stopped");
+    log_info("DxWiFI Transmission stopped");
 
     //send_control_frame(tx, &data_frame, CONTROL_FRAME_END_OF_TRANMISSION);
 
