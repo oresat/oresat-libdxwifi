@@ -58,10 +58,10 @@
  * 
  */
 typedef struct  __attribute__((packed)) {
-    struct ieee80211_radiotap_header    hdr;      /* packed radiotap header   */
-    uint8_t                             flags;    /* frame flags              */
-    uint8_t                             rate;     /* data rate (500Kbps)      */
-    uint16_t                            tx_flags; /* transmission flags       */
+    ieee80211_radiotap_hdr  hdr;      /* packed radiotap header   */
+    uint8_t                 flags;    /* frame flags              */
+    uint8_t                 rate;     /* data rate (500Kbps)      */
+    uint16_t                tx_flags; /* transmission flags       */
 } dxwifi_tx_radiotap_hdr;
 
 
