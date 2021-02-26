@@ -79,6 +79,7 @@ struct ieee80211_radiotap_header {
      */
     uint32_t it_present;
 } __attribute__((__packed__));
+typedef struct ieee80211_radiotap_header ieee80211_radiotap_hdr;
 
 
 enum ieee80211_fctl_masks {
