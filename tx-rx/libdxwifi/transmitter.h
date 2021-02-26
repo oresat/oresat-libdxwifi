@@ -152,7 +152,7 @@ typedef struct {
     uint8_t     address[IEEE80211_MAC_ADDR_LEN];
                                     /* Transmitters MAC address             */
     uint8_t     rtap_flags;         /* Radiotap flags                       */
-    uint8_t     rtap_rate;          /* Radiotap data rate                   */
+    uint8_t     rtap_rate_mbps;     /* Radiotap data rate                   */
     uint16_t    rtap_tx_flags;      /* Radiotap Tx flags                    */
     ieee80211_frame_control fctl;   /* Frame control settings               */
 
@@ -285,8 +285,9 @@ bool remove_postinject_handler(dxwifi_transmitter* tx, int index);
 
 
 /**
- *  DESCRIPTION:    Reads blocks of data from @fd and transmits data until transmission is 
- *                  stopped, timeout occurs, or end of file is reached
+ *  DESCRIPTION:    Reads blocks of data from @fd and transmits data until 
+ *                  transmission is stopped via stop_transmission(), timeout 
+ *                  occurs, or end of file is reached
  * 
  *  ARGUMENTS:
  * 
@@ -297,7 +298,9 @@ bool remove_postinject_handler(dxwifi_transmitter* tx, int index);
  * 
  *  NOTES: fd can be any unix file descriptor. device, stdin, regular file, etc. 
  *  In the case of a stream like stdin, unless a timeout is specified in the 
- *  transmitter this function will never return.
+ *  transmitter this function will never return and will block until a read is
+ *  available. Install a signal handler to stop the transmission or run the 
+ *  transmitter on a different thread if blocking is unacceptable.
  * 
  */
 dxwifi_tx_stats start_transmission(dxwifi_transmitter* transmitter, int fd);

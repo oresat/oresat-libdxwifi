@@ -161,7 +161,7 @@ static void log_tx_configuration(const dxwifi_transmitter* tx, const char* devic
             tx->blocksize,
             tx->transmit_timeout,
             tx->redundant_ctrl_frames,
-            tx->rtap_rate,
+            tx->rtap_rate_mbps,
             tx->rtap_flags,
             tx->rtap_tx_flags
     );
@@ -253,7 +253,7 @@ dxwifi_tx_stats start_transmission(dxwifi_transmitter* tx, int fd) {
 
     setup_dxwifi_tx_frame(&data_frame);
 
-    construct_radiotap_header(data_frame.radiotap_hdr, tx->rtap_flags, tx->rtap_rate, tx->rtap_tx_flags);
+    construct_radiotap_header(data_frame.radiotap_hdr, tx->rtap_flags, tx->rtap_rate_mbps, tx->rtap_tx_flags);
 
     construct_ieee80211_header(data_frame.mac_hdr, tx->fctl, 0xffff, tx->address);
 
@@ -289,6 +289,7 @@ dxwifi_tx_stats start_transmission(dxwifi_transmitter* tx, int fd) {
                 stats.prev_bytes_sent   = status;
                 stats.total_bytes_read += stats.prev_bytes_read;
                 stats.total_bytes_sent += stats.prev_bytes_sent;
+                stats.frame_count      += 1;
 
                 invoke_handlers(tx->__postinjection, &data_frame, stats);
             }
