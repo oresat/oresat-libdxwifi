@@ -32,7 +32,7 @@ static char args_doc[] = "input-file(s)/directory";
 
 // Program description
 static char doc[] = 
-    "Read bytes from input file(s) and injedct them over a monitor mode enabled WiFi interface";
+    "Read bytes from input file(s) and inject them over a monitor mode enabled WiFi interface";
 
 // Available command line options 
 static struct argp_option opts[] = {
