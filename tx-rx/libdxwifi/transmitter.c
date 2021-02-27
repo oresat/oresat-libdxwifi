@@ -230,7 +230,7 @@ bool remove_postinject_handler(dxwifi_transmitter* tx, int index) {
 }
 
 
-dxwifi_tx_stats start_transmission(dxwifi_transmitter* tx, int fd) {
+void start_transmission(dxwifi_transmitter* tx, int fd, dxwifi_tx_stats* out) {
     debug_assert(tx && tx->__handle);
 
     int status = 0;
@@ -268,13 +268,17 @@ dxwifi_tx_stats start_transmission(dxwifi_transmitter* tx, int fd) {
 
         if(status == 0) {
             log_info("Transmitter timeout occured");
+            stats.tx_state = DXWIFI_TX_TIMED_OUT;
             tx->__activated = false;
         } 
         else if (status < 0) {
             if(tx->__activated) {
                 log_error("Error occured: %s", strerror(errno));
+                stats.tx_state = DXWIFI_TX_ERROR;
             }
-            tx->__activated = false;
+            else {
+                stats.tx_state = DXWIFI_TX_DEACTIVATED;
+            }
         }
         else {
             stats.prev_bytes_read = read(fd, data_frame.payload, tx->blocksize);
@@ -286,6 +290,7 @@ dxwifi_tx_stats start_transmission(dxwifi_transmitter* tx, int fd) {
 
                 debug_assert_continue(status > 0, "Injection failure: %s", pcap_statustostr(status));
 
+                stats.tx_state          = DXWIFI_TX_NORMAL;
                 stats.prev_bytes_sent   = status;
                 stats.total_bytes_read += stats.prev_bytes_read;
                 stats.total_bytes_sent += stats.prev_bytes_sent;
@@ -300,7 +305,9 @@ dxwifi_tx_stats start_transmission(dxwifi_transmitter* tx, int fd) {
 
     //send_control_frame(tx, &data_frame, CONTROL_FRAME_END_OF_TRANMISSION);
 
-    return stats;
+    if(out) {
+        *out = stats;
+    }
 }
 
 

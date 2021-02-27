@@ -1,5 +1,5 @@
 /**
- *  cli.c
+ *  cli.h
  *  
  *  DESCRIPTION: Command line interface for tx.c
  * 
