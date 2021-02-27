@@ -11,3 +11,4 @@ set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${PROJECT_SOURCE_DIR}/bin/${CMAKE_BUILD_TYPEn
 
 add_subdirectory(libdxwifi)
 add_subdirectory(dxwifi/tx)
+add_subdirectory(dxwifi/rx)
