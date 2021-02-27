@@ -19,10 +19,13 @@
  * 
  */ 
 
-
 #include <stdio.h>
 #include <stdarg.h>
 #include <stdlib.h>
+#include <string.h>
+
+
+#include <libgen.h>
 
 #include <libdxwifi/details/utils.h>
 
@@ -63,12 +66,16 @@
 
 
 static void __assert_M(bool exit, const char* expr, const char* file, int line, const char* msg, ...) {
+
+    char* path  = strdup(file);
+    char* bname = basename(path);
     va_list args;
-    fprintf(stderr, "%s:%d Assertion `%s` failed : ", file, line, expr);
+    fprintf(stderr, "%s:%d Assertion `%s` failed : ", bname, line, expr);
     va_start(args, msg);
     vfprintf(stderr, msg, args);
     va_end(args);
     fprintf(stderr, "\n");
+    free(path);
     if( exit ) {
         abort();
     }
