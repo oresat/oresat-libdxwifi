@@ -11,6 +11,7 @@
 
 #include <libdxwifi/details/heap.h>
 #include <libdxwifi/details/utils.h>
+#include <libdxwifi/details/assert.h>
 #include <libdxwifi/details/logging.h>
 
 
