@@ -17,6 +17,7 @@
 #ifndef LIBDXWIFI_LOGGING_H
 #define LIBDXWIFI_LOGGING_H
 
+#include <stdarg.h>
 #include <stdint.h>
 #include <stdbool.h>
 
@@ -38,6 +39,8 @@ typedef enum {
     DXWIFI_LOG_GENERIC      = 0,
     DXWIFI_LOG_TRANSMITTER  = 1,
     DXWIFI_LOG_TX           = 2,
+    DXWIFI_LOG_RECEIVER     = 3,
+    DXWIFI_LOG_RX           = 4,
 
     // Add new modules here
 
