@@ -14,6 +14,7 @@
 
 #include <dxwifi/tx/cli.h>
 
+#include <libdxwifi/dxwifi.h>
 #include <libdxwifi/details/ieee80211.h>
 
 
@@ -101,7 +102,8 @@ static error_t parse_opt(int key, char* arg, struct argp_state *state) {
 
     case 'b':
         args->tx.blocksize = atoi(arg);
-        if(args->tx.blocksize == 0 ) {
+        if(args->tx.blocksize < DXWIFI_BLOCK_SIZE_MIN || args->tx.blocksize > DXWIFI_BLOCK_SIZE_MAX) {
+            argp_error("Blocksize must be in the range(%d, %d)", DXWIFI_BLOCK_SIZE_MIN, DXWIFI_BLOCK_SIZE_MAX);
             argp_usage(state);
         }
         break;
