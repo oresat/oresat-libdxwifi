@@ -10,7 +10,10 @@
 #ifndef LIBDXWIFI_UTILITY_H
 #define LIBDXWIFI_UTILITY_H
 
+
 #include <stdint.h>
+
+#include <sys/stat.h>
 
 
 static inline void set_bit32(uint32_t *word, uint32_t bit) {
@@ -60,6 +63,18 @@ static inline void set_bits16(uint16_t* word, uint16_t mask, uint16_t value) {
 
 static inline uint32_t check_bit16(uint16_t *word, uint16_t bit) {
     return *word & (1 << bit);
+}
+
+
+static bool is_regular_file(const char* path) {
+    struct stat path_stat;
+    return (lstat(path, &path_stat) == 0 && S_ISREG(path_stat.st_mode));
+}
+
+
+static bool is_directory(const char* path) {
+    struct stat path_stat;
+    return (lstat(path, &path_stat) == 0 && S_ISDIR(path_stat.st_mode));
 }
 
 
