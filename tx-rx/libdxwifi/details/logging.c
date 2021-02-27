@@ -29,7 +29,9 @@ static dxwifi_log_handler handlers[DXWIFI_LOG_MODULE_COUNT];
 static const char* file_lookup_tbl[DXWIFI_LOG_MODULE_COUNT] = {
     "generic",
     "transmitter",
-    "tx"
+    "tx",
+    "receiver",
+    "rx"
 };
 
 
@@ -74,14 +76,13 @@ const char* log_module_to_str(dxwifi_log_module_t module) {
     if(0 <= module && module < DXWIFI_LOG_MODULE_COUNT) {
         return file_lookup_tbl[module];
     }
-    return "Unknown";
+    return file_lookup_tbl[0];
 }
 
 
 dxwifi_log_module_t file_to_log_module(const char* file_name) {
 
     char* module_name = basename(file_name);
-
 
     if(module_name) {
         char* extension = index(module_name, '.');
