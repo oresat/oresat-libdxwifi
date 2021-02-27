@@ -9,8 +9,10 @@
 
 #include <string.h>
 
+#include <time.h>
 #include <poll.h>
 #include <errno.h>
+#include <unistd.h>
 
 #include <libdxwifi/dxwifi.h>
 #include <libdxwifi/receiver.h>
@@ -25,7 +27,7 @@
 typedef struct {
     int32_t     frame_number;   /* Number of the frame was sent with        */
     uint8_t*    data;           /* pointer to data inside the packet buffer */
-    size_t      size;           /* Size of the data frame                   */
+    ssize_t     size;           /* Size of the data frame                   */
     bool        crc_valid;      /* Was the attached crc correct?            */
 } packet_heap_node;
 
@@ -79,18 +81,40 @@ static void teardown_frame_controller(frame_controller* fc) {
     fc->index           = 0;
     fc->fd              = 0;
     memset(&fc->rx_stats, 0x00, sizeof(dxwifi_rx_stats));
-
 }
 
 
-static dxwifi_rx_frame* setup_dxwifi_rx_frame(const struct pcap_pkthdr* pkt_stats, const uint8_t* frame) {
-    dxwifi_rx_frame* data = (dxwifi_rx_frame*) frame;
+static dxwifi_rx_frame* parse_rx_frame_fields(const struct pcap_pkthdr* pkt_stats, uint8_t* data) {
+    dxwifi_rx_frame* frame = (dxwifi_rx_frame*) data;
 
-    data->__frame   = frame;
-    data->rtap_hdr  = (ieee80211_radiotap_hdr*) frame;
-    data->mac_hdr   = (ieee80211_hdr*)(frame + data->rtap_hdr->it_len);
-    data->payload   = frame + data->rtap_hdr->it_len + sizeof(ieee80211_hdr);
-    data->fcs       = frame + pkt_stats->caplen - IEEE80211_FCS_SIZE;
+    frame->__frame   = data;
+    frame->rtap_hdr  = (ieee80211_radiotap_hdr*) data;
+    frame->mac_hdr   = (ieee80211_hdr*)(data + frame->rtap_hdr->it_len);
+    frame->payload   = data + frame->rtap_hdr->it_len + sizeof(ieee80211_hdr);
+    frame->fcs       = data + pkt_stats->caplen - IEEE80211_FCS_SIZE;
+    return frame;
+}
+
+
+static void log_frame_stats(dxwifi_rx_frame* frame, dxwifi_rx_stats* rx_stats) {
+
+    char timestamp[256];
+    struct tm *time;
+
+    uint32_t frame_number = extract_frame_number(frame->mac_hdr);
+
+    time = gmtime(&rx_stats->pkt_stats.ts.tv_sec);
+    strftime(timestamp, sizeof(timestamp), "%Y-%m-%d %H:%M:%S", time);
+
+    log_debug(
+        "%d: (%s:%d) - (Capture Length, Packet Length) = (%d, %d)", 
+        frame_number,
+        timestamp, 
+        rx_stats->pkt_stats.ts.tv_usec,
+        rx_stats->pkt_stats.caplen, 
+        rx_stats->pkt_stats.len
+        );
+    log_hexdump(frame->__frame, rx_stats->pkt_stats.caplen);
 }
 
 
@@ -103,7 +127,8 @@ static void dump_packet_buffer(frame_controller* fc) {
 
     while(heap_pop(&fc->packet_heap, &node)) {
 
-        if(expected_frame != node.frame_number) { // Data block is missing
+        // Data block is missing
+        if(expected_frame != node.frame_number) { 
 
             // Add noise 
 
@@ -125,27 +150,30 @@ static void dump_packet_buffer(frame_controller* fc) {
 static void process_frame(uint8_t* args, const struct pcap_pkthdr* pkt_stats, const uint8_t* frame) { 
     frame_controller* fc = (frame_controller*) args;
 
-    dxwifi_rx_frame* rx_frame = setup_dxwifi_rx_frame(pkt_stats, frame);
-
-    size_t payload_size = rx_frame->fcs - rx_frame->payload;
-
     // Buffer is full, write it out first
     if( fc->index + pkt_stats->caplen >= fc->pb_size ) {
         dump_packet_buffer(fc);
     }
-    // Copy payload data into the buffer
-    memcpy(fc->packet_buffer + fc->index, rx_frame->payload, payload_size);
+
+    uint8_t* buffer_slot = fc->packet_buffer + fc->index;
+
+    memcpy(buffer_slot, frame, pkt_stats->caplen);
+
+    dxwifi_rx_frame* rx_frame = parse_rx_frame_fields(pkt_stats, buffer_slot);
+
+    ssize_t payload_size = rx_frame->fcs - rx_frame->payload;
 
     // Add node to heap
     packet_heap_node node = {
         .frame_number   = extract_frame_number(rx_frame->mac_hdr),
-        .data           = fc->packet_buffer + fc->index,
+        .data           = rx_frame->payload,
         .size           = payload_size,
         .crc_valid      = false // TODO verify CRC
     };
+
     heap_push(&fc->packet_heap, &node);
 
-    // Update next write position and update stats
+    // Update next write position and stats
     fc->index += payload_size; 
     fc->rx_stats.total_caplen += pkt_stats->caplen;
     fc->rx_stats.total_payload_size += payload_size;
@@ -179,29 +207,6 @@ static void log_rx_configuration(const dxwifi_receiver* rx, const char* dev_name
 }
 
 
-static void log_frame_stats(dxwifi_rx_frame* frame, dxwifi_rx_stats* rx_stats) {
-
-    char timestamp[256];
-    struct tm *time;
-
-    uint32_t frame_number = extract_frame_number(frame->mac_hdr);
-
-    time = gmtime(&rx_stats->pkt_stats.ts.tv_sec);
-    strftime(timestamp, sizeof(timestamp), "%Y-%m-%d %H:%M:%S", time);
-
-    log_debug(
-        "%d: (%s:%d) - (Capture Length, Packet Length) = (%d, %d)", 
-        frame_number,
-        timestamp, 
-        rx_stats->pkt_stats.ts.tv_usec,
-        rx_stats->pkt_stats.caplen, 
-        rx_stats->pkt_stats.len
-        );
-    log_hexdump(frame->__frame, rx_stats->pkt_stats.caplen);
-}
-
-
-
 void init_receiver(dxwifi_receiver* rx, const char* device_name) {
     debug_assert(rx && rx->filter);
 
@@ -209,6 +214,7 @@ void init_receiver(dxwifi_receiver* rx, const char* device_name) {
     struct bpf_program filter;
     char err_buff[PCAP_ERRBUF_SIZE];
 
+    rx->__activated = false;
     rx->__handle = pcap_open_live(
                         device_name,
                         rx->snaplen,
@@ -243,7 +249,7 @@ void close_receiver(dxwifi_receiver* receiver) {
 }
 
 
-dxwifi_rx_stats receiver_activate_capture(dxwifi_receiver* rx, int fd) {
+void receiver_activate_capture(dxwifi_receiver* rx, int fd, dxwifi_rx_stats* out) {
     debug_assert(rx && rx->__handle);
 
     int status = 0;
@@ -263,29 +269,39 @@ dxwifi_rx_stats receiver_activate_capture(dxwifi_receiver* rx, int fd) {
         status = poll(&request, 1, rx->capture_timeout * 1000);
         if(status == 0) {
             log_info("Reciever timeout occured");
+            fc.rx_stats.capture_state = DXWIFI_RX_TIMED_OUT;
             rx->__activated = false;
         }
         else if(status < 0) {
             if(rx->__activated) { 
                 log_error("Error occured: %s", strerror(errno));
+                fc.rx_stats.capture_state = DXWIFI_RX_ERROR;
             }
-            rx->__activated = false;
+            else {
+                fc.rx_stats.capture_state = DXWIFI_RX_DEACTIVATED;
+            }
         }
         else {
             status = pcap_dispatch(rx->__handle, rx->dispatch_count, process_frame, NULL);
 
             debug_assert_continue(status != PCAP_ERROR, "Capture failure: %s", pcap_statustostr(status));
+
+            fc.rx_stats.capture_state = DXWIFI_RX_NORMAL;
         }
     }
     log_info("DxWiFi Reciever capture ended");
 
-    dump_packet_buffer(&fc); // Flush out what's leftover in the buffer
+    dump_packet_buffer(&fc); // Flush out whatever's leftover in the buffer
 
-    dxwifi_rx_stats stats = fc.rx_stats;
+    if( pcap_stats(rx->__handle, &fc.rx_stats.pcap_stats) == PCAP_ERROR) {
+        log_info("Failed to gather capture stats from PCAP");
+    }
+
+    if(out) {
+        *out = fc.rx_stats;
+    }
 
     teardown_frame_controller(&fc);
-
-    return stats;
 }
 
 void receiver_stop_capture(dxwifi_receiver* rx) {

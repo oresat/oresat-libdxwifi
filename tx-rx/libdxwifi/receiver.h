@@ -33,6 +33,13 @@
  *  Data structures
  ***********************/
 
+typedef enum {
+    DXWIFI_RX_NORMAL,
+    DXWIFI_RX_TIMED_OUT,
+    DXWIFI_RX_DEACTIVATED,
+    DXWIFI_RX_ERROR
+} dxwifi_rx_state_t;
+
 /**
  *  The DxWifi RX frame structure comes in like this:
  * 
@@ -57,13 +64,18 @@ typedef struct {
 } dxwifi_rx_frame;
 
 
+/**
+ *  The stats object is used to track information about each data frame captured
+ *  as well as overall capture statistics.
+ */
 typedef struct {
-    uint32_t            total_payload_size;     /* Accumulated size of each payload */
-    uint32_t            total_writelen;         /* Total number of bytes written out*/
-    uint32_t            total_caplen;           /* Total number of bytes captured   */
-    uint32_t            total_blocks_lost;      /* Number of data blocks lost       */
-    struct pcap_pkthdr  pkt_stats;              /* Stats for the current capture    */
-    struct pcap_stat    pcap_stats;             /* Pcap statistics                  */
+    uint32_t                total_payload_size;     /* Accumulated size of each payload */
+    uint32_t                total_writelen;         /* Total number of bytes written out*/
+    uint32_t                total_caplen;           /* Total number of bytes captured   */
+    uint32_t                total_blocks_lost;      /* Number of data blocks lost       */
+    dxwifi_rx_state_t       capture_state;          /* State of last capture            */
+    struct pcap_pkthdr      pkt_stats;              /* Stats for the current capture    */
+    struct pcap_stat        pcap_stats;             /* Pcap statistics                  */
 } dxwifi_rx_stats;
 
 
@@ -129,12 +141,15 @@ void close_receiver(dxwifi_receiver* receiver);
  * 
  *      fd:         File descriptor to write out payload data to
  * 
+ *      out:        pointer to an allocated stats object or NULL if stats aren't
+ *                  needed
+ * 
  * 
  *  NOTES: Packet data is buffered before it is written out. The receiver also
  *  supports options for ordering the packets and filling in missing data with
  *  noise before it is written out. By default, these options are disabled.
  */
-dxwifi_rx_stats receiver_activate_capture(dxwifi_receiver* receiver, int fd);
+void receiver_activate_capture(dxwifi_receiver* receiver, int fd, dxwifi_rx_stats* out);
 
 
 /**
@@ -148,7 +163,7 @@ dxwifi_rx_stats receiver_activate_capture(dxwifi_receiver* receiver, int fd);
  *  most at least one more packet may be processed.
  * 
  */
-void reciever_stop_capture(dxwifi_receiver* receiver);
+void receiver_stop_capture(dxwifi_receiver* receiver);
 
 
 #endif // LIBDXWIFI_RECEIVER_H
