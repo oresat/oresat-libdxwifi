@@ -103,7 +103,7 @@ static error_t parse_opt(int key, char* arg, struct argp_state *state) {
     case 'b':
         args->tx.blocksize = atoi(arg);
         if(args->tx.blocksize < DXWIFI_BLOCK_SIZE_MIN || args->tx.blocksize > DXWIFI_BLOCK_SIZE_MAX) {
-            argp_error("Blocksize must be in the range(%d, %d)", DXWIFI_BLOCK_SIZE_MIN, DXWIFI_BLOCK_SIZE_MAX);
+            argp_error(state, "Blocksize must be in the range(%d, %d)", DXWIFI_BLOCK_SIZE_MIN, DXWIFI_BLOCK_SIZE_MAX);
             argp_usage(state);
         }
         break;

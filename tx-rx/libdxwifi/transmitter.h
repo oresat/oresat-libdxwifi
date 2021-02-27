@@ -45,7 +45,6 @@
  *  Data structures
  ***********************/
 
-
 /**
  *  The radiotap header is used to communicate to the driver information about 
  *  our packet. The header data itself is discarded before transmission.
@@ -93,12 +92,25 @@ typedef struct {
 } dxwifi_tx_frame;
 
 
+typedef enum {
+    DXWIFI_TX_NORMAL,
+    DXWIFI_TX_TIMED_OUT,
+    DXWIFI_TX_DEACTIVATED,
+    DXWIFI_TX_ERROR
+} dxwifi_tx_state_t;
+
+
+/**
+ *  The stats object is used to track information about each block of data that
+ *  is transmitted as well as overall stats about the transmission
+ */
 typedef struct {
-    uint32_t frame_count;                   /* number of frames sent        */
-    uint32_t total_bytes_read;              /* total bytes read from source */
-    uint32_t total_bytes_sent;              /* total of bytes sent via pcap */
-    uint32_t prev_bytes_read;               /* Size of last read            */
-    uint32_t prev_bytes_sent;               /* Size of last transmission    */
+    uint32_t            frame_count;        /* number of frames sent        */
+    uint32_t            total_bytes_read;   /* total bytes read from source */
+    uint32_t            total_bytes_sent;   /* total of bytes sent via pcap */
+    uint32_t            prev_bytes_read;    /* Size of last read            */
+    uint32_t            prev_bytes_sent;    /* Size of last transmission    */
+    dxwifi_tx_state_t   tx_state;           /* State of last transmission   */
 } dxwifi_tx_stats;
 
 
@@ -291,9 +303,12 @@ bool remove_postinject_handler(dxwifi_transmitter* tx, int index);
  * 
  *  ARGUMENTS:
  * 
- *      transmitter:    pointer to an allocated transmitter object
+ *      transmitter:    Pointer to an allocated transmitter object
  * 
  *      fd:             File descriptor of the data to be sent. 
+ * 
+ *      out:            Pointer to an allocated stats object or NULL if stats
+ *                      aren't needed.
  * 
  * 
  *  NOTES: fd can be any unix file descriptor. device, stdin, regular file, etc. 
@@ -303,7 +318,7 @@ bool remove_postinject_handler(dxwifi_transmitter* tx, int index);
  *  transmitter on a different thread if blocking is unacceptable.
  * 
  */
-dxwifi_tx_stats start_transmission(dxwifi_transmitter* transmitter, int fd);
+void start_transmission(dxwifi_transmitter* transmitter, int fd, dxwifi_tx_stats* out);
 
 
 /**

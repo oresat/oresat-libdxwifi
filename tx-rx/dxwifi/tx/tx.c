@@ -76,7 +76,7 @@ int main(int argc, char** argv) {
 
     set_log_level(DXWIFI_LOG_ALL_MODULES, args.verbosity);
 
-    init_transmitter(transmitter, "mon0");
+    init_transmitter(transmitter, args.device);
 
     if(args.tx_delay > 0 ) {
         attach_preinject_handler(transmitter, delay_transmission, &args.tx_delay);
@@ -94,32 +94,38 @@ int main(int argc, char** argv) {
 
 
 void sigint_handler(int signum) {
+    // TODO need to come up with a better strategy to gracefully exit the application
     signal(SIGINT, SIG_IGN);
     stop_transmission(transmitter);
-    signal(SIGINT, SIG_DFL);
+    signal(SIGINT, sigint_handler);
 }
 
 
 void transmit(cli_args* args, dxwifi_transmitter* tx) {
     int fd = 0;
-    dxwifi_tx_stats tx_stats;
+    dxwifi_tx_stats tx_stats = {
+        .tx_state = DXWIFI_TX_NORMAL
+    };
 
-    signal(SIGINT, sigint_handler);
     switch (args->tx_mode)
     {
     case TX_STREAM_MODE:
-        tx_stats = start_transmission(tx, STDIN_FILENO);
+        signal(SIGINT, sigint_handler);
+        start_transmission(tx, STDIN_FILENO, &tx_stats);
+        signal(SIGINT, SIG_DFL);
         log_tx_stats(tx_stats);
         break;
 
     case TX_FILE_MODE:
-        for(int i = 0; i < TX_CLI_FILE_MAX && args->files[i] != NULL; ++i) {
+        for(int i = 0; i < TX_CLI_FILE_MAX && args->files[i] != NULL && tx_stats.tx_state == DXWIFI_TX_NORMAL; ++i) {
             if((fd = open(args->files[i], O_RDONLY)) < 0 ) {
                 log_error("Failed to open file: %s", args->files[i]);
             }
             else {
                 log_info("Sending %s", args->files[i]);
-                tx_stats = start_transmission(tx, fd);
+                signal(SIGINT, sigint_handler);
+                start_transmission(tx, fd, &tx_stats);
+                signal(SIGINT, SIG_DFL);
                 log_tx_stats(tx_stats);
                 close(fd);
             }
