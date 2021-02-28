@@ -81,14 +81,11 @@ static error_t parse_opt(int key, char* arg, struct argp_state *state) {
 
     case ARGP_KEY_END:
         if(state->arg_num > 0) {
-            if(is_regular_file(args->output_path)) {
-                args->rx_mode = RX_FILE_MODE;
-            }
-            else if (is_directory(args->output_path) ) {
+            if (is_directory(args->output_path) ) {
                 args->rx_mode = RX_DIRECTORY_MODE;
             }
             else {
-                argp_error(state, "`%s` is neither a file or directory", args->output_path);
+                args->rx_mode = RX_FILE_MODE;
             }
         }
         else {
@@ -110,6 +107,7 @@ static error_t parse_opt(int key, char* arg, struct argp_state *state) {
 
     case 'c':
         args->rx.dispatch_count = atoi(arg);
+        break;
 
     case 'b':
         args->rx.packet_buffer_size = atoi(arg);
