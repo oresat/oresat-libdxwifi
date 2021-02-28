@@ -86,14 +86,14 @@ static void teardown_frame_controller(frame_controller* fc) {
 }
 
 
-static dxwifi_rx_frame* parse_rx_frame_fields(const struct pcap_pkthdr* pkt_stats, uint8_t* data) {
-    dxwifi_rx_frame* frame = (dxwifi_rx_frame*) data;
+static dxwifi_rx_frame parse_rx_frame_fields(const struct pcap_pkthdr* pkt_stats, uint8_t* data) {
+    dxwifi_rx_frame frame;
 
-    frame->__frame   = data;
-    frame->rtap_hdr  = (ieee80211_radiotap_hdr*) data;
-    frame->mac_hdr   = (ieee80211_hdr*)(data + frame->rtap_hdr->it_len);
-    frame->payload   = data + frame->rtap_hdr->it_len + sizeof(ieee80211_hdr);
-    frame->fcs       = data + pkt_stats->caplen - IEEE80211_FCS_SIZE;
+    frame.__frame   = data;
+    frame.rtap_hdr  = (ieee80211_radiotap_hdr*) data;
+    frame.mac_hdr   = (ieee80211_hdr*)(data + frame.rtap_hdr->it_len);
+    frame.payload   = data + frame.rtap_hdr->it_len + sizeof(ieee80211_hdr);
+    frame.fcs       = data + pkt_stats->caplen - IEEE80211_FCS_SIZE;
     return frame;
 }
 
@@ -140,7 +140,7 @@ static void dump_packet_buffer(frame_controller* fc) {
         }
 
         nbytes = write(fc->fd, node.data, node.size);
-        debug_assert_continue(nbytes == node.size, "Warning, Partial write occured");
+        debug_assert_continue(nbytes == node.size, "Partial write: %d - %s", nbytes, strerror(errno));
 
         fc->rx_stats.total_writelen += nbytes;
         expected_frame = node.frame_number + 1;
@@ -157,31 +157,32 @@ static void process_frame(uint8_t* args, const struct pcap_pkthdr* pkt_stats, co
         dump_packet_buffer(fc);
     }
 
+    // Next available slot in the packet buffer
     uint8_t* buffer_slot = fc->packet_buffer + fc->index;
 
+    // Copy the entire frame into the packet buffer
     memcpy(buffer_slot, frame, pkt_stats->caplen);
 
-    dxwifi_rx_frame* rx_frame = parse_rx_frame_fields(pkt_stats, buffer_slot);
+    dxwifi_rx_frame rx_frame = parse_rx_frame_fields(pkt_stats, buffer_slot);
 
-    ssize_t payload_size = rx_frame->fcs - rx_frame->payload;
+    ssize_t payload_size = rx_frame.fcs - rx_frame.payload;
 
-    // Add node to heap
+    // Heap node only points to the payload data
     packet_heap_node node = {
-        .frame_number   = extract_frame_number(rx_frame->mac_hdr),
-        .data           = rx_frame->payload,
+        .frame_number   = extract_frame_number(rx_frame.mac_hdr),
+        .data           = rx_frame.payload,
         .size           = payload_size,
         .crc_valid      = false // TODO verify CRC
     };
-
     heap_push(&fc->packet_heap, &node);
 
     // Update next write position and stats
-    fc->index += payload_size; 
-    fc->rx_stats.total_caplen += pkt_stats->caplen;
+    fc->index                       += pkt_stats->caplen; 
+    fc->rx_stats.total_caplen       += pkt_stats->caplen;
     fc->rx_stats.total_payload_size += payload_size;
     memcpy(&fc->rx_stats.pkt_stats, pkt_stats, sizeof(struct pcap_pkthdr));
 
-    log_frame_stats(rx_frame, &fc->rx_stats);
+    log_frame_stats(&rx_frame, &fc->rx_stats);
 }
 
 
@@ -247,7 +248,7 @@ void close_receiver(dxwifi_receiver* receiver) {
 
     pcap_close(receiver->__handle);
 
-    log_info("DxWiFi receiver clossed");
+    log_info("DxWiFi receiver closed");
 }
 
 
@@ -284,7 +285,7 @@ void receiver_activate_capture(dxwifi_receiver* rx, int fd, dxwifi_rx_stats* out
             }
         }
         else {
-            status = pcap_dispatch(rx->__handle, rx->dispatch_count, process_frame, NULL);
+            status = pcap_dispatch(rx->__handle, rx->dispatch_count, process_frame, (uint8_t*)&fc);
 
             debug_assert_continue(status != PCAP_ERROR, "Capture failure: %s", pcap_statustostr(status));
 
