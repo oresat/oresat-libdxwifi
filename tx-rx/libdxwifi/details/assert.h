@@ -7,8 +7,8 @@
  *  Why not use the standard library <assert.h>? The standard assert libary does
  *  not support formatted messages which can be extremely helpful for debugging.
  *  Also, assert calls are compiled out if NDEBUG is defined, which means that 
- *  if we need to hard assert during in release builds to alert the user or 
- *  parent parent of some irrecoverable error then we wouldn't be able to. 
+ *  if we need to hard assert in a release builds to alert the user or parent 
+ *  process of some irrecoverable error then we wouldn't be able to. 
  * 
  *  With that said, assert functions prefixed with `debug` are culled during 
  *  release builds and should be used to verify programmer errors like failure 
