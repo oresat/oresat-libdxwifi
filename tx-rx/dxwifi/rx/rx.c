@@ -38,7 +38,7 @@ void capture_in_directory(const char* dirname, const char* file_prefix, const ch
 int main(int argc, char** argv) {
     cli_args args = {
         .rx_mode        = RX_STREAM_MODE,
-        .verbosity      = DXWIFI_LOG_OFF,
+        .verbosity      = DXWIFI_LOG_INFO,
         .append         = false,
         .device         = "mon0",
         .output_path    = ".",
@@ -75,7 +75,7 @@ int main(int argc, char** argv) {
 dxwifi_rx_state_t open_file_and_capture(const char* path, dxwifi_receiver* rx, bool append) {
     int fd          = 0;
     int open_flags  = O_WRONLY | O_CREAT | (append ? O_APPEND : 0);
-    mode_t mode     = S_IRWXU  | S_IRWXO;
+    mode_t mode     = S_IRUSR  | S_IWUSR | S_IROTH | S_IWOTH; 
 
     dxwifi_rx_stats stats;
     if((fd = open(path, open_flags, mode)) < 0) {

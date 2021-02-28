@@ -39,7 +39,7 @@ int main(int argc, char** argv) {
 
     cli_args args = {
         .tx_mode    = TX_STREAM_MODE,
-        .verbosity  = DXWIFI_LOG_OFF,
+        .verbosity  = DXWIFI_LOG_INFO,
         .tx_delay   = 0,
         .device     = "mon0",
 
