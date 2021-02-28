@@ -288,7 +288,7 @@ void start_transmission(dxwifi_transmitter* tx, int fd, dxwifi_tx_stats* out) {
 
                 status = pcap_inject(tx->__handle, data_frame.__frame, DXWIFI_TX_HEADER_SIZE + payload_size + IEEE80211_FCS_SIZE);
 
-                debug_assert_continue(status > 0, "Injection failure: %s", pcap_statustostr(status));
+                assert_continue(status > 0, "Injection failure: %s", pcap_statustostr(status));
 
                 stats.tx_state          = DXWIFI_TX_NORMAL;
                 stats.prev_bytes_sent   = status;

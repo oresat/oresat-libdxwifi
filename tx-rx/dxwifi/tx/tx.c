@@ -33,6 +33,8 @@ size_t log_frame_stats(dxwifi_tx_frame* frame, size_t payload_size, dxwifi_tx_st
 
 size_t delay_transmission(dxwifi_tx_frame* frame, size_t payload_size, dxwifi_tx_stats stats, void* user);
 
+size_t attach_frame_number(dxwifi_tx_frame* frame, size_t payload_size, dxwifi_tx_stats stats, void* user);
+
 void transmit(cli_args* args, dxwifi_transmitter* tx);
 
 int main(int argc, char** argv) {
@@ -80,6 +82,9 @@ int main(int argc, char** argv) {
 
     if(args.tx_delay > 0 ) {
         attach_preinject_handler(transmitter, delay_transmission, &args.tx_delay);
+    }
+    if(args.tx.rtap_flags & IEEE80211_RADIOTAP_F_TX_ORDER) {
+        attach_preinject_handler(transmitter, attach_frame_number, NULL);
     }
     if(args.verbosity > DXWIFI_LOG_INFO ) {
         attach_postinject_handler(transmitter, log_frame_stats, NULL);
@@ -131,6 +136,10 @@ void transmit(cli_args* args, dxwifi_transmitter* tx) {
             }
         }
         break;
+
+    case TX_DIRECTORY_MODE:
+        // TODO
+        break;
     
     default:
         break;
@@ -166,3 +175,13 @@ size_t delay_transmission(dxwifi_tx_frame* frame, size_t payload_size, dxwifi_tx
 
     return payload_size;
 }
+
+
+size_t attach_frame_number(dxwifi_tx_frame* frame, size_t payload_size, dxwifi_tx_stats stats, void* user) {
+    uint32_t* frame_no = (uint32_t*)&frame->mac_hdr->addr1[2];
+
+    *frame_no = htonl(stats.frame_count);
+
+    return payload_size;
+}
+
