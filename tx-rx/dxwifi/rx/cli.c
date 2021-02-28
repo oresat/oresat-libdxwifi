@@ -43,6 +43,8 @@ static struct argp_option opts[] = {
     { "dispatch-count", 'c', "<number>",            0, "Number of packets to process at a time",                                PRIMARY_GROUP },
     { "buffsize",       'b', "<nbytes>",            0, "Size of intermediate packet buffer in bytes",                           PRIMARY_GROUP },
     { "append",         'a', 0,                     0, "Open files in append mode",                                             PRIMARY_GROUP },
+    { "ordered",        'o', 0,                     0, "Expect packets to have sequence informations",                          PRIMARY_GROUP },
+    { "add-noise",      'n', 0,                     0, "Add noise for missing packets",                                         PRIMARY_GROUP },
 
     { 0, 0, 0, 0, "The following settings are only applicable when outputting to a directory",      DIRECTORY_MODE_GROUP },
     { "prefix",         'p', "<file-prefix>",       0, "What to name each created file",            DIRECTORY_MODE_GROUP },
@@ -134,6 +136,14 @@ static error_t parse_opt(int key, char* arg, struct argp_state *state) {
 
     case 'e': 
         args->file_extension = arg;
+        break;
+
+    case 'o':
+        args->rx.ordered = true;
+        break;
+
+    case 'n':
+        args->rx.add_noise = true;
         break;
 
     case GET_KEY(SNAPLEN, PCAP_SETTINGS_GROUP):

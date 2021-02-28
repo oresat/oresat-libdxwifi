@@ -25,15 +25,17 @@
 
 dxwifi_receiver* receiver = NULL;
 
+
 void sigint_handler(int signum);
 
 void log_rx_stats(dxwifi_rx_stats stats);
 
 void receive(cli_args* args, dxwifi_receiver* rx);
 
+void capture_in_directory(cli_args* args, dxwifi_receiver* rx);
+
 dxwifi_rx_state_t open_file_and_capture(const char* path, dxwifi_receiver* rx, bool append);
 
-void capture_in_directory(const char* dirname, const char* file_prefix, const char* file_suffix, dxwifi_receiver* rx);
 
 int main(int argc, char** argv) {
     cli_args args = {
@@ -48,6 +50,9 @@ int main(int argc, char** argv) {
             .dispatch_count     = 32,
             .capture_timeout    = -1, // No timeout
             .packet_buffer_size = DXWIFI_RX_PACKET_BUFFER_SIZE_MAX,
+            .ordered            = false,
+            .add_noise          = false,
+            .noise_value        = 0xff,
             .filter             = "wlan addr2 aa:aa:aa:aa:aa:aa",
             .optimize           = true,
             .snaplen            = DXWIFI_SNAPLEN_MAX,
@@ -93,15 +98,15 @@ dxwifi_rx_state_t open_file_and_capture(const char* path, dxwifi_receiver* rx, b
 }
 
 
-void capture_in_directory(const char* dirname, const char* file_prefix, const char* file_suffix, dxwifi_receiver* rx) {
+void capture_in_directory(cli_args* args, dxwifi_receiver* rx) {
     int count = 0;
     char path[PATH_MAX]; 
 
     dxwifi_rx_state_t state = DXWIFI_RX_NORMAL;
     while(state == DXWIFI_RX_NORMAL) {
-        sprintf(path, "%s/%s_%d.%s", dirname, file_prefix, count++, file_suffix);
+        sprintf(path, "%s/%s_%d.%s", args->output_path, args->file_prefix, count++, args->file_extension);
 
-        state = open_file_and_capture(path, rx, false);
+        state = open_file_and_capture(path, rx, args->append);
     }
 }
 
@@ -123,7 +128,7 @@ void receive(cli_args* args, dxwifi_receiver* rx) {
         break;
 
     case RX_DIRECTORY_MODE:
-        capture_in_directory(args->output_path, args->file_prefix, args->file_extension, rx);
+        capture_in_directory(args, rx);
         break;
     
     default:
@@ -137,12 +142,14 @@ void log_rx_stats(dxwifi_rx_stats stats) {
     log_info(
         "Receiver Capture Stats\n"
         "\tTotal Payload Size:          %d\n"
-        "\tData Written Out:            %d\n"
+        "\tTotal Write length:          %d\n"
         "\tTotal Capture Size:          %d\n"
         "\tTotal Blocks Lost:           %d\n"
         "\tPackets Received:            %d\n"
         "\tPackets Dropped (Kernel):    %d\n"
-        "\tPackets Dropped (NIC):       %d\n",
+        "\tPackets Dropped (NIC):       %d\n"
+        "\tNote: Packet drop data is platform dependent.\n"
+        "\tBlocks lost is only valid when `ordered` flag is set\n",
         stats.total_payload_size,
         stats.total_writelen,
         stats.total_caplen,
