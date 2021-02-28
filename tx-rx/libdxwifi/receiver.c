@@ -14,6 +14,8 @@
 #include <errno.h>
 #include <unistd.h>
 
+#include <arpa/inet.h>
+
 #include <libdxwifi/dxwifi.h>
 #include <libdxwifi/receiver.h>
 #include <libdxwifi/details/heap.h>
