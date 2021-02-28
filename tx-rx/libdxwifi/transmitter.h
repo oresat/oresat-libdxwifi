@@ -142,7 +142,7 @@ typedef size_t (*dxwifi_tx_frame_cb)(
  *  about the current state of transmission as well as give the user the ability
  *  to copy/read data on the frame before it is reused. Lastly, both preinject
  *  and postinject handlers can be used as event signals for the user space to
- *  perform arbitrary tasks like logging, sleep for transsmission delay, etc. 
+ *  perform arbitrary tasks like logging, sleep for transmission delay, etc. 
  */
 typedef struct {
     dxwifi_tx_frame_cb  callback;
