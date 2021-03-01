@@ -39,7 +39,6 @@ typedef struct {
     uint8_t*                packet_buffer;  /* Buffer to copy captured packets*/
     size_t                  pb_size;        /* Size of packet buffer          */
     size_t                  index;          /* Index to next write position   */
-    size_t                  count;          /* Number of packets in the buffer*/
     const dxwifi_receiver*  rx;             /* Reference to owning receiver   */
     dxwifi_rx_stats         rx_stats;       /* Capture statistics             */
     int                     fd;             /* Sink to write out data         */
@@ -101,21 +100,18 @@ static dxwifi_rx_frame parse_rx_frame_fields(const struct pcap_pkthdr* pkt_stats
 }
 
 
-static void log_frame_stats(dxwifi_rx_frame* frame, dxwifi_rx_stats* rx_stats) {
+static void log_frame_stats(dxwifi_rx_frame* frame, int32_t frame_no, dxwifi_rx_stats* rx_stats) {
 
     char timestamp[256];
     struct tm *time;
-
-    uint32_t frame_number = extract_frame_number(frame->mac_hdr);
 
     time = gmtime(&rx_stats->pkt_stats.ts.tv_sec);
     strftime(timestamp, sizeof(timestamp), "%Y-%m-%d %H:%M:%S", time);
 
     log_debug(
-        "%d: (%s:%d) - (Capture Length, Packet Length) = (%d, %d)", 
-        frame_number,
+        "%d - (%s) - (Capture Length=%d, Packet Length=%d)", 
+        frame_no,
         timestamp, 
-        rx_stats->pkt_stats.ts.tv_usec,
         rx_stats->pkt_stats.caplen, 
         rx_stats->pkt_stats.len
         );
@@ -157,7 +153,6 @@ static void dump_packet_buffer(frame_controller* fc) {
         expected_frame = node.frame_number + 1;
     }
     fc->index = 0; // Reset the write position and reuse the buffer
-    fc->count = 0;
 }
 
 
@@ -181,7 +176,9 @@ static void process_frame(uint8_t* args, const struct pcap_pkthdr* pkt_stats, co
 
     ssize_t payload_size = rx_frame.fcs - rx_frame.payload;
 
-    int32_t frame_number = (fc->rx->ordered ? extract_frame_number(rx_frame.mac_hdr) : fc->count);
+    int32_t frame_number = (fc->rx->ordered 
+        ? extract_frame_number(rx_frame.mac_hdr) 
+        : fc->rx_stats.num_packets_processed);
 
     // Heap node only points to the payload data
     packet_heap_node node = {
@@ -193,13 +190,13 @@ static void process_frame(uint8_t* args, const struct pcap_pkthdr* pkt_stats, co
     heap_push(&fc->packet_heap, &node);
 
     // Update next write position and stats
-    fc->count                       += 1;
-    fc->index                       += pkt_stats->caplen; 
-    fc->rx_stats.total_caplen       += pkt_stats->caplen;
-    fc->rx_stats.total_payload_size += payload_size;
+    fc->index                           += pkt_stats->caplen; 
+    fc->rx_stats.total_caplen           += pkt_stats->caplen;
+    fc->rx_stats.total_payload_size     += payload_size;
+    fc->rx_stats.num_packets_processed  += 1;
     memcpy(&fc->rx_stats.pkt_stats, pkt_stats, sizeof(struct pcap_pkthdr));
 
-    log_frame_stats(&rx_frame, &fc->rx_stats);
+    log_frame_stats(&rx_frame, frame_number, &fc->rx_stats);
 }
 
 
