@@ -15,6 +15,8 @@
 #include <unistd.h>
 #include <signal.h>
 
+#include <arpa/inet.h>
+
 #include <dxwifi/tx/cli.h>
 
 #include <libdxwifi/dxwifi.h>
