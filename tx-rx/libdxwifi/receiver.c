@@ -41,6 +41,7 @@ typedef struct {
     size_t                  index;          /* Index to next write position   */
     bool                    eot_reached;    /* EOT signalled?                 */
     bool                    preamble_recv;  /* Received preamble?             */
+    bool                    end_capture;    /* eot && preamble?               */
     const dxwifi_receiver*  rx;             /* Reference to owning receiver   */
     dxwifi_rx_stats         rx_stats;       /* Capture statistics             */
     int                     fd;             /* Sink to write out data         */
@@ -167,10 +168,8 @@ static void handle_frame_control(frame_controller* fc, dxwifi_control_frame_t ty
     switch (type)
     {
     case DXWIFI_CONTROL_FRAME_PREAMBLE:
-        // Missed previous files EOT, signal we need to switch to the next file
-        if(fc->rx_stats.num_packets_processed > 0 && !fc->eot_reached) {
-            log_warning("EOT was signalled but never received");
-            fc->eot_reached = true;
+        if(fc->rx_stats.num_packets_processed > 0) {
+            fc->end_capture = true;
         }
         else if(!fc->preamble_recv){
             log_info("Uplink established!");
@@ -369,7 +368,7 @@ void receiver_activate_capture(dxwifi_receiver* rx, int fd, dxwifi_rx_stats* out
     log_info("Starting packet capture...");
     rx->__activated = true;
 
-    while(rx->__activated && !fc.eot_reached) {
+    while(rx->__activated && !fc.end_capture) {
 
         status = poll(&request, 1, rx->capture_timeout * 1000);
 
