@@ -145,6 +145,7 @@ void log_rx_stats(dxwifi_rx_stats stats) {
         "\tTotal Write length:          %d\n"
         "\tTotal Capture Size:          %d\n"
         "\tTotal Blocks Lost:           %d\n"
+        "\tTotal Noise Added:           %d\n"
         "\tPackets Received:            %d\n"
         "\tPackets Dropped (Kernel):    %d\n"
         "\tPackets Dropped (NIC):       %d\n"
@@ -154,6 +155,7 @@ void log_rx_stats(dxwifi_rx_stats stats) {
         stats.total_writelen,
         stats.total_caplen,
         stats.total_blocks_lost,
+        stats.total_noise_added,
         stats.pcap_stats.ps_recv,
         stats.pcap_stats.ps_drop,
         stats.pcap_stats.ps_ifdrop

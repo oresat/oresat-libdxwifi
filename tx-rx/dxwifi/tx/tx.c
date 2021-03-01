@@ -37,6 +37,7 @@ size_t attach_frame_number(dxwifi_tx_frame* frame, size_t payload_size, dxwifi_t
 
 void transmit(cli_args* args, dxwifi_transmitter* tx);
 
+
 int main(int argc, char** argv) {
 
     cli_args args = {
@@ -83,7 +84,7 @@ int main(int argc, char** argv) {
     if(args.tx_delay > 0 ) {
         attach_preinject_handler(transmitter, delay_transmission, &args.tx_delay);
     }
-    if(args.tx.rtap_flags & IEEE80211_RADIOTAP_F_TX_ORDER) {
+    if(args.tx.rtap_tx_flags & IEEE80211_RADIOTAP_F_TX_ORDER) {
         attach_preinject_handler(transmitter, attach_frame_number, NULL);
     }
     if(args.verbosity > DXWIFI_LOG_INFO ) {
@@ -144,7 +145,6 @@ void transmit(cli_args* args, dxwifi_transmitter* tx) {
     default:
         break;
     }
-    signal(SIGINT, SIG_DFL);
 }
 
 
