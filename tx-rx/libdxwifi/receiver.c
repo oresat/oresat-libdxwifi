@@ -39,6 +39,8 @@ typedef struct {
     uint8_t*                packet_buffer;  /* Buffer to copy captured packets*/
     size_t                  pb_size;        /* Size of packet buffer          */
     size_t                  index;          /* Index to next write position   */
+    bool                    eot_reached;    /* EOT signalled?                 */
+    bool                    preamble_recv;  /* Received preamble?             */
     const dxwifi_receiver*  rx;             /* Reference to owning receiver   */
     dxwifi_rx_stats         rx_stats;       /* Capture statistics             */
     int                     fd;             /* Sink to write out data         */
@@ -62,12 +64,16 @@ static uint32_t extract_frame_number(ieee80211_hdr* mac_hdr) {
 static void init_frame_controller(frame_controller* fc, const dxwifi_receiver* rx, int fd) {
     debug_assert(fc);
 
-    fc->index       = 0;
-    fc->rx          = rx;
-    fc->fd          = fd;
-    fc->pb_size     = rx->packet_buffer_size;
+    fc->index           = 0;
+    fc->rx              = rx;
+    fc->fd              = fd;
+    fc->eot_reached     = false;
+    fc->preamble_recv   = false;
+    fc->pb_size         = rx->packet_buffer_size;
 
     memset(&fc->rx_stats, 0x00, sizeof(dxwifi_rx_stats));
+    fc->rx_stats.capture_state = DXWIFI_RX_NORMAL;
+    
     fc->packet_buffer = calloc(fc->pb_size, sizeof(uint8_t));
     assert_M(fc->packet_buffer, "Failed to allocate Packet Buffer of size: %ld", fc->pb_size);
 
@@ -119,6 +125,73 @@ static void log_frame_stats(dxwifi_rx_frame* frame, int32_t frame_no, dxwifi_rx_
 }
 
 
+static dxwifi_control_frame_t check_frame_control(const uint8_t* frame, const struct pcap_pkthdr* pkt_stats, float check_threshold) {
+    // Get info we need from the raw data frame
+    const ieee80211_radiotap_hdr* rtap = (const ieee80211_radiotap_hdr*)frame;
+    const uint8_t* payload = frame + rtap->it_len + sizeof(ieee80211_hdr);
+    size_t payload_size = pkt_stats->caplen - rtap->it_len - sizeof(ieee80211_hdr) - IEEE80211_FCS_SIZE;
+
+    unsigned eot                = 0;
+    unsigned preamble           = 0;
+    dxwifi_control_frame_t type = DXWIFI_CONTROL_FRAME_NONE;
+
+    // Determine if the frame is indeed a control frame
+    if(payload_size == DXWIFI_FRAME_CONTROL_DATA_SIZE) {
+        for(size_t i = 0; i < payload_size; ++i) {
+            switch (payload[i])
+            {
+            case DXWIFI_CONTROL_FRAME_PREAMBLE:
+                ++preamble;
+                break;
+            
+            case DXWIFI_CONTROL_FRAME_EOT:
+                ++eot;
+                break;
+
+            default:
+                break;
+            }
+        } 
+        if((eot / payload_size) > check_threshold) {
+            type = DXWIFI_CONTROL_FRAME_EOT;
+        }
+        else if ((preamble / payload_size) > check_threshold) {
+            type = DXWIFI_CONTROL_FRAME_PREAMBLE;
+        }
+    }
+    return type;
+}
+
+
+static void handle_frame_control(frame_controller* fc, dxwifi_control_frame_t type) {
+    switch (type)
+    {
+    case DXWIFI_CONTROL_FRAME_PREAMBLE:
+        // Missed previous files EOT, signal we need to switch to the next file
+        if(fc->rx_stats.num_packets_processed > 0 && !fc->eot_reached) {
+            log_warning("EOT was signalled but never received");
+            fc->eot_reached = true;
+        }
+        else if(!fc->preamble_recv){
+            log_info("Uplink established!");
+        }
+        fc->preamble_recv = true;
+        break;
+
+    case DXWIFI_CONTROL_FRAME_EOT:
+        if(!fc->eot_reached) {
+            log_info("End-Of-Transmission signalled");
+        }
+        fc->eot_reached = true;
+        break;
+    
+    default:
+        debug_assert_always("Unkown control type");
+        break;
+    }
+}
+
+
 static void dump_packet_buffer(frame_controller* fc) {
     debug_assert(fc);
 
@@ -159,44 +232,51 @@ static void dump_packet_buffer(frame_controller* fc) {
 static void process_frame(uint8_t* args, const struct pcap_pkthdr* pkt_stats, const uint8_t* frame) { 
     frame_controller* fc = (frame_controller*) args;
 
-    // Buffer is full, write it out first
-    if( fc->index + pkt_stats->caplen >= fc->pb_size ) {
-        dump_packet_buffer(fc);
+    dxwifi_control_frame_t ctrl_frame = check_frame_control(frame, pkt_stats, DXWIFI_FRAME_CONTROL_CHECK_THRESHOLD);
+
+    if(ctrl_frame != DXWIFI_CONTROL_FRAME_NONE) {
+        handle_frame_control(fc, ctrl_frame);
     }
+    else {
+        // Buffer is full, write it out first
+        if( fc->index + pkt_stats->caplen >= fc->pb_size ) {
+            dump_packet_buffer(fc);
+        }
 
-    // Next available slot in the packet buffer
-    uint8_t* buffer_slot = fc->packet_buffer + fc->index;
+        // Next available slot in the packet buffer
+        uint8_t* buffer_slot = fc->packet_buffer + fc->index;
 
-    // Copy the entire frame into the packet buffer
-    memcpy(buffer_slot, frame, pkt_stats->caplen);
+        // Copy the entire frame into the packet buffer
+        memcpy(buffer_slot, frame, pkt_stats->caplen);
 
-    dxwifi_rx_frame rx_frame = parse_rx_frame_fields(pkt_stats, buffer_slot);
+        dxwifi_rx_frame rx_frame = parse_rx_frame_fields(pkt_stats, buffer_slot);
 
-    // TODO parse radiotap header and store provided info
+        // TODO parse radiotap header data and store provided info
 
-    ssize_t payload_size = rx_frame.fcs - rx_frame.payload;
+        ssize_t payload_size = rx_frame.fcs - rx_frame.payload;
 
-    int32_t frame_number = (fc->rx->ordered 
-        ? extract_frame_number(rx_frame.mac_hdr) 
-        : fc->rx_stats.num_packets_processed);
+        int32_t frame_number = (fc->rx->ordered 
+            ? extract_frame_number(rx_frame.mac_hdr) 
+            : fc->rx_stats.num_packets_processed);
 
-    // Heap node only points to the payload data
-    packet_heap_node node = {
-        .frame_number   = frame_number,
-        .data           = rx_frame.payload,
-        .size           = payload_size,
-        .crc_valid      = false // TODO verify CRC
-    };
-    heap_push(&fc->packet_heap, &node);
+        // Heap node only points to the payload data
+        packet_heap_node node = {
+            .frame_number   = frame_number,
+            .data           = rx_frame.payload,
+            .size           = payload_size,
+            .crc_valid      = false // TODO verify CRC
+        };
+        heap_push(&fc->packet_heap, &node);
 
-    // Update next write position and stats
-    fc->index                           += pkt_stats->caplen; 
-    fc->rx_stats.total_caplen           += pkt_stats->caplen;
-    fc->rx_stats.total_payload_size     += payload_size;
-    fc->rx_stats.num_packets_processed  += 1;
-    memcpy(&fc->rx_stats.pkt_stats, pkt_stats, sizeof(struct pcap_pkthdr));
+        // Update next write position and stats
+        fc->index                           += pkt_stats->caplen; 
+        fc->rx_stats.total_caplen           += pkt_stats->caplen;
+        fc->rx_stats.total_payload_size     += payload_size;
+        fc->rx_stats.num_packets_processed  += 1;
+        memcpy(&fc->rx_stats.pkt_stats, pkt_stats, sizeof(struct pcap_pkthdr));
 
-    log_frame_stats(&rx_frame, frame_number, &fc->rx_stats);
+        log_frame_stats(&rx_frame, frame_number, &fc->rx_stats);
+    }
 }
 
 
@@ -289,7 +369,7 @@ void receiver_activate_capture(dxwifi_receiver* rx, int fd, dxwifi_rx_stats* out
     log_info("Starting packet capture...");
     rx->__activated = true;
 
-    while(rx->__activated) {
+    while(rx->__activated && !fc.eot_reached) {
 
         status = poll(&request, 1, rx->capture_timeout * 1000);
 
@@ -311,8 +391,6 @@ void receiver_activate_capture(dxwifi_receiver* rx, int fd, dxwifi_rx_stats* out
             status = pcap_dispatch(rx->__handle, rx->dispatch_count, process_frame, (uint8_t*)&fc);
 
             assert_continue(status != PCAP_ERROR, "Capture failure: %s", pcap_statustostr(status));
-
-            fc.rx_stats.capture_state = DXWIFI_RX_NORMAL;
         }
     }
     log_info("DxWiFi Reciever capture ended");

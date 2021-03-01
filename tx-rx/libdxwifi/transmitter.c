@@ -147,6 +147,21 @@ static size_t invoke_handlers(dxwifi_tx_frame_handler* pipeline, dxwifi_tx_frame
 }
 
 
+static void send_control_frame(dxwifi_transmitter* tx, dxwifi_tx_frame* frame, dxwifi_control_frame_t type) {
+    debug_assert(tx && tx->__handle && frame && frame->__frame);
+
+    uint8_t control_data[DXWIFI_FRAME_CONTROL_DATA_SIZE];
+
+    memset(control_data, type, DXWIFI_FRAME_CONTROL_DATA_SIZE);
+
+    for (int i = 0; i < tx->redundant_ctrl_frames + 1; ++i) {
+        int status = pcap_inject(tx->__handle, frame->__frame, DXWIFI_TX_HEADER_SIZE + sizeof(control_data) + IEEE80211_FCS_SIZE);
+        log_info("%s Frame Sent: %d", control_frame_type_to_str(type), status);
+        log_hexdump(frame->__frame, DXWIFI_TX_HEADER_SIZE + sizeof(control_data) + IEEE80211_FCS_SIZE);
+    }
+}
+
+
 static void log_tx_configuration(const dxwifi_transmitter* tx, const char* device_name) {
     log_info(
             "DxWifi Transmitter Settings\n"
@@ -247,6 +262,7 @@ void start_transmission(dxwifi_transmitter* tx, int fd, dxwifi_tx_stats* out) {
         .total_bytes_sent   = 0,
         .prev_bytes_read    = 0,
         .prev_bytes_sent    = 0,
+        .tx_state           = DXWIFI_TX_NORMAL
     };
 
     dxwifi_tx_frame data_frame;
@@ -261,7 +277,7 @@ void start_transmission(dxwifi_transmitter* tx, int fd, dxwifi_tx_stats* out) {
 
     tx->__activated = true;
 
-    //send_control_frame(tx, &data_frame, CONTROL_FRAME_PREAMBLE);
+    send_control_frame(tx, &data_frame, DXWIFI_CONTROL_FRAME_PREAMBLE);
 
     do {
         status = poll(&request, 1, tx->transmit_timeout * 1000);
@@ -290,7 +306,6 @@ void start_transmission(dxwifi_transmitter* tx, int fd, dxwifi_tx_stats* out) {
 
                 assert_continue(status > 0, "Injection failure: %s", pcap_statustostr(status));
 
-                stats.tx_state          = DXWIFI_TX_NORMAL;
                 stats.prev_bytes_sent   = status;
                 stats.total_bytes_read += stats.prev_bytes_read;
                 stats.total_bytes_sent += stats.prev_bytes_sent;
@@ -303,7 +318,7 @@ void start_transmission(dxwifi_transmitter* tx, int fd, dxwifi_tx_stats* out) {
 
     log_info("DxWiFI Transmission stopped");
 
-    //send_control_frame(tx, &data_frame, CONTROL_FRAME_END_OF_TRANMISSION);
+    send_control_frame(tx, &data_frame, DXWIFI_CONTROL_FRAME_EOT);
 
     if(out) {
         *out = stats;

@@ -144,7 +144,10 @@ void close_receiver(dxwifi_receiver* receiver);
 
 /**
  *  DESCRIPTION:    Captures any packets matching the specified filter and 
- *                  writes out the payload data to @fd
+ *                  writes out the payload data to @fd. Will continue capturing
+ *                  packets until the capture is stopped via receiver_stop_capture,
+ *                  timeout occurs, or End-Of-Transmission is signalled from the
+ *                  transmitter.
  * 
  *  ARGUMENTS:
  * 

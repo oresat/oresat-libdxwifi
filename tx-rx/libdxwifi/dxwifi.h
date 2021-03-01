@@ -36,9 +36,9 @@
  * multi-file transmission
  */
 typedef enum {
-    CONTROL_FRAME_NONE                  = 0x00,
-    CONTROL_FRAME_PREAMBLE              = 0xff,
-    CONTROL_FRAME_END_OF_TRANSMISSION   = 0xaa
+    DXWIFI_CONTROL_FRAME_NONE       = 0x00,
+    DXWIFI_CONTROL_FRAME_PREAMBLE   = 0xff,
+    DXWIFI_CONTROL_FRAME_EOT        = 0xaa
 } dxwifi_control_frame_t;
 
 

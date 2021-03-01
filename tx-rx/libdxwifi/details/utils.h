@@ -15,6 +15,8 @@
 
 #include <sys/stat.h>
 
+#include <libdxwifi/dxwifi.h>
+
 
 static inline void set_bit32(uint32_t *word, uint32_t bit) {
     *word |= (1 << bit);
@@ -75,6 +77,24 @@ static bool is_regular_file(const char* path) {
 static bool is_directory(const char* path) {
     struct stat path_stat;
     return (lstat(path, &path_stat) == 0 && S_ISDIR(path_stat.st_mode));
+}
+
+
+static const char* control_frame_type_to_str(dxwifi_control_frame_t type) {
+    switch (type)
+    {
+    case DXWIFI_CONTROL_FRAME_PREAMBLE:
+        return "Preamble";
+    
+    case DXWIFI_CONTROL_FRAME_EOT:
+        return "EOT";
+
+    case DXWIFI_CONTROL_FRAME_NONE:
+        return "None";
+
+    default:
+        return "Unknown";
+    }
 }
 
 
