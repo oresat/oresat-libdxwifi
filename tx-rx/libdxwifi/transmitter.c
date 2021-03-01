@@ -154,6 +154,8 @@ static void send_control_frame(dxwifi_transmitter* tx, dxwifi_tx_frame* frame, d
 
     memset(control_data, type, DXWIFI_FRAME_CONTROL_DATA_SIZE);
 
+    memcpy(frame->payload, control_data, DXWIFI_FRAME_CONTROL_DATA_SIZE);
+
     for (int i = 0; i < tx->redundant_ctrl_frames + 1; ++i) {
         int status = pcap_inject(tx->__handle, frame->__frame, DXWIFI_TX_HEADER_SIZE + sizeof(control_data) + IEEE80211_FCS_SIZE);
         log_info("%s Frame Sent: %d", control_frame_type_to_str(type), status);
