@@ -7,6 +7,7 @@
  * 
  */
 
+#include <time.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdarg.h>
@@ -27,6 +28,8 @@
 dxwifi_transmitter* transmitter = NULL;
 
 
+int msleep(long ms);
+
 void sigint_handler(int signum);
 
 void log_tx_stats(dxwifi_tx_stats stats);
@@ -46,6 +49,7 @@ int main(int argc, char** argv) {
         .tx_mode    = TX_STREAM_MODE,
         .verbosity  = DXWIFI_LOG_INFO,
         .tx_delay   = 0,
+        .file_delay = 0,
         .device     = "mon0",
 
         .tx = {
@@ -136,6 +140,7 @@ void transmit(cli_args* args, dxwifi_transmitter* tx) {
                 signal(SIGINT, SIG_DFL);
                 log_tx_stats(tx_stats);
                 close(fd);
+                msleep(args->file_delay);
             }
         }
         break;
@@ -171,11 +176,25 @@ size_t log_frame_stats(dxwifi_tx_frame* frame, size_t payload_size, dxwifi_tx_st
 
 
 size_t delay_transmission(dxwifi_tx_frame* frame, size_t payload_size, dxwifi_tx_stats stats, void* user) {
-    unsigned delay = *(unsigned*) user;
+    unsigned delay_ms = *(unsigned*) user;
 
-    usleep(delay);
+    msleep(delay_ms);
 
     return payload_size;
+}
+
+
+int msleep(long ms) {
+    struct timespec ts;
+
+    if(ms < 0) {
+        return -1;
+    }
+
+    ts.tv_sec  = ms / 1000;
+    ts.tv_nsec = (ms % 1000) * 1000000;
+
+    return nanosleep(&ts, NULL); // If we're interrupted by a signal we'll just continue on
 }
 
 

@@ -40,7 +40,9 @@ static struct argp_option opts[] = {
     { "dev",            'd', "<network-device>",    0, "Monitor mode enabled network interface",                                PRIMARY_GROUP },
     { "blocksize",      'b', "<blocksize>",         0, "Size in bytes of each block read from file",                            PRIMARY_GROUP },
     { "timeout",        't', "<seconds>",           0, "Number of seconds to wait for an available read",                       PRIMARY_GROUP },
-    { "delay",          'u', "<useconds>",          0, "Length of time, in microseconds, to delay between transmission blocks", PRIMARY_GROUP },
+    { "delay",          'u', "<mseconds>",          0, "Length of time, in milliseconds, to delay between transmission blocks", PRIMARY_GROUP },
+    { "file-delay",     'f', "<mseconds>",          0, "Length of time in milliseconds to delay between file transmissions",    PRIMARY_GROUP },
+    { "redundancy",     'r', "<number>",            0, "Number of extra control frames to send",                                PRIMARY_GROUP },
 
     { 0, 0, 0, 0, "IEEE80211 MAC Header Configuration Options", MAC_HEADER_GROUP },
     { "address",        GET_KEY(1, MAC_HEADER_GROUP), "<macaddr>", OPTION_NO_USAGE, "MAC address of the transmitter",           MAC_HEADER_GROUP },
@@ -121,6 +123,14 @@ static error_t parse_opt(int key, char* arg, struct argp_state *state) {
 
     case 'u': 
         args->tx_delay = atoi(arg);
+        break;
+
+    case 'r':
+        args->tx.redundant_ctrl_frames = atoi(arg);
+        break;
+
+    case 'f':
+        args->file_delay = atoi(arg);
         break;
 
     case GET_KEY(1, MAC_HEADER_GROUP):

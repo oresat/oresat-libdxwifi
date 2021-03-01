@@ -26,6 +26,7 @@ typedef struct {
     char*               files[TX_CLI_FILE_MAX];
     int                 verbosity;
     unsigned            tx_delay;
+    unsigned            file_delay;
     const char*         device;
     dxwifi_transmitter  tx;
 } cli_args;
