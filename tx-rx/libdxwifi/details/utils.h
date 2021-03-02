@@ -11,6 +11,8 @@
 #define LIBDXWIFI_UTILITY_H
 
 
+#include <time.h>
+#include <errno.h>
 #include <stdint.h>
 
 #include <sys/stat.h>
@@ -18,53 +20,13 @@
 #include <libdxwifi/dxwifi.h>
 
 
-static inline void set_bit32(uint32_t *word, uint32_t bit) {
-    *word |= (1 << bit);
-}
-
-
-static inline void clr_bit32(uint32_t *word, uint32_t bit) {
-    *word &= ~(1 << bit);
-}
-
-
-static inline void flip_bit32(uint32_t *word, uint32_t bit) {
-    *word ^= (1 << bit);
-}
-
-
 static inline void set_bits32(uint32_t* word, uint32_t mask, uint32_t value) {
     *word = (*word & ~mask) | (value & mask);
 }
 
 
-static inline uint32_t check_bit32(uint32_t *word, uint32_t bit) {
-    return *word & (1 << bit);
-}
-
-
-static inline void set_bit16(uint16_t *word, uint16_t bit) {
-    *word |= (1 << bit);
-}
-
-
-static inline void clr_bit16(uint16_t *word, uint16_t bit) {
-    *word &= ~(1 << bit);
-}
-
-
-static inline void flip_bit16(uint16_t *word, uint16_t bit) {
-    *word ^= (1 << bit);
-}
-
-
 static inline void set_bits16(uint16_t* word, uint16_t mask, uint16_t value) {
     *word = (*word & ~mask) | (value & mask);
-}
-
-
-static inline uint32_t check_bit16(uint16_t *word, uint16_t bit) {
-    return *word & (1 << bit);
 }
 
 
@@ -95,6 +57,21 @@ static const char* control_frame_type_to_str(dxwifi_control_frame_t type) {
     default:
         return "Unknown";
     }
+}
+
+
+static int msleep(unsigned msec, bool require_elapsed) {
+    int status;
+    struct timespec ts = {
+        .tv_sec  = msec / 1000,
+        .tv_nsec = (msec % 1000) * 1000000
+    };
+
+    do {
+        status = nanosleep(&ts, &ts);
+    } while(status && errno == EINTR && require_elapsed);
+
+    return status;
 }
 
 
