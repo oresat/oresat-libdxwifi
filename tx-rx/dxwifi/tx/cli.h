@@ -24,6 +24,11 @@ typedef enum {
 typedef struct {
     tx_mode_t           tx_mode;
     char*               files[TX_CLI_FILE_MAX];
+    int                 file_count;
+    const char*         file_filter;
+    bool                transmit_current_files;
+    bool                listen_for_new_files;
+    int                 watchdir_timeout; 
     int                 verbosity;
     unsigned            tx_delay;
     unsigned            file_delay;

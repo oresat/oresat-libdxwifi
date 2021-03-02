@@ -15,21 +15,31 @@
 #include <dxwifi/tx/cli.h>
 
 #include <libdxwifi/dxwifi.h>
+#include <libdxwifi/details/utils.h>
 #include <libdxwifi/details/ieee80211.h>
 
 
-#define PRIMARY_GROUP       0
-#define MAC_HEADER_GROUP    500
-#define RTAP_CONF_GROUP     1000
-#define RTAP_FLAGS_GROUP    1500
-#define RTAP_TX_FLAGS_GROUP 2000
-#define HELP_GROUP          2500
+#define PRIMARY_GROUP           0
+#define DIRECTORY_MODE_GROUP    500
+#define MAC_HEADER_GROUP        1000
+#define RTAP_CONF_GROUP         1500
+#define RTAP_FLAGS_GROUP        2000
+#define RTAP_TX_FLAGS_GROUP     2500
+#define HELP_GROUP              3000
 
 #define GET_KEY(x, group) (x + group)
 
 
+typedef enum {
+    FILE_FILTER,
+    INCLUDE_ALL_FLAG,
+    NO_LISTEN_FLAG,
+    WATCHDIR_TIMEOUT,
+} directory_mode_settings_t;
+
+
 // Description of key arguments 
-static char args_doc[] = "input-file(s)/directory";
+static char args_doc[] = "input-file(s)/directory(s)";
 
 // Program description
 static char doc[] = 
@@ -44,10 +54,16 @@ static struct argp_option opts[] = {
     { "file-delay",     'f', "<mseconds>",          0, "Length of time in milliseconds to delay between file transmissions",    PRIMARY_GROUP },
     { "redundancy",     'r', "<number>",            0, "Number of extra control frames to send",                                PRIMARY_GROUP },
 
-    { 0, 0, 0, 0, "IEEE80211 MAC Header Configuration Options", MAC_HEADER_GROUP },
-    { "address",        GET_KEY(1, MAC_HEADER_GROUP), "<macaddr>", OPTION_NO_USAGE, "MAC address of the transmitter",           MAC_HEADER_GROUP },
+    { 0, 0, 0, 0, "The following settings are only applicable when reading from a directory", DIRECTORY_MODE_GROUP },
+    { "filter",         GET_KEY(FILE_FILTER,        DIRECTORY_MODE_GROUP),  "<glob>",       OPTION_NO_USAGE,  "Only transmit files that match filter",      DIRECTORY_MODE_GROUP },
+    { "include-all",    GET_KEY(INCLUDE_ALL_FLAG,   DIRECTORY_MODE_GROUP),  0,              OPTION_NO_USAGE,  "include files currently in the directory",   DIRECTORY_MODE_GROUP },
+    { "no-listen",      GET_KEY(NO_LISTEN_FLAG,     DIRECTORY_MODE_GROUP),  0,              OPTION_NO_USAGE,  "Don't listen for new files in the directory",DIRECTORY_MODE_GROUP },
+    { "watch-timeout",  GET_KEY(WATCHDIR_TIMEOUT,   DIRECTORY_MODE_GROUP),  "<seconds>",    OPTION_NO_USAGE,  "Number of seconds to listen for new files",  DIRECTORY_MODE_GROUP },
 
-    { 0, 0, 0, 0, "Radiotap Header Configuration Options (WARN: settings are driver dependent and/or may not be supported by DxWiFi)",                      RTAP_CONF_GROUP  },
+    { 0, 0, 0, 0, "IEEE80211 MAC Header Configuration Options", MAC_HEADER_GROUP },
+    { "address",        GET_KEY(1, MAC_HEADER_GROUP), "<macaddr>", OPTION_NO_USAGE, "MAC address of the transmitter", MAC_HEADER_GROUP },
+
+    { 0, 0, 0, 0, "Radiotap Header Configuration Options (WARN: settings are driver dependent and/or may not be supported by DxWiFi)", RTAP_CONF_GROUP  },
     { "rate",           GET_KEY(IEEE80211_RADIOTAP_RATE,            RTAP_CONF_GROUP),       "<Mbps>",   OPTION_NO_USAGE,  "Tx data rate (Mbps)",                    RTAP_CONF_GROUP  },
     { "cfp",            GET_KEY(IEEE80211_RADIOTAP_F_CFP,           RTAP_FLAGS_GROUP),      0,          OPTION_NO_USAGE,  "Sent during CFP",                        RTAP_FLAGS_GROUP },
     { "short-preamble", GET_KEY(IEEE80211_RADIOTAP_F_SHORTPRE,      RTAP_FLAGS_GROUP),      0,          OPTION_NO_USAGE,  "Sent with short preamble",               RTAP_FLAGS_GROUP },
@@ -70,6 +86,7 @@ static bool parse_mac_address(const char* arg, uint8_t* mac) {
 }
 
 
+// TODO all these atois() need error handling
 static error_t parse_opt(int key, char* arg, struct argp_state *state) {
 
     error_t status = 0;
@@ -78,24 +95,33 @@ static error_t parse_opt(int key, char* arg, struct argp_state *state) {
     switch (key)
     {
     case ARGP_KEY_END:
-        if(state->arg_num > 0) {
-            args->tx_mode = TX_FILE_MODE;
-        } 
-        else {
-            args->tx_mode = TX_STREAM_MODE;
+        if(args->file_count > 0) {
+            bool all_files = true;
+            for(int i = 0; i < args->file_count; ++i) {
+                all_files &= is_regular_file(args->files[i]);
+            }
+            bool all_directories = true;
+            for(int i = 0; i < args->file_count; ++i) {
+                all_directories &= is_directory(args->files[i]);
+            }
+            if( !all_directories && !all_files) {
+                argp_error(state, "File list must either be all files or all directories");
+                argp_usage(state);
+            }
+            args->tx_mode = (all_directories ? TX_DIRECTORY_MODE : TX_FILE_MODE);
         }
-        break;
+        break; 
 
     case ARGP_KEY_INIT:
         memset(args->files, 0x00, sizeof(char*) * TX_CLI_FILE_MAX);
         break;
 
     case ARGP_KEY_ARG:
-        if(state->arg_num >= TX_CLI_FILE_MAX) {
+        if(args->file_count >= TX_CLI_FILE_MAX) {
             argp_error(state, "Reached maximum number of files to transmit");
             argp_usage(state);
         }
-        args->files[state->arg_num] = arg;
+        args->files[args->file_count++] = arg;
         break;
 
     case 'd':
@@ -131,6 +157,22 @@ static error_t parse_opt(int key, char* arg, struct argp_state *state) {
 
     case 'f':
         args->file_delay = atoi(arg);
+        break;
+
+    case GET_KEY(FILE_FILTER, DIRECTORY_MODE_GROUP):
+        args->file_filter = arg;
+        break;
+
+    case GET_KEY(INCLUDE_ALL_FLAG, DIRECTORY_MODE_GROUP):
+        args->transmit_current_files = true;
+        break;
+
+    case GET_KEY(NO_LISTEN_FLAG, DIRECTORY_MODE_GROUP):
+        args->listen_for_new_files = false;
+        break;
+
+    case GET_KEY(WATCHDIR_TIMEOUT, DIRECTORY_MODE_GROUP):
+        args->watchdir_timeout = atoi(arg);
         break;
 
     case GET_KEY(1, MAC_HEADER_GROUP):
