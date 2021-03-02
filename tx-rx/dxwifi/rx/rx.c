@@ -26,15 +26,7 @@
 dxwifi_receiver* receiver = NULL;
 
 
-void sigint_handler(int signum);
-
-void log_rx_stats(dxwifi_rx_stats stats);
-
 void receive(cli_args* args, dxwifi_receiver* rx);
-
-void capture_in_directory(cli_args* args, dxwifi_receiver* rx);
-
-dxwifi_rx_state_t open_file_and_capture(const char* path, dxwifi_receiver* rx, bool append);
 
 
 int main(int argc, char** argv) {
@@ -77,67 +69,6 @@ int main(int argc, char** argv) {
 }
 
 
-dxwifi_rx_state_t open_file_and_capture(const char* path, dxwifi_receiver* rx, bool append) {
-    int fd          = 0;
-    int open_flags  = O_WRONLY | O_CREAT | (append ? O_APPEND : 0);
-    mode_t mode     = S_IRUSR  | S_IWUSR | S_IROTH | S_IWOTH; 
-
-    dxwifi_rx_stats stats;
-    if((fd = open(path, open_flags, mode)) < 0) {
-        log_error("Failed to open file: %s", path);
-        stats.capture_state = DXWIFI_RX_ERROR;
-    }
-    else {
-        signal(SIGINT, sigint_handler);
-        receiver_activate_capture(rx, fd, &stats);
-        signal(SIGINT, SIG_DFL);
-        log_rx_stats(stats);
-        close(fd);
-    }
-    return stats.capture_state;
-}
-
-
-void capture_in_directory(cli_args* args, dxwifi_receiver* rx) {
-    int count = 0;
-    char path[PATH_MAX]; 
-
-    dxwifi_rx_state_t state = DXWIFI_RX_NORMAL;
-    while(state == DXWIFI_RX_NORMAL) {
-        sprintf(path, "%s/%s_%d.%s", args->output_path, args->file_prefix, count++, args->file_extension);
-
-        state = open_file_and_capture(path, rx, args->append);
-    }
-}
-
-
-void receive(cli_args* args, dxwifi_receiver* rx) {
-
-    dxwifi_rx_stats stats;
-    switch (args->rx_mode)
-    {
-    case RX_STREAM_MODE:
-        signal(SIGINT, sigint_handler);
-        receiver_activate_capture(rx, STDOUT_FILENO, &stats);
-        signal(SIGINT, SIG_DFL);
-        log_rx_stats(stats);
-        break;
-
-    case RX_FILE_MODE:
-        open_file_and_capture(args->output_path, rx, args->append);
-        break;
-
-    case RX_DIRECTORY_MODE:
-        capture_in_directory(args, rx);
-        break;
-    
-    default:
-        break;
-    }
-
-}
-
-
 void log_rx_stats(dxwifi_rx_stats stats) {
     log_info(
         "Receiver Capture Stats\n"
@@ -166,8 +97,73 @@ void log_rx_stats(dxwifi_rx_stats stats) {
 
 
 void sigint_handler(int signum) {
-    // TODO need to come up with a better strategy to gracefully exit the application
     signal(SIGINT, SIG_IGN);
     receiver_stop_capture(receiver);
     signal(SIGINT, sigint_handler);
+}
+
+
+dxwifi_rx_state_t setup_handlers_and_capture(dxwifi_receiver* rx, int fd) {
+    dxwifi_rx_stats stats;
+
+    signal(SIGINT, sigint_handler);
+    receiver_activate_capture(rx, fd, &stats);
+    signal(SIGINT, SIG_DFL);
+    
+    log_rx_stats(stats);
+    return stats.capture_state;
+}
+
+
+dxwifi_rx_state_t open_file_and_capture(const char* path, dxwifi_receiver* rx, bool append) {
+    int fd          = 0;
+    int open_flags  = O_WRONLY | O_CREAT | (append ? O_APPEND : 0);
+    mode_t mode     = S_IRUSR  | S_IWUSR | S_IROTH | S_IWOTH; 
+
+    dxwifi_rx_state_t state = DXWIFI_RX_ERROR;
+    if((fd = open(path, open_flags, mode)) < 0) {
+        log_error("Failed to open file: %s", path);
+    }
+    else {
+        state = setup_handlers_and_capture(rx, fd);
+        close(fd);
+    }
+    return state;
+}
+
+
+void capture_in_directory(cli_args* args, dxwifi_receiver* rx) {
+    int count = 0;
+    char path[PATH_MAX]; 
+
+    dxwifi_rx_state_t state = DXWIFI_RX_NORMAL;
+    while(state == DXWIFI_RX_NORMAL) {
+        sprintf(path, "%s/%s_%d.%s", args->output_path, args->file_prefix, count++, args->file_extension);
+
+        state = open_file_and_capture(path, rx, args->append);
+    }
+}
+
+
+void receive(cli_args* args, dxwifi_receiver* rx) {
+
+    dxwifi_rx_stats stats;
+    switch (args->rx_mode)
+    {
+    case RX_STREAM_MODE: // Capture everything and output to stdout
+        setup_handlers_and_capture(rx, STDOUT_FILENO);
+        break;
+
+    case RX_FILE_MODE: // Capture everything into a single file
+        open_file_and_capture(args->output_path, rx, args->append);
+        break;
+
+    case RX_DIRECTORY_MODE: // Create new files whenever an EOT is signalled
+        capture_in_directory(args, rx);
+        break;
+    
+    default:
+        break;
+    }
+
 }
