@@ -96,19 +96,15 @@ static error_t parse_opt(int key, char* arg, struct argp_state *state) {
     {
     case ARGP_KEY_END:
         if(args->file_count > 0) {
-            bool all_files = true;
-            for(int i = 0; i < args->file_count; ++i) {
-                all_files &= is_regular_file(args->files[i]);
+            if(args->file_count == 1 && is_directory(args->files[0])) {
+                args->tx_mode = TX_DIRECTORY_MODE;
             }
-            bool all_directories = true;
-            for(int i = 0; i < args->file_count; ++i) {
-                all_directories &= is_directory(args->files[i]);
+            else { // TODO verify every file in the list is actually a file
+                args->tx_mode = TX_FILE_MODE;
             }
-            if( !all_directories && !all_files) {
-                argp_error(state, "File list must either be all files or all directories");
-                argp_usage(state);
-            }
-            args->tx_mode = (all_directories ? TX_DIRECTORY_MODE : TX_FILE_MODE);
+        }
+        else {
+            args->tx_mode = TX_STREAM_MODE;
         }
         break; 
 

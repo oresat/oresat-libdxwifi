@@ -356,14 +356,15 @@ void receiver_activate_capture(dxwifi_receiver* rx, int fd, dxwifi_rx_stats* out
 
     int status = 0;
     frame_controller fc;
-    struct pollfd request;
 
-    init_frame_controller(&fc, rx, fd);
-
-    request.fd = pcap_get_selectable_fd(rx->__handle);
+    struct pollfd request = {
+        .fd         = pcap_get_selectable_fd(rx->__handle),
+        .events     = POLLIN,
+        .revents    = 0
+    };
     assert_M(request.fd > 0, "Receiver handle cannot be polled");
 
-    request.events = POLLIN; // Listen for read events only
+    init_frame_controller(&fc, rx, fd);
 
     log_info("Starting packet capture...");
     rx->__activated = true;
@@ -397,7 +398,7 @@ void receiver_activate_capture(dxwifi_receiver* rx, int fd, dxwifi_rx_stats* out
     dump_packet_buffer(&fc); // Flush out whatever's leftover in the buffer
 
     if( pcap_stats(rx->__handle, &fc.rx_stats.pcap_stats) == PCAP_ERROR) {
-        log_info("Failed to gather capture stats from PCAP");
+        log_warning("Failed to gather capture stats from PCAP");
     }
 
     if(out) {
