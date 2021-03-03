@@ -33,7 +33,7 @@ typedef enum {
     DXWIFI_LOG_TRACE    = 6
 } dxwifi_log_level_t;
 
-// If you want module specific logging add it here and update file_to_log_module(). 
+// If you want module specific logging add it here and update the file_lookup_tbl
 // Otherwise log statements  will get grouped into the generic sink. 
 typedef enum {
     DXWIFI_LOG_GENERIC      = 0,
