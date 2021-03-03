@@ -109,3 +109,26 @@ bool heap_pop(binary_heap* heap, void* out) {
     }
     return false;
 }
+
+
+void heap_sort(void* data, size_t count, size_t step_size, comparator compare) {
+    debug_assert(data);
+
+    binary_heap heap = {
+        .tree       = (uint8_t*)data,
+        .count      = count,
+        .capacity   = count,
+        .step_size  = step_size,
+        .compare    = compare
+    };
+
+    for(int i = (count / 2) - 1; i >= 0; --i) {
+        heapify(&heap, compare, i, step_size);
+    }
+
+    while(--heap.count > 0) {
+        swap(data, data + offset(heap.count, step_size), step_size);
+
+        heapify(&heap, compare, 0, step_size);
+    }
+}

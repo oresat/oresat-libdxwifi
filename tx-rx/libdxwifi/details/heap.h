@@ -34,6 +34,22 @@ typedef struct {
 
 
 /**
+ *  DESCRIPTION:    Sorts the given array
+ * 
+ *  ARGUMENTS: 
+ * 
+ *      data:       pointer to array
+ *  
+ *      count:      Number of elements in the array
+ *      
+ *      step_size:  Size of each element
+ * 
+ *      comparator: Comparison function     
+ */
+void heap_sort(void* data, size_t count, size_t step_size, comparator compare);
+
+
+/**
  *  DESCRIPTION:    Initializes the binary heap data structure
  * 
  *  ARGUMENTS: 
