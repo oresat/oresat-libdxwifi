@@ -147,13 +147,18 @@ void __log_hexdump(const char* file, const uint8_t* data, int size) {
     int i           = 0;
     int nbytes      = 0;
     int location    = 0;
+    int num_rows    = (size / 16) + 1;
+
+    // 8 for line header, 3 chars per byte of data, 16 bytes of data per row, and a newline
+    int bytes_per_row = 57;
 
     char temp[16];
-    char formatted_str[BUFSIZ];
+    // Two more bytes for newline and null-terminator
+    char formatted_str[(num_rows * bytes_per_row) + 2];
 
     formatted_str[location++] = '\n';
 
-    while (i < size && i < BUFSIZ) {
+    while (i < size) {
         nbytes = sprintf(temp, "%08x", i);
 
         memcpy(formatted_str + location, temp, nbytes);
