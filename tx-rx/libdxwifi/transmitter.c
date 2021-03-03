@@ -25,6 +25,14 @@
 #include <libdxwifi/details/logging.h>
 
 
+/**
+ *  DESCRIPTION:    Initializes transmission data frame
+ * 
+ *  ARGUMENTS:
+ * 
+ *     frame:       pointer to an allocated frame
+ * 
+ */
 static void setup_dxwifi_tx_frame(dxwifi_tx_frame* frame) {
     debug_assert(frame);
 
@@ -36,6 +44,20 @@ static void setup_dxwifi_tx_frame(dxwifi_tx_frame* frame) {
 }
 
 
+/**
+ *  DESCRIPTION:        Fills radiotap header with provided data
+ * 
+ *  ARGUMENTS:
+ * 
+ *      radiotap_hdr:   Pointer to allocated radiotap header object
+ *      
+ *      flags:          Bit field for radiotap flags
+ * 
+ *      rate_mbps:      data rate in Mbps
+ * 
+ *      tx_flags:       Bit field for transmission flags
+ * 
+ */
 static void construct_radiotap_header(dxwifi_tx_radiotap_hdr* radiotap_hdr, uint8_t flags, uint8_t rate_mbps, uint16_t tx_flags) {
     debug_assert(radiotap_hdr);
 
@@ -49,6 +71,24 @@ static void construct_radiotap_header(dxwifi_tx_radiotap_hdr* radiotap_hdr, uint
 }
 
 
+/**
+ *  DESCRIPTION:    Fills MAC layer header with provided data
+ * 
+ *  ARGUMENTS:
+ * 
+ *      mac:            Pointer to allocated MAC layer header
+ *      
+ *      fcntl:          Frame control flags
+ * 
+ *      duration_id:    Channel allocation time.
+ * 
+ *      sender_address: Tx MAC address
+ * 
+ * NOTES: 
+ *      Here's a decent article about each of the MAC layer fields
+ *      https://witestlab.poly.edu/blog/802-11-wireless-lan-2/
+ * 
+ */
 static void construct_ieee80211_header( ieee80211_hdr* mac, ieee80211_frame_control fcntl, uint16_t duration_id, uint8_t* sender_address) {
     debug_assert(mac && sender_address);
 
@@ -84,7 +124,21 @@ static void construct_ieee80211_header( ieee80211_hdr* mac, ieee80211_frame_cont
     mac->seq_ctrl = 0;
 }
 
-
+/**
+ *  DESCRIPTION:    Looks for an empty callback slot and attaches the handler
+ * 
+ *  ARGUMENTS:
+ * 
+ *      pipeline:       pre/post injection handler array
+ *      
+ *      callback:       Callback function called when pipeline is invoked
+ * 
+ *      user:           Pointer to user allocated parameters for the callback
+ * 
+ *  RETURNS:
+ *      int:            index to the attached handler.
+ * 
+ */
 static int attach_handler(dxwifi_tx_frame_handler* pipeline, dxwifi_tx_frame_cb callback, void* user) {
     debug_assert(pipeline && callback);
 
@@ -102,7 +156,16 @@ static int attach_handler(dxwifi_tx_frame_handler* pipeline, dxwifi_tx_frame_cb 
     return -1;
 }
 
-
+/**
+ *  DESCRIPTION:    Removes the handler at a specified index
+ * 
+ *  ARGUMENTS: 
+ * 
+ *      pipeline:   pre/post injection handler array
+ * 
+ *      index:      index of the handler to remove
+ * 
+ */
 static bool remove_handler(dxwifi_tx_frame_handler* pipeline, int index) {
     debug_assert(pipeline);
 
@@ -123,6 +186,22 @@ static bool remove_handler(dxwifi_tx_frame_handler* pipeline, int index) {
 }
 
 
+/**
+ *  DESCRIPTION:    Invokes all handlers in the specified pipeline
+ * 
+ *  ARGUMENTS: 
+ * 
+ *      pipeline:   pre/post injection handler array
+ * 
+ *      frame:      Transmission data frame
+ * 
+ *      tx_stats:   State of the current transmission
+ * 
+ *  RETURNS:
+ *      
+ *      size_t:     size of the new payload data in the tx frame
+ * 
+ */
 static size_t invoke_handlers(dxwifi_tx_frame_handler* pipeline, dxwifi_tx_frame* frame, dxwifi_tx_stats tx_stats) {
     debug_assert(pipeline && frame);
 
@@ -147,6 +226,25 @@ static size_t invoke_handlers(dxwifi_tx_frame_handler* pipeline, dxwifi_tx_frame
 }
 
 
+/**
+ *  DESCRIPTION:    Sends a control frame to the receiver
+ * 
+ *  ARGUMENTS: 
+ * 
+ *      tx:         Initialized transmitter
+ * 
+ *      frame:      Allocated transmission data frame
+ * 
+ *      type:       The kind of control frame we are sending
+ * 
+ *  NOTES:
+ *      
+ *      The current control frame strategy is very simple. Just send a block of
+ *      repeating data. Each control frame type corresponds to a data value, 
+ *      that value is repeated N number times, packaged up into the data frame
+ *      and sent over the wire X times for redundancy.
+ * 
+ */
 static void send_control_frame(dxwifi_transmitter* tx, dxwifi_tx_frame* frame, dxwifi_control_frame_t type) {
     debug_assert(tx && tx->__handle && frame && frame->__frame);
 
@@ -164,6 +262,16 @@ static void send_control_frame(dxwifi_transmitter* tx, dxwifi_tx_frame* frame, d
 }
 
 
+/**
+ *  DESCRIPTION:    Logs transmitter settings afer initialization
+ * 
+ *  ARGUMENTS: 
+ * 
+ *      tx:         Initialized transmitter
+ * 
+ *      device_name: Name of WiFi interface
+ * 
+ */
 static void log_tx_configuration(const dxwifi_transmitter* tx, const char* device_name) {
     log_info(
             "DxWifi Transmitter Settings\n"
@@ -184,6 +292,10 @@ static void log_tx_configuration(const dxwifi_transmitter* tx, const char* devic
     );
 }
 
+
+//
+// See transmitter.h for description of non-static functions
+//
 
 void init_transmitter(dxwifi_transmitter* tx, const char* device_name) {
     debug_assert(tx);

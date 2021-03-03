@@ -1,7 +1,7 @@
 /**
  *  cli.h
  *  
- *  DESCRIPTION: Command line interface for tx.c
+ *  DESCRIPTION: Command line interface for rx.c
  * 
  *  https://github.com/oresat/oresat-dxwifi-software
  * 

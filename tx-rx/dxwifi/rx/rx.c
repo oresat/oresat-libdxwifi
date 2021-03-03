@@ -69,6 +69,14 @@ int main(int argc, char** argv) {
 }
 
 
+/**
+ *  DESCRIPTION:    Logs info about the current capture session
+ * 
+ *  ARGUMENTS: 
+ *      
+ *      stats:      Stats about the entire capture session
+ * 
+ */
 void log_rx_stats(dxwifi_rx_stats stats) {
     log_info(
         "Receiver Capture Stats\n"
@@ -96,25 +104,62 @@ void log_rx_stats(dxwifi_rx_stats stats) {
 }
 
 
+/**
+ *  DESCRIPTION:    Signals to the receiver to stop capture
+ * 
+ *  ARGUMENTS: 
+ *      
+ *      signum:     Received signal  
+ * 
+ */
 void sigint_handler(int signum) {
-    signal(SIGINT, SIG_IGN);
     receiver_stop_capture(receiver);
-    signal(SIGINT, sigint_handler);
 }
 
 
+/**
+ *  DESCRIPTION:    Setups and tearsdown SIGINT handlers to control capture
+ * 
+ *  ARGUMENTS: 
+ *      
+ *      rx:         Initialized receiver
+ * 
+ *      fd:         Opened file descriptor to output capture data
+ * 
+ */
 dxwifi_rx_state_t setup_handlers_and_capture(dxwifi_receiver* rx, int fd) {
     dxwifi_rx_stats stats;
 
-    signal(SIGINT, sigint_handler);
+    struct sigaction action, prev_action;
+    sigemptyset(&action.sa_mask);
+    sigaddset(&action.sa_mask, SIGINT);
+    action.sa_handler = sigint_handler;
+
+    sigaction(SIGINT, &action, &prev_action);
     receiver_activate_capture(rx, fd, &stats);
-    signal(SIGINT, SIG_DFL);
+    sigaction(SIGINT, &prev_action, NULL);
     
     log_rx_stats(stats);
     return stats.capture_state;
 }
 
-
+/**
+ *  DESCRIPTION:    Attempts to open or create a file and listen for activate 
+ *                  packet capture
+ * 
+ *  ARGUMENTS: 
+ *      
+ *      path:       Path to the file to be opened or created
+ * 
+ *      rx:         Initialized reciever
+ * 
+ *      append:     Oppen file in append mode?
+ * 
+ *  RETURNS:
+ *     
+ *      dxwifi_rx_state_t:  Last reported state of the receiver
+ * 
+ */
 dxwifi_rx_state_t open_file_and_capture(const char* path, dxwifi_receiver* rx, bool append) {
     int fd          = 0;
     int open_flags  = O_WRONLY | O_CREAT | (append ? O_APPEND : 0);
@@ -132,6 +177,16 @@ dxwifi_rx_state_t open_file_and_capture(const char* path, dxwifi_receiver* rx, b
 }
 
 
+/**
+ *  DESCRIPTION:    Attempts to open a directory and create files for capture output
+ * 
+ *  ARGUMENTS: 
+ *      
+ *      args:       Parsed command line arguments
+ * 
+ *      rx:         Initialized reciever
+ * 
+ */
 void capture_in_directory(cli_args* args, dxwifi_receiver* rx) {
     int count = 0;
     char path[PATH_MAX]; 
@@ -145,6 +200,16 @@ void capture_in_directory(cli_args* args, dxwifi_receiver* rx) {
 }
 
 
+/**
+ *  DESCRIPTION:    Determine receive mode and activate packet capture
+ * 
+ *  ARGUMENTS: 
+ *      
+ *      args:       Parsed command line arguments
+ * 
+ *      rx:         Initialized reciever
+ * 
+ */
 void receive(cli_args* args, dxwifi_receiver* rx) {
 
     dxwifi_rx_stats stats;
