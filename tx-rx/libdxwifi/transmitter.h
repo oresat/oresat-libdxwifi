@@ -173,7 +173,7 @@ typedef struct {
                                     /* Called before injection              */
     dxwifi_tx_frame_handler __postinjection[DXWIFI_TX_FRAME_HANDLER_MAX];
                                     /* Called after injection               */
-    volatile bool   __activated;    /* Current transmitting?                */
+    volatile bool   __activated;    /* Currently transmitting?              */
     pcap_t*         __handle;       /* Session handle for Pcap              */
 } dxwifi_transmitter;
 

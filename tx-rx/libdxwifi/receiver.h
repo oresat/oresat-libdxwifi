@@ -96,7 +96,7 @@ typedef struct {
     unsigned    dispatch_count;     /* Number of packets to process at a time */
     unsigned    capture_timeout;    /* Number of seconds to wait for a packet */
     size_t      packet_buffer_size; /* Size of the intermediate packet buffer */
-    bool        ordered;            /* Expect packets to be ordered           */
+    bool        ordered;            /* Packets have packed sequence data      */
     bool        add_noise;          /* Add noise for missing packets          */
     uint8_t     noise_value;        /* Value to use for noise                 */
 
@@ -161,7 +161,7 @@ void close_receiver(dxwifi_receiver* receiver);
  * 
  *  NOTES: Packet data is buffered before it is written out. The receiver also
  *  supports options for ordering the packets and filling in missing data with
- *  noise before it is written out. By default, these options are disabled.
+ *  noise before it is written out. 
  */
 void receiver_activate_capture(dxwifi_receiver* receiver, int fd, dxwifi_rx_stats* out);
 

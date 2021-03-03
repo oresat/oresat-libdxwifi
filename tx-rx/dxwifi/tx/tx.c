@@ -33,10 +33,11 @@
 #include <libdxwifi/details/logging.h>
 
 
-bool listen_for_files = false;
+volatile bool listen_for_files  = false;
 dxwifi_transmitter* transmitter = NULL;
 
 
+// Forward declare
 void transmit(cli_args* args, dxwifi_transmitter* tx);
 
 
@@ -97,16 +98,39 @@ int main(int argc, char** argv) {
 }
 
 
+/**
+ *  DESCRIPTION:    Signals to the transmitter to stop transmission
+ * 
+ *  ARGUMENTS: 
+ *      
+ *      signum:     Received signal  
+ * 
+ */
 void tx_sigint_handler(int signum) {
     stop_transmission(transmitter);
 }
 
-
+/**
+ *  DESCRIPTION:    Signals to the watch loop to close out
+ * 
+ *  ARGUMENTS: 
+ *      
+ *      signum:     Received signal  
+ * 
+ */
 void watchdir_sigint_handler(int signum) {
     listen_for_files = false;
 }
 
 
+/**
+ *  DESCRIPTION:    Log info about the transmitted file
+ * 
+ *  ARGUMENTS: 
+ *      
+ *      stats:      Accumulated statistics about the transmission
+ * 
+ */
 void log_tx_stats(dxwifi_tx_stats stats) {
     log_info(
         "Transmission Stats\n"
@@ -120,6 +144,15 @@ void log_tx_stats(dxwifi_tx_stats stats) {
 }
 
 
+/**
+ *  DESCRIPTION:    Called everytime a frame is injected, logs stats about the 
+ *                  transmitted frame.
+ * 
+ *  ARGUMENTS: 
+ * 
+ *      See definition of dxwifi_tx_frame_cb in transmitter.h
+ * 
+ */
 size_t log_frame_stats(dxwifi_tx_frame* frame, size_t payload_size, dxwifi_tx_stats stats, void* user) {
     log_debug("Frame: %d - (Read: %ld, Sent: %ld)", stats.frame_count, stats.prev_bytes_read, stats.prev_bytes_sent);
     log_hexdump(frame->__frame, DXWIFI_TX_HEADER_SIZE + payload_size + IEEE80211_FCS_SIZE);
@@ -127,6 +160,15 @@ size_t log_frame_stats(dxwifi_tx_frame* frame, size_t payload_size, dxwifi_tx_st
 }
 
 
+/**
+ *  DESCRIPTION:    Called before every frame is injected, adds millisecond 
+ *                  delay to transmission
+ * 
+ *  ARGUMENTS: 
+ * 
+ *      See definition of dxwifi_tx_frame_cb in transmitter.h
+ * 
+ */
 size_t delay_transmission(dxwifi_tx_frame* frame, size_t payload_size, dxwifi_tx_stats stats, void* user) {
     unsigned delay_ms = *(unsigned*) user;
 
@@ -136,6 +178,16 @@ size_t delay_transmission(dxwifi_tx_frame* frame, size_t payload_size, dxwifi_tx
 }
 
 
+/**
+ *  DESCRIPTION:    Called before every frame is injected, packs the current 
+ *                  frame count into the last four bytes of the MAC headers 
+ *                  addr1 field
+ * 
+ *  ARGUMENTS: 
+ * 
+ *      See definition of dxwifi_tx_frame_cb in transmitter.h
+ * 
+ */
 size_t attach_frame_number(dxwifi_tx_frame* frame, size_t payload_size, dxwifi_tx_stats stats, void* user) {
     uint32_t* frame_no = (uint32_t*)&frame->mac_hdr->addr1[2];
 
@@ -145,6 +197,16 @@ size_t attach_frame_number(dxwifi_tx_frame* frame, size_t payload_size, dxwifi_t
 }
 
 
+/**
+ *  DESCRIPTION:    Setups and tearsdown SIGINT handlers to control transmission
+ * 
+ *  ARGUMENTS: 
+ *      
+ *      tx:         Initialized transmitter
+ * 
+ *      fd:         Opened file descriptor of the file to be transmitted
+ * 
+ */
 dxwifi_tx_state_t setup_handlers_and_transmit(dxwifi_transmitter* tx, int fd) {
     dxwifi_tx_stats stats;
 
@@ -163,6 +225,23 @@ dxwifi_tx_state_t setup_handlers_and_transmit(dxwifi_transmitter* tx, int fd) {
 }
 
 
+/**
+ *  DESCRIPTION:    Iterates through a list of file names, opens them, and 
+ *                  transmits them
+ * 
+ *  ARGUMENTS: 
+ *      
+ *      tx:         Initialized transmitter
+ * 
+ *      files:      List of files to transmit
+ * 
+ *      delay:      Millisecond delay to add between file transmission. 
+ * 
+ *  RETURNS:
+ *      
+ *      dxwifi_tx_state_t: The last reported state of the transmitter
+ * 
+ */
 dxwifi_tx_state_t transmit_files(dxwifi_transmitter* tx, char** files, size_t num_files, unsigned delay) {
     int fd = 0;
     dxwifi_tx_state_t state = DXWIFI_TX_NORMAL;
@@ -182,6 +261,20 @@ dxwifi_tx_state_t transmit_files(dxwifi_transmitter* tx, char** files, size_t nu
 }
 
 
+/**
+ *  DESCRIPTION:    Transmit all files in a directory that matches a filter
+ * 
+ *  ARGUMENTS: 
+ *      
+ *      tx:         Initialized transmitter
+ * 
+ *      filter:     Glob pattern to filter which files should be transmitted
+ * 
+ *      dirname:    Name of target directory
+ * 
+ *      delay:      Inter-file transmission delay in milliseconds
+ * 
+ */
 void transmit_directory_contents(dxwifi_transmitter* tx, const char* filter, const char* dirname, unsigned delay) {
     DIR* dir;
     struct dirent* file;
@@ -205,7 +298,17 @@ void transmit_directory_contents(dxwifi_transmitter* tx, const char* filter, con
     free(path_buffer);
 }
 
-
+/**
+ *  DESCRIPTION:    Transmits current directory contents and listens for newly
+ *                  created files to transmit
+ * 
+ *  ARGUMENTS: 
+ *      
+ *      args:       Parsed command line arguments
+ * 
+ *      tx:         Initialized transmitter
+ * 
+ */
 void transmit_directory(cli_args* args, dxwifi_transmitter* tx) {
 
     const char* dirname = args->files[0];
@@ -303,7 +406,16 @@ void transmit_directory(cli_args* args, dxwifi_transmitter* tx) {
     }
 }
 
-
+/**
+ *  DESCRIPTION:    Determine the transmission mode and transmit files
+ * 
+ *  ARGUMENTS: 
+ *      
+ *      args:       Parsed command line arguments
+ * 
+ *      tx:         Initialized transmitter
+ * 
+ */
 void transmit(cli_args* args, dxwifi_transmitter* tx) {
     int fd = 0;
     dxwifi_tx_stats tx_stats = {

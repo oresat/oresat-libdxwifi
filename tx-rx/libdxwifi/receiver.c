@@ -34,6 +34,10 @@ typedef struct {
 } packet_heap_node;
 
 
+/**
+ *  Frame controller handles intra-capture state and contains flags that the 
+ *  receiver uses to determine when to stop processing packets
+ */
 typedef struct {
     binary_heap             packet_heap;    /* Tracks packet frame number     */
     uint8_t*                packet_buffer;  /* Buffer to copy captured packets*/
@@ -48,6 +52,19 @@ typedef struct {
 } frame_controller;
 
 
+/**
+ *  DESCRIPTION:    Ordering function for the packet heap
+ * 
+ *  ARGUMENTS:      
+ * 
+ *      lhs:        Left hand operand
+ *      rhs:        Right hand operand
+ * 
+ *  RETURNS:
+ *     
+ *      bool:       true if the lhs frame number is less than the rhs
+ *  
+ */
 static bool order_by_frame_number_desc(const uint8_t* lhs, const uint8_t* rhs) {
     packet_heap_node* node1 = (packet_heap_node*) lhs;
     packet_heap_node* node2 = (packet_heap_node*) rhs;
@@ -56,12 +73,32 @@ static bool order_by_frame_number_desc(const uint8_t* lhs, const uint8_t* rhs) {
 }
 
 
+/**
+ *  DESCRIPTION:    Grabs the packed frame number from the correct field in the
+ *                  MAC header
+ * 
+ *  ARGUMENTS:
+ * 
+ *      mac_hdr:    MAC layer header of the captured packet
+ * 
+ */
 static uint32_t extract_frame_number(ieee80211_hdr* mac_hdr) {
     // Packed Frame number is in the last four bytes of address 1 field
     return ntohl(*(uint32_t*)(mac_hdr->addr1 + 2));
 }
 
-
+/**
+ *  DESCRIPTION:    Initializes and allocates any frame controller resources
+ * 
+ *  ARGUMENTS:
+ * 
+ *      fc:         Pointer to Frame controller object
+ * 
+ *      rx:         Owning receiver object
+ * 
+ *      fd:         Sink to write out data to
+ * 
+ */
 static void init_frame_controller(frame_controller* fc, const dxwifi_receiver* rx, int fd) {
     debug_assert(fc);
 
@@ -81,7 +118,14 @@ static void init_frame_controller(frame_controller* fc, const dxwifi_receiver* r
     init_heap(&fc->packet_heap, DXWIFI_RX_PACKET_HEAP_CAPACITY, sizeof(packet_heap_node), order_by_frame_number_desc);
 }
 
-
+/**
+ *  DESCRIPTION:    Tearsdown any resources associated with the frame controller
+ * 
+ *  ARGUMENTS:
+ * 
+ *      fc:         Initialized frame controller
+ * 
+ */
 static void teardown_frame_controller(frame_controller* fc) {
     debug_assert(fc);
 
@@ -94,7 +138,22 @@ static void teardown_frame_controller(frame_controller* fc) {
     memset(&fc->rx_stats, 0x00, sizeof(dxwifi_rx_stats));
 }
 
-
+/**
+ *  DESCRIPTION:    Parses the raw captured data into the expected structure of 
+ *                  the frame
+ * 
+ *  ARGUMENTS:
+ * 
+ *      pkt_stats:  Info about the current capture
+ * 
+ *      data:       Captured frame of data
+ * 
+ *  RETURNS:
+ *      
+ *      dxwifi_rx_frame: Structural representation of the data. All fields point
+ *      into the provided data buffer and should not be freed or modified.
+ *  
+ */
 static dxwifi_rx_frame parse_rx_frame_fields(const struct pcap_pkthdr* pkt_stats, uint8_t* data) {
     dxwifi_rx_frame frame;
 
@@ -107,7 +166,21 @@ static dxwifi_rx_frame parse_rx_frame_fields(const struct pcap_pkthdr* pkt_stats
 }
 
 
+/**
+ *  DESCRIPTION:    Verify if the captured data is a control frame and determine
+ *                  what kind of control frame it is
+ * 
+ *  ARGUMENTS:
+ * 
+ *      frame:      Captured frame of data
+ * 
+ *      frame_no:   Sequence data attached with the frame
+ * 
+ *      rx_stats:   State of the current capture session
+ *  
+ */
 static void log_frame_stats(dxwifi_rx_frame* frame, int32_t frame_no, dxwifi_rx_stats* rx_stats) {
+    debug_assert(frame && rx_stats);
 
     char timestamp[256];
     struct tm *time;
@@ -126,6 +199,23 @@ static void log_frame_stats(dxwifi_rx_frame* frame, int32_t frame_no, dxwifi_rx_
 }
 
 
+/**
+ *  DESCRIPTION:    Verify if the captured data is a control frame and determine
+ *                  what kind of control frame it is
+ * 
+ *  ARGUMENTS:
+ * 
+ *      frame:      Captured frame of data
+ * 
+ *      pkt_stats:  Information about the current capture
+ * 
+ *      check_threshold: Percentage of data that must match with a control data
+ *                       value for us to consider this frame as a "control frame"
+ * 
+ *  RETURNS:
+ *      dxwifi_control_frame_t: The type of the control frame
+ *  
+ */
 static dxwifi_control_frame_t check_frame_control(const uint8_t* frame, const struct pcap_pkthdr* pkt_stats, float check_threshold) {
     // Get info we need from the raw data frame
     const ieee80211_radiotap_hdr* rtap = (const ieee80211_radiotap_hdr*)frame;
@@ -164,7 +254,22 @@ static dxwifi_control_frame_t check_frame_control(const uint8_t* frame, const st
 }
 
 
+
+/**
+ *  DESCRIPTION:    Perform an action based on what type of control frame was 
+ *                  received
+ * 
+ *  ARGUMENTS:
+ * 
+ *      fc:         Frame controller contains state information about the current
+ *                  capture
+ * 
+ *      type:       The type of control frame recieved
+ *  
+ */
 static void handle_frame_control(frame_controller* fc, dxwifi_control_frame_t type) {
+    debug_assert(fc);
+
     switch (type)
     {
     case DXWIFI_CONTROL_FRAME_PREAMBLE:
@@ -191,6 +296,14 @@ static void handle_frame_control(frame_controller* fc, dxwifi_control_frame_t ty
 }
 
 
+/**
+ *  DESCRIPTION:    Write all the payload data recieved into a sink
+ * 
+ *  ARGUMENTS:
+ * 
+ *      fc:         Frame controller with allocated packet buffer
+ *  
+ */
 static void dump_packet_buffer(frame_controller* fc) {
     debug_assert(fc);
 
@@ -228,6 +341,20 @@ static void dump_packet_buffer(frame_controller* fc) {
 }
 
 
+/**
+ *  DESCRIPTION:    Callback for PCAP dispatch. Called each time a frame is
+ *                  matching the BPF expression is captured
+ * 
+ *  ARGUMENTS:
+ * 
+ *      args:       Frame controller allocated in receiver_activate_capture()
+ * 
+ *      pkt_stats:  Information about the current capture
+ * 
+ *      frame:      Actual data that was captured. Memory is owned by pcap and 
+ *                  is copied onto our own packet buffer.
+ *  
+ */
 static void process_frame(uint8_t* args, const struct pcap_pkthdr* pkt_stats, const uint8_t* frame) { 
     frame_controller* fc = (frame_controller*) args;
 
@@ -278,6 +405,9 @@ static void process_frame(uint8_t* args, const struct pcap_pkthdr* pkt_stats, co
     }
 }
 
+//
+// See receiver.h for description of non-static functions
+//
 
 static void log_rx_configuration(const dxwifi_receiver* rx, const char* dev_name) {
     int datalink = pcap_datalink(rx->__handle);
