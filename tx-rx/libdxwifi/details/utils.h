@@ -20,59 +20,127 @@
 #include <libdxwifi/dxwifi.h>
 
 
-static inline void set_bits32(uint32_t* word, uint32_t mask, uint32_t value) {
-    *word = (*word & ~mask) | (value & mask);
-}
+/**
+ *  DESCRIPTION:    Sets the masked bits in word to that of value
+ * 
+ *  ARGUMENTS: 
+ *      
+ *      word:       Word to be modified
+ * 
+ *      mask:       Mask of desired bits to change
+ * 
+ *      value:      Desired value of bits
+ * 
+ */
+void set_bits32(uint32_t* word, uint32_t mask, uint32_t value);
 
 
-static inline void set_bits16(uint16_t* word, uint16_t mask, uint16_t value) {
-    *word = (*word & ~mask) | (value & mask);
-}
+/**
+ *  DESCRIPTION:    Sets the masked bits in word to that of value
+ * 
+ *  ARGUMENTS: 
+ *      
+ *      word:       Word to be modified
+ * 
+ *      mask:       Mask of desired bits to change
+ * 
+ *      value:      Desired value of bits
+ * 
+ */
+void set_bits16(uint16_t* word, uint16_t mask, uint16_t value);
 
 
-static bool is_regular_file(const char* path) {
-    struct stat path_stat;
-    return (lstat(path, &path_stat) == 0 && S_ISREG(path_stat.st_mode));
-}
+/**
+ *  DESCRIPTION:    Determines if the given path is a regular file
+ * 
+ *  ARGUMENTS: 
+ *      
+ *      path:       Path to file to check
+ * 
+ *  RETURNS:    
+ *      
+ *      bool:       True if the path leads to a regular file
+ */
+bool is_regular_file(const char* path);
 
 
-static bool is_directory(const char* path) {
-    struct stat path_stat;
-    return (lstat(path, &path_stat) == 0 && S_ISDIR(path_stat.st_mode));
-}
+/**
+ *  DESCRIPTION:    Determines if the given path is a directory
+ * 
+ *  ARGUMENTS: 
+ *      
+ *      path:       Path to directory
+ * 
+ *  RETURNS:    
+ *      
+ *      bool:       True if the path leads to a directory
+ */
+bool is_directory(const char* path);
 
 
-static const char* control_frame_type_to_str(dxwifi_control_frame_t type) {
-    switch (type)
-    {
-    case DXWIFI_CONTROL_FRAME_PREAMBLE:
-        return "Preamble";
-    
-    case DXWIFI_CONTROL_FRAME_EOT:
-        return "EOT";
-
-    case DXWIFI_CONTROL_FRAME_NONE:
-        return "None";
-
-    default:
-        return "Unknown";
-    }
-}
+/**
+ *  DESCRIPTION:    Converts the control frame type to a string
+ * 
+ *  ARGUMENTS: 
+ *      
+ *      type:       Control frame type
+ * 
+ *  RETURNS:    
+ *      
+ *      const char*:    C string representing the type
+ */
+const char* control_frame_type_to_str(dxwifi_control_frame_t type);
 
 
-static int msleep(unsigned msec, bool require_elapsed) {
-    int status;
-    struct timespec ts = {
-        .tv_sec  = msec / 1000,
-        .tv_nsec = (msec % 1000) * 1000000
-    };
+/**
+ *  DESCRIPTION:    Millisecond sleep
+ * 
+ *  ARGUMENTS: 
+ *      
+ *      msec:       Number of milliseconds to sleep 
+ * 
+ *      require_elapsed:  If this flag is set the subroutine will continue to
+ *                        sleep until msec has elapsed despite interrupts
+ * 
+ *  RETURNS:    
+ *      
+ *      int:        0 if msec elapsed, or -1 if the sleep was interrupted
+ */
+int msleep(unsigned msec, bool require_elapsed);
 
-    do {
-        status = nanosleep(&ts, &ts);
-    } while(status && errno == EINTR && require_elapsed);
 
-    return status;
-}
+/**
+ *  DESCRIPTION:    Searches for the index matching the target value in an array
+ * 
+ *  ARGUMENTS: 
+ *      
+ *      array:      Allocated array
+ * 
+ *      n:          Number of elements in the array
+ * 
+ *  RETURNS:    
+ *      
+ *      int:        index to the matching value or -1
+ * 
+ */
+int get_index(int* array, size_t n, int target);
+
+
+/**
+ *  DESCRIPTION:    Appends the filename to the path, adds in '/' if necessary
+ * 
+ *  ARGUMENTS: 
+ *      
+ *      buffer:     Buffer to hold path string. 
+ * 
+ *      n:          size of the buffer
+ * 
+ *      path:       Path string
+ * 
+ *      filename:   Filename to append to path
+ * 
+ */
+void combine_path(char* buffer, size_t n, const char* path, const char* filename);
 
 
 // Gets rid of `unused-parameter` warnings in release builds. Should only be 
