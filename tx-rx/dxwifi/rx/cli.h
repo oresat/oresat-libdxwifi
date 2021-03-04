@@ -19,13 +19,14 @@ typedef enum {
 
 
 typedef struct {
-    rx_mode_t rx_mode;
-    int verbosity;
-    bool append;
-    const char* device;
-    const char* output_path;
-    const char* file_prefix;
-    const char* file_extension;
+    rx_mode_t       rx_mode;
+    int             verbosity;
+    bool            quiet;
+    bool            append;
+    const char*     device;
+    const char*     output_path;
+    const char*     file_prefix;
+    const char*     file_extension;
     dxwifi_receiver rx;
 } cli_args;
 

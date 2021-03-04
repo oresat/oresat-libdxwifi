@@ -33,6 +33,7 @@ int main(int argc, char** argv) {
     cli_args args = {
         .rx_mode        = RX_STREAM_MODE,
         .verbosity      = DXWIFI_LOG_INFO,
+        .quiet          = false,
         .append         = false,
         .device         = "mon0",
         .output_path    = ".",

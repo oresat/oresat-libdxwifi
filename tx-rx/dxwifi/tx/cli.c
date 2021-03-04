@@ -27,6 +27,10 @@
 #define RTAP_TX_FLAGS_GROUP     2500
 #define HELP_GROUP              3000
 
+#if defined(DXWIFI_TESTS)
+#define TEST_GROUP (HELP_GROUP + 500)
+#endif
+
 #define GET_KEY(x, group) (x + group)
 
 
@@ -75,7 +79,13 @@ static struct argp_option opts[] = {
     { "ordered",        GET_KEY(IEEE80211_RADIOTAP_F_TX_ORDER,      RTAP_TX_FLAGS_GROUP),   0,          OPTION_NO_USAGE,  "Tx should not be reordered",             RTAP_TX_FLAGS_GROUP },
 
     { 0, 0, 0, 0, "Help Options", HELP_GROUP },
-    { "verbose", 'v', 0, 0, "Verbosity level", HELP_GROUP },
+    { "verbose",    'v', "<level>", 0, "Verbosity level",    HELP_GROUP },
+    { "quiet",      'q', 0,         0, "Silence any output", HELP_GROUP },
+
+#if defined(DXWIFI_TESTS)
+    { 0, 0, 0, 0, "WARNING! You are running a test build!", TEST_GROUP },
+    { "savefile", GET_KEY(1, TEST_GROUP), "<filename>", 0, "Dump packetized data into this file", TEST_GROUP },
+#endif
 
     { 0 } // Final zero field is required by argp
 };
@@ -106,10 +116,16 @@ static error_t parse_opt(int key, char* arg, struct argp_state *state) {
         else {
             args->tx_mode = TX_STREAM_MODE;
         }
+        if(args->quiet) {
+            args->verbosity = 0;
+        }
         break; 
 
     case ARGP_KEY_INIT:
         memset(args->files, 0x00, sizeof(char*) * TX_CLI_FILE_MAX);
+#if defined(DXWIFI_TESTS)
+        args->tx.savefile = NULL;
+#endif
         break;
 
     case ARGP_KEY_ARG:
@@ -140,7 +156,16 @@ static error_t parse_opt(int key, char* arg, struct argp_state *state) {
         break;
 
     case 'v':
-        args->verbosity++;
+        if(arg) {
+            args->verbosity = atoi(arg);
+        }
+        else {
+            args->verbosity++;
+        }
+        break;
+
+    case 'q':
+        args->quiet = true;
         break;
 
     case 'u': 
@@ -216,6 +241,12 @@ static error_t parse_opt(int key, char* arg, struct argp_state *state) {
     case GET_KEY(IEEE80211_RADIOTAP_F_TX_ORDER, RTAP_TX_FLAGS_GROUP):
         args->tx.rtap_tx_flags |= IEEE80211_RADIOTAP_F_TX_ORDER;
         break;
+
+#if defined(DXWIFI_TESTS)
+    case GET_KEY(1, TEST_GROUP):
+        args->tx.savefile = arg;
+        break;
+#endif 
 
     default:
         status = ARGP_ERR_UNKNOWN;
