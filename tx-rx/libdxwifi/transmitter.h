@@ -40,6 +40,9 @@
 
 #define DXWIFI_TX_FRAME_HANDLER_MAX 8
 
+#if defined(DXWIFI_TESTS)
+#define DXWIFI_TX_TEST_OUTPUT_FILE "tx.raw"
+#endif 
 
 /************************
  *  Data structures
@@ -175,6 +178,11 @@ typedef struct {
                                     /* Called after injection               */
     volatile bool   __activated;    /* Currently transmitting?              */
     pcap_t*         __handle;       /* Session handle for Pcap              */
+
+#if defined(DXWIFI_TESTS)
+    pcap_dumper_t*  dumper;         /* Handle to dump file                  */
+#endif
+
 } dxwifi_transmitter;
 
 

@@ -67,7 +67,6 @@ static error_t parse_opt(int key, char* arg, struct argp_state *state) {
 
     error_t status = 0;
     cli_args* args = (cli_args*) state->input;
-    struct stat path_stat;
 
     // TODO error handling with atoi
     switch (key)

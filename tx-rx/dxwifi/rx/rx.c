@@ -212,7 +212,6 @@ void capture_in_directory(cli_args* args, dxwifi_receiver* rx) {
  */
 void receive(cli_args* args, dxwifi_receiver* rx) {
 
-    dxwifi_rx_stats stats;
     switch (args->rx_mode)
     {
     case RX_STREAM_MODE: // Capture everything and output to stdout

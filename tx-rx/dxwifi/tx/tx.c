@@ -412,10 +412,6 @@ void transmit_directory(cli_args* args, dxwifi_transmitter* tx) {
  * 
  */
 void transmit(cli_args* args, dxwifi_transmitter* tx) {
-    int fd = 0;
-    dxwifi_tx_stats tx_stats = {
-        .tx_state = DXWIFI_TX_NORMAL
-    };
 
     if(args->tx_delay > 0 ) {
         attach_preinject_handler(transmitter, delay_transmission, &args->tx_delay);
