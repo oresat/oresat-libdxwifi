@@ -263,6 +263,35 @@ static void send_control_frame(dxwifi_transmitter* tx, dxwifi_tx_frame* frame, d
 
 
 /**
+ *  DESCRIPTION:    Sends a control frame to the receiver
+ * 
+ *  ARGUMENTS: 
+ * 
+ *      tx:         Initialized transmitter
+ * 
+ *      frame:      Allocated transmission data frame
+ * 
+ *      payload_size:   Number of bytes in the payload section of the frame
+ * 
+ *  NOTES:
+ * 
+ *      If runninng a test build this funciton will dump the frame to a savefile
+ *      instead of injecting the pcap over the air
+ * 
+ */
+static int inject_packet(dxwifi_transmitter* tx, dxwifi_tx_frame* frame, size_t payload_size) {
+#if defined(DXWIFI_TESTS)
+    struct pcap_pkthdr pcap_hdr;
+    gettimeofday(&pcap_hdr.ts, NULL);
+    pcap_hdr.caplen = DXWIFI_TX_HEADER_SIZE + payload_size + IEEE80211_FCS_SIZE;
+    pcap_hdr.len = pcap_hdr.caplen;
+    pcap_dump((uint8_t*)tx->dumper, &pcap_hdr, frame->__frame);
+#endif
+    return pcap_inject(tx->__handle, frame->__frame, DXWIFI_TX_HEADER_SIZE + payload_size + IEEE80211_FCS_SIZE);
+}
+
+
+/**
  *  DESCRIPTION:    Logs transmitter settings afer initialization
  * 
  *  ARGUMENTS: 
@@ -319,15 +348,24 @@ void init_transmitter(dxwifi_transmitter* tx, const char* device_name) {
     assert_M(tx->__handle != NULL, err_buff);
 
     log_tx_configuration(tx, device_name);
+
+#if defined(DXWIFI_TESTS)
+    tx->dumper = pcap_dump_open(tx->__handle, DXWIFI_TX_TEST_OUTPUT_FILE);
+    assert_M(tx->dumper, "Failed to open savefile: %s", pcap_geterr(tx->__handle));
+#endif
 }
 
 
-void close_transmitter(dxwifi_transmitter* transmitter) {
-    debug_assert(transmitter && transmitter->__handle);
+void close_transmitter(dxwifi_transmitter* tx) {
+    debug_assert(tx && tx->__handle);
 
-    pcap_close(transmitter->__handle);
+    pcap_close(tx->__handle);
 
     log_info("DxWifi transmitter closed");
+
+#if defined(DXWIFI_TESTS)
+    pcap_dump_close(tx->dumper);
+#endif
 }
 
 
@@ -416,7 +454,7 @@ void start_transmission(dxwifi_transmitter* tx, int fd, dxwifi_tx_stats* out) {
 
                 size_t payload_size = invoke_handlers(tx->__preinjection, &data_frame, stats);
 
-                status = pcap_inject(tx->__handle, data_frame.__frame, DXWIFI_TX_HEADER_SIZE + payload_size + IEEE80211_FCS_SIZE);
+                status = inject_packet(tx, &data_frame, payload_size);
 
                 assert_continue(status > 0, "Injection failure: %s", pcap_statustostr(status));
 
@@ -429,6 +467,10 @@ void start_transmission(dxwifi_transmitter* tx, int fd, dxwifi_tx_stats* out) {
             }
         }
     } while(tx->__activated && stats.prev_bytes_read > 0);
+
+#if defined(DXWIFI_TESTS)
+    pcap_dump_flush(tx->dumper);
+#endif 
 
     log_info("DxWiFI Transmission stopped");
 
