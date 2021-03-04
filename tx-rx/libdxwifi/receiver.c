@@ -447,6 +447,15 @@ void init_receiver(dxwifi_receiver* rx, const char* device_name) {
     char err_buff[PCAP_ERRBUF_SIZE];
 
     rx->__activated = false;
+#if defined(DXWIFI_TESTS)
+    if(rx->savefile) {
+        rx->__handle = pcap_open_offline(rx->savefile, err_buff);
+    }
+    else {
+        rx->__handle = pcap_fopen_offline(stdin, err_buff);
+    }
+    assert_M(rx->__handle != NULL, err_buff);
+#else
     rx->__handle = pcap_open_live(
                         device_name,
                         rx->snaplen,
@@ -456,11 +465,12 @@ void init_receiver(dxwifi_receiver* rx, const char* device_name) {
                     );
     assert_M(rx->__handle != NULL, err_buff);
 
-    status = pcap_set_datalink(rx->__handle, DLT_IEEE802_11_RADIO);
-    assert_M(status != PCAP_ERROR, "Failed to set datalink: %s", pcap_statustostr(status));
-
     status = pcap_setnonblock(rx->__handle, true, err_buff);
     assert_M(status != PCAP_ERROR, "Failed to set nonblocking mode: %s", err_buff);
+#endif // DXWIFI_TESTS
+
+    status = pcap_set_datalink(rx->__handle, DLT_IEEE802_11_RADIO);
+    assert_M(status != PCAP_ERROR, "Failed to set datalink: %s", pcap_statustostr(status));
 
     status = pcap_compile(rx->__handle, &filter, rx->filter, rx->optimize, PCAP_NETMASK_UNKNOWN);
     assert_M(status != PCAP_ERROR, "Failed to compile filter %s: %s", rx->filter, pcap_statustostr(status));
@@ -492,7 +502,7 @@ void receiver_activate_capture(dxwifi_receiver* rx, int fd, dxwifi_rx_stats* out
         .events     = POLLIN,
         .revents    = 0
     };
-    assert_M(request.fd > 0, "Receiver handle cannot be polled");
+    assert_M(request.fd >= 0, "Receiver handle cannot be polled");
 
     init_frame_controller(&fc, rx, fd);
 
@@ -519,6 +529,13 @@ void receiver_activate_capture(dxwifi_receiver* rx, int fd, dxwifi_rx_stats* out
         }
         else {
             status = pcap_dispatch(rx->__handle, rx->dispatch_count, process_frame, (uint8_t*)&fc);
+
+#if defined(DXWIFI_TESTS)
+            // When reading from a savefile, 0 denotes that there are no more packets
+            if(status == 0) {
+                rx->__activated = false;
+            }
+#endif // DXWIFI_TESTS
 
             assert_continue(status != PCAP_ERROR, "Capture failure: %s", pcap_statustostr(status));
         }

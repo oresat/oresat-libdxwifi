@@ -20,6 +20,10 @@
 #define PCAP_SETTINGS_GROUP     1000
 #define HELP_GROUP              1500
 
+#if defined(DXWIFI_TESTS)
+#define TEST_GROUP (HELP_GROUP + 500)
+#endif
+
 #define GET_KEY(x, group) (x + group)
 
 typedef enum {
@@ -57,7 +61,13 @@ static struct argp_option opts[] = {
     { "no-optimize",    GET_KEY(NO_OPTIMIZE,    PCAP_SETTINGS_GROUP),    0,              OPTION_NO_USAGE,    "Do not optimize the BPF expression",   PCAP_SETTINGS_GROUP },
 
     { 0, 0, 0, 0, "Help options", HELP_GROUP },
-    { "verbose", 'v', 0, 0, "Verbosity level", HELP_GROUP},
+    { "verbose", 'v', "<level>", 0, "Verbosity level",      HELP_GROUP},
+    { "quiet",   'q', 0,         0, "Silence any output",   HELP_GROUP },
+
+#if defined(DXWIFI_TESTS)
+    { 0, 0, 0, 0, "WARNING! You are running a test build!", TEST_GROUP },
+    { "savefile", GET_KEY(1, TEST_GROUP), "<filename>", 0, "Dump packetized data into this file", TEST_GROUP },
+#endif
 
     { 0 } // Final zero field is required by arg
 };
@@ -91,6 +101,9 @@ static error_t parse_opt(int key, char* arg, struct argp_state *state) {
         }
         else {
             args->rx_mode = RX_STREAM_MODE;
+        }
+        if(args->quiet) {
+            args->verbosity = 0;
         }
         break;
 
@@ -126,7 +139,16 @@ static error_t parse_opt(int key, char* arg, struct argp_state *state) {
         break;
 
     case 'v':
-        args->verbosity++;
+        if(arg) {
+            args->verbosity = atoi(arg);
+        } 
+        else {
+            args->verbosity++;
+        }
+        break;
+
+    case 'q':
+        args->quiet = true;
         break;
 
     case 'p':
@@ -160,6 +182,16 @@ static error_t parse_opt(int key, char* arg, struct argp_state *state) {
     case GET_KEY(NO_OPTIMIZE, PCAP_SETTINGS_GROUP):
         args->rx.optimize = false;
         break;
+
+#if defined(DXWIFI_TESTS)
+    case ARGP_KEY_INIT:
+        args->rx.savefile = NULL;
+        break;
+
+    case GET_KEY(1, TEST_GROUP):
+        args->rx.savefile = arg;
+        break;
+#endif 
 
     default:
         status = ARGP_ERR_UNKNOWN;

@@ -46,6 +46,7 @@ int main(int argc, char** argv) {
     cli_args args = {
         .tx_mode                    = TX_STREAM_MODE,
         .verbosity                  = DXWIFI_LOG_INFO,
+        .quiet                      = false,
         .file_count                 = 0,
         .file_filter                = "*",
         .transmit_current_files     = false,

@@ -124,6 +124,7 @@ static void construct_ieee80211_header( ieee80211_hdr* mac, ieee80211_frame_cont
     mac->seq_ctrl = 0;
 }
 
+
 /**
  *  DESCRIPTION:    Looks for an empty callback slot and attaches the handler
  * 
@@ -155,6 +156,7 @@ static int attach_handler(dxwifi_tx_frame_handler* pipeline, dxwifi_tx_frame_cb 
     }
     return -1;
 }
+
 
 /**
  *  DESCRIPTION:    Removes the handler at a specified index
@@ -227,6 +229,37 @@ static size_t invoke_handlers(dxwifi_tx_frame_handler* pipeline, dxwifi_tx_frame
 
 
 /**
+ *  DESCRIPTION:    Injects prepared packet data 
+ * 
+ *  ARGUMENTS: 
+ * 
+ *      tx:         Initialized transmitter
+ * 
+ *      frame:      Allocated transmission data frame
+ * 
+ *      payload_size:   Number of bytes in the payload section of the frame
+ * 
+ *  NOTES:
+ * 
+ *      If runninng a test build this function will dump the frame to a savefile
+ *      instead of using pcap_inject
+ * 
+ */
+static int inject_packet(dxwifi_transmitter* tx, dxwifi_tx_frame* frame, size_t payload_size) {
+#if defined(DXWIFI_TESTS)
+    struct pcap_pkthdr pcap_hdr;
+    gettimeofday(&pcap_hdr.ts, NULL);
+    pcap_hdr.caplen = DXWIFI_TX_HEADER_SIZE + payload_size + IEEE80211_FCS_SIZE;
+    pcap_hdr.len = pcap_hdr.caplen;
+    pcap_dump((uint8_t*)tx->dumper, &pcap_hdr, frame->__frame);
+    return pcap_hdr.caplen;
+#else
+    return pcap_inject(tx->__handle, frame->__frame, DXWIFI_TX_HEADER_SIZE + payload_size + IEEE80211_FCS_SIZE);
+#endif
+}
+
+
+/**
  *  DESCRIPTION:    Sends a control frame to the receiver
  * 
  *  ARGUMENTS: 
@@ -255,39 +288,10 @@ static void send_control_frame(dxwifi_transmitter* tx, dxwifi_tx_frame* frame, d
     memcpy(frame->payload, control_data, DXWIFI_FRAME_CONTROL_DATA_SIZE);
 
     for (int i = 0; i < tx->redundant_ctrl_frames + 1; ++i) {
-        int status = pcap_inject(tx->__handle, frame->__frame, DXWIFI_TX_HEADER_SIZE + sizeof(control_data) + IEEE80211_FCS_SIZE);
+        int status = inject_packet(tx, frame, sizeof(control_data));
         log_info("%s Frame Sent: %d", control_frame_type_to_str(type), status);
         log_hexdump(frame->__frame, DXWIFI_TX_HEADER_SIZE + sizeof(control_data) + IEEE80211_FCS_SIZE);
     }
-}
-
-
-/**
- *  DESCRIPTION:    Sends a control frame to the receiver
- * 
- *  ARGUMENTS: 
- * 
- *      tx:         Initialized transmitter
- * 
- *      frame:      Allocated transmission data frame
- * 
- *      payload_size:   Number of bytes in the payload section of the frame
- * 
- *  NOTES:
- * 
- *      If runninng a test build this funciton will dump the frame to a savefile
- *      instead of injecting the pcap over the air
- * 
- */
-static int inject_packet(dxwifi_transmitter* tx, dxwifi_tx_frame* frame, size_t payload_size) {
-#if defined(DXWIFI_TESTS)
-    struct pcap_pkthdr pcap_hdr;
-    gettimeofday(&pcap_hdr.ts, NULL);
-    pcap_hdr.caplen = DXWIFI_TX_HEADER_SIZE + payload_size + IEEE80211_FCS_SIZE;
-    pcap_hdr.len = pcap_hdr.caplen;
-    pcap_dump((uint8_t*)tx->dumper, &pcap_hdr, frame->__frame);
-#endif
-    return pcap_inject(tx->__handle, frame->__frame, DXWIFI_TX_HEADER_SIZE + payload_size + IEEE80211_FCS_SIZE);
 }
 
 
@@ -336,6 +340,16 @@ void init_transmitter(dxwifi_transmitter* tx, const char* device_name) {
     memset(tx->__preinjection,  0x00, sizeof(dxwifi_tx_frame_handler) * DXWIFI_TX_FRAME_HANDLER_MAX);
     memset(tx->__postinjection, 0x00, sizeof(dxwifi_tx_frame_handler) * DXWIFI_TX_FRAME_HANDLER_MAX);
 
+#if defined(DXWIFI_TESTS)
+    tx->__handle = pcap_open_dead(DLT_IEEE802_11_RADIO, DXWIFI_SNAPLEN_MAX);
+    if(tx->savefile) {
+        tx->dumper = pcap_dump_open(tx->__handle, tx->savefile);
+    }
+    else {
+        tx->dumper = pcap_dump_fopen(tx->__handle, stdout);
+    }
+    assert_M(tx->dumper, "Failed to open savefile: %s", pcap_geterr(tx->__handle));
+#else 
     tx->__handle = pcap_open_live(
                         device_name,
                         DXWIFI_SNAPLEN_MAX, 
@@ -343,16 +357,12 @@ void init_transmitter(dxwifi_transmitter* tx, const char* device_name) {
                         DXWIFI_DFLT_PACKET_BUFFER_TIMEOUT, 
                         err_buff
                     );
+#endif // DXWIFI_TESTS
 
     // Hard assert here because if pcap fails it's all FUBAR anyways
     assert_M(tx->__handle != NULL, err_buff);
 
     log_tx_configuration(tx, device_name);
-
-#if defined(DXWIFI_TESTS)
-    tx->dumper = pcap_dump_open(tx->__handle, DXWIFI_TX_TEST_OUTPUT_FILE);
-    assert_M(tx->dumper, "Failed to open savefile: %s", pcap_geterr(tx->__handle));
-#endif
 }
 
 

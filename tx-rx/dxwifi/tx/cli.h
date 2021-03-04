@@ -30,6 +30,7 @@ typedef struct {
     bool                listen_for_new_files;
     int                 watchdir_timeout; 
     int                 verbosity;
+    bool                quiet;
     unsigned            tx_delay;
     unsigned            file_delay;
     const char*         device;

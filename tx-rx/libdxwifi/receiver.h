@@ -109,6 +109,10 @@ typedef struct {
     volatile bool   __activated;    /* Currently capturing packets?           */
     pcap_t*         __handle;       /* Pcap session handle                    */
 
+#if defined(DXWIFI_TESTS)
+    const char*     savefile;       /* Name of file to read packets from      */
+#endif
+
 } dxwifi_receiver;
 
 
