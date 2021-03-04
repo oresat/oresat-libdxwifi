@@ -110,6 +110,7 @@ void tx_sigint_handler(int signum) {
     stop_transmission(transmitter);
 }
 
+
 /**
  *  DESCRIPTION:    Signals to the watch loop to close out
  * 
@@ -287,7 +288,7 @@ void transmit_directory_contents(dxwifi_transmitter* tx, const char* filter, con
     else {
         while((file = readdir(dir)) && state == DXWIFI_TX_NORMAL) {
             if(fnmatch(filter, file->d_name, 0) == 0) {
-                sprintf(path_buffer, "%s/%s", dirname, file->d_name);
+                combine_path(path_buffer, PATH_MAX, dirname, file->d_name);
                 if(is_regular_file(path_buffer)) {
                     state = transmit_files(tx, &path_buffer, 1, delay);
                 }
@@ -297,6 +298,7 @@ void transmit_directory_contents(dxwifi_transmitter* tx, const char* filter, con
     }
     free(path_buffer);
 }
+
 
 /**
  *  DESCRIPTION:    Transmits current directory contents and listens for newly
@@ -318,17 +320,14 @@ void transmit_directory(cli_args* args, dxwifi_transmitter* tx) {
     }
     if(args->listen_for_new_files) {
 
-    // TODO this is the ugliest most profane block of code I have ever written. 
-    // It needs to be burned with fire and refactored into something legible.
-    // But it works. so . . .¯\_(ツ)_/¯
+        const int NUM_LISTENERS = 256;
+
         int status = 0;
         int watchdir = 0;
-        int watchfile_sz = 1024;
-        int watchfiles[watchfile_sz];
+        int watchfiles[NUM_LISTENERS];
         char* path_buffer = calloc(PATH_MAX, sizeof(char));
 
-
-        memset(watchfiles, 0x00, watchfile_sz * sizeof(int));
+        memset(watchfiles, 0x00, NUM_LISTENERS * sizeof(int));
 
         size_t buffsize = (sizeof(struct inotify_event)  + NAME_MAX + 1) * 16;
         char buffer[buffsize]; // Buffer can process 16 events at a time
@@ -368,30 +367,24 @@ void transmit_directory(cli_args* args, dxwifi_transmitter* tx) {
                     // New file was created, watch for file close
                     if((event->mask & IN_CREATE) && !(event->mask & IN_ISDIR)) {
                         if(fnmatch(args->file_filter, event->name, 0) == 0) {
-                            bool watch_added = false;
-                            for(int i = 0; i < watchfile_sz && !watch_added; ++i) {
-                                if(watchfiles[i] == 0) {
-                                    sprintf(path_buffer, "%s/%s", dirname, event->name);
-                                    watchfiles[i] = inotify_add_watch(handle.fd, path_buffer, IN_CLOSE_WRITE);
-                                    watch_added = true;
-                                }
+                            int idx = get_index(watchfiles, NUM_LISTENERS, 0);
+                            if( idx < 0) {
+                                log_error("Watchfile list is full");
                             }
-                            if(!watch_added) {
-                                log_error("Watchfile list full");
+                            else {
+                                combine_path(path_buffer, PATH_MAX, dirname, event->name);
+                                watchfiles[idx] = inotify_add_watch(handle.fd, path_buffer, IN_CLOSE_WRITE);
                             }
                         }
                     }
                     // File was closed, check if we were watching it
                     else if(event->mask & IN_CLOSE_WRITE) {
-                        bool found = false;
-                        for(int i = 0; i < watchfile_sz && !found; ++i) {
-                            if(watchfiles[i] == event->wd) {
-                                sprintf(path_buffer, "%s/%s", dirname, event->name);
-                                transmit_files(tx, &path_buffer, 1, args->file_delay);
-                                inotify_rm_watch(handle.fd, watchfiles[i]);
-                                watchfiles[i] = 0;
-                                found = true;
-                            }
+                        int idx = get_index(watchfiles, NUM_LISTENERS, event->wd);
+                        if(idx >= 0) {
+                            combine_path(path_buffer, PATH_MAX, dirname, event->name);
+                            transmit_files(tx, &path_buffer, 1, args->file_delay);
+                            inotify_rm_watch(handle.fd, watchfiles[idx]);
+                            watchfiles[idx] = 0;
                         }
                     }
                     pos += sizeof(struct inotify_event) + event->len;
@@ -399,6 +392,8 @@ void transmit_directory(cli_args* args, dxwifi_transmitter* tx) {
             }
         } while(listen_for_files);
         sigaction(SIGINT, &prev_action, NULL);
+
+        free(path_buffer);
 
         log_info("Stopped listening for files");
 
@@ -450,5 +445,3 @@ void transmit(cli_args* args, dxwifi_transmitter* tx) {
         break;
     }
 }
-
-
