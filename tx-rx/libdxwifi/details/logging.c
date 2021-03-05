@@ -159,13 +159,13 @@ void __log_hexdump(const char* file, const uint8_t* data, int size) {
     formatted_str[location++] = '\n';
 
     while (i < size) {
-        nbytes = sprintf(temp, "%08x", i);
+        nbytes = snprintf(temp, 16, "%08x", i);
 
         memcpy(formatted_str + location, temp, nbytes);
         location += nbytes;
 
         for(int j = 0; j < 16 && i < size; ++i, ++j) {
-            nbytes = sprintf(temp, " %02x", *(data + i));
+            nbytes = snprintf(temp, 16, " %02x", *(data + i));
             memcpy(formatted_str + location, temp, nbytes);
             location += nbytes;
         }
