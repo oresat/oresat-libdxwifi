@@ -40,7 +40,7 @@ int main(int argc, char** argv) {
         .file_prefix    = "rx",
         .file_extension = "cap",
         .rx = {
-            .dispatch_count     = 32,
+            .dispatch_count     = 1,
             .capture_timeout    = -1, // No timeout
             .packet_buffer_size = DXWIFI_RX_PACKET_BUFFER_SIZE_MAX,
             .ordered            = false,

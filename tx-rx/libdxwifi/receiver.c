@@ -222,6 +222,8 @@ static dxwifi_control_frame_t check_frame_control(const uint8_t* frame, const st
     const uint8_t* payload = frame + rtap->it_len + sizeof(ieee80211_hdr);
     size_t payload_size = pkt_stats->caplen - rtap->it_len - sizeof(ieee80211_hdr) - IEEE80211_FCS_SIZE;
 
+    log_warning("%d", payload_size);
+
     unsigned eot                = 0;
     unsigned preamble           = 0;
     dxwifi_control_frame_t type = DXWIFI_CONTROL_FRAME_NONE;

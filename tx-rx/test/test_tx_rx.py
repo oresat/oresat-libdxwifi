@@ -38,12 +38,14 @@ class TestTxRx(unittest.TestCase):
     def setUp(self):
         os.mkdir(TEMP_DIR)
 
+
     def tearDown(self):
         shutil.rmtree(TEMP_DIR)
-        pass
+
 
     def test_stream_transmission(self):
         pass
+
 
     def test_single_file_transmission(self):
 
@@ -63,6 +65,7 @@ class TestTxRx(unittest.TestCase):
 
         self.assertEqual(status, True)
 
+
     def test_multi_file_transmission(self):
 
         test_files = [f'{TEMP_DIR}/test_{x}.raw' for x in range(100)]
@@ -77,14 +80,31 @@ class TestTxRx(unittest.TestCase):
         subprocess.run(tx_command.split())
         subprocess.run(rx_command.split())
 
+        results = [filecmp.cmp(src, copy) for src, copy in zip(test_files, rx_out)]
+
+        self.assertEqual(all(results), True)
+
+
+    def test_directory_transmission(self):
+
+        test_files = [f'{TEMP_DIR}/test_{x}.raw' for x in range(100)]
+        for file in test_files:
+            genbytes(file, 10, 1024)
+
+        tx_out     = f'{TEMP_DIR}/tx.raw'
+        rx_out     = [f'{TEMP_DIR}/rx_{x}.raw' for x in range(100)]
+        tx_command = f'{TX} {TEMP_DIR} --filter "test_*.raw" --include-all --no-listen -q -b 1024 --savefile {tx_out}'
+        rx_command = f'{RX} {TEMP_DIR} -q -t 2 --prefix rx --extension raw --savefile {tx_out}'
+
+        subprocess.run(tx_command.split())
+        subprocess.run(rx_command.split())
+
         sleep(100)
 
         results = [filecmp.cmp(src, copy) for src, copy in zip(test_files, rx_out)]
 
         self.assertEqual(all(results), True)
 
-    def test_directory_transmission(self):
-        pass
 
     def test_watch_directory(self):
         pass
