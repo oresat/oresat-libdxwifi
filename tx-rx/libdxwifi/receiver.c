@@ -534,6 +534,7 @@ void receiver_activate_capture(dxwifi_receiver* rx, int fd, dxwifi_rx_stats* out
             // When reading from a savefile, 0 denotes that there are no more packets
             if(status == 0) {
                 rx->__activated = false;
+                fc.rx_stats.capture_state = DXWIFI_RX_DEACTIVATED;
             }
 #endif // DXWIFI_TESTS
 
