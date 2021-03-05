@@ -8,13 +8,11 @@
 
 import argparse
 
-def main(args):
-    f = open(args.file, 'wb')
-
-    for i in range(args.numpackets):
-        for j in range(args.blocksize):
-            f.write(str.encode(f'{i}'))
-    return 0
+def genbytes(filename, numpackets, blocksize):
+    with open(filename, 'wb') as f:
+        for i in range(numpackets):
+            for j in range(blocksize):
+                f.write(str.encode(f'{i}'))
 
 
 if __name__ == '__main__':
@@ -41,4 +39,5 @@ if __name__ == '__main__':
         type=int,
         help='Size of each packets data'
     )
-    main(parser.parse_args())
+    args = parser.parse_args()
+    genbytes(args.file, args.numpackets, args.blocksize)
