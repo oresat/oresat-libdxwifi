@@ -13,7 +13,7 @@ import filecmp
 import unittest
 import subprocess
 from time import sleep
-from test.data.genbytes import genbytes
+from test.genbytes import genbytes
 
 
 INSTALL_DIR = 'bin/TestDebug'
@@ -27,6 +27,7 @@ class TestTxRx(unittest.TestCase):
 
     @classmethod
     def setUpClass(cls):
+        '''Setup test environment'''
         if(os.path.isdir(TEMP_DIR)): # Temp dir was not removed correctly on last run
             shutil.rmtree(TEMP_DIR)
 
@@ -36,18 +37,41 @@ class TestTxRx(unittest.TestCase):
 
 
     def setUp(self):
+        '''Create a directory to store test data'''
         os.mkdir(TEMP_DIR)
 
 
     def tearDown(self):
+        '''Remove files created during previous test'''
         shutil.rmtree(TEMP_DIR)
 
 
     def test_stream_transmission(self):
-        pass
+        '''Tx reads from stdin should match Rx writes to stdout'''
+
+        test_data   = bytes([1 for i in range(1024)])
+        tx_out      = f'{TEMP_DIR}/tx.raw'
+
+        tx_command = f'{TX} -q -t 1 -b 1024 --savefile {tx_out}'
+        rx_command = f'{RX} -q -t 5 --savefile {tx_out}'
+
+        tx_proc = subprocess.Popen(tx_command.split(), stdin=subprocess.PIPE)
+
+        tx_proc.communicate(test_data) # Write test data to tx
+
+        tx_proc.wait()
+
+        rx_proc = subprocess.Popen(rx_command.split(), stdout=subprocess.PIPE)
+
+        rx_out = rx_proc.communicate()[0] # Read test data from rx
+
+        rx_proc.wait()
+
+        self.assertEqual(test_data, rx_out)
 
 
     def test_single_file_transmission(self):
+        '''Transmitting a single file is succesfully received and unpackaged'''
 
         test_file   = f'{TEMP_DIR}/test.raw'
         tx_out      = f'{TEMP_DIR}/tx.raw'
@@ -67,6 +91,7 @@ class TestTxRx(unittest.TestCase):
 
 
     def test_multi_file_transmission(self):
+        '''Sending a list of files results in each file being received'''
 
         test_files = [f'{TEMP_DIR}/test_{x}.raw' for x in range(100)]
         for file in test_files:
@@ -75,7 +100,7 @@ class TestTxRx(unittest.TestCase):
         tx_out     = f'{TEMP_DIR}/tx.raw'
         rx_out     = [f'{TEMP_DIR}/rx_{x}.raw' for x in range(100)]
         tx_command = f'{TX} {" ".join(test_files)} -q -b 1024 --savefile {tx_out}'
-        rx_command = f'{RX} {TEMP_DIR} -q -t 2 --prefix rx --extension raw --savefile {tx_out}'
+        rx_command = f'{RX} {TEMP_DIR} -q -c 1 -t 2 --prefix rx --extension raw --savefile {tx_out}'
 
         subprocess.run(tx_command.split())
         subprocess.run(rx_command.split())
@@ -86,6 +111,7 @@ class TestTxRx(unittest.TestCase):
 
 
     def test_directory_transmission(self):
+        '''Tx can send all files currently in a directory'''
 
         test_files = [f'{TEMP_DIR}/test_{x}.raw' for x in range(100)]
         for file in test_files:
@@ -93,13 +119,12 @@ class TestTxRx(unittest.TestCase):
 
         tx_out     = f'{TEMP_DIR}/tx.raw'
         rx_out     = [f'{TEMP_DIR}/rx_{x}.raw' for x in range(100)]
-        tx_command = f'{TX} {TEMP_DIR} --filter "test_*.raw" --include-all --no-listen -q -b 1024 --savefile {tx_out}'
-        rx_command = f'{RX} {TEMP_DIR} -q -t 2 --prefix rx --extension raw --savefile {tx_out}'
+        tx_command = f'{TX} {TEMP_DIR} -q --filter test_*.raw --include-all --no-listen -b 1024 --savefile {tx_out}'
+        rx_command = f'{RX} {TEMP_DIR} -q -c 1 -t 2 --prefix rx --extension raw --savefile {tx_out}'
 
         subprocess.run(tx_command.split())
         subprocess.run(rx_command.split())
 
-        sleep(100)
 
         results = [filecmp.cmp(src, copy) for src, copy in zip(test_files, rx_out)]
 
@@ -107,7 +132,31 @@ class TestTxRx(unittest.TestCase):
 
 
     def test_watch_directory(self):
-        pass
+        '''Tx can watch for new files in a directory and transmit them'''
+
+        tx_out     = f'{TEMP_DIR}/tx.raw'
+        rx_out     = [f'{TEMP_DIR}/rx_{x}.raw' for x in range(100)]
+        tx_command = f'{TX} {TEMP_DIR} -q --watch-timeout 1 --filter test_*.raw -b 1024 --savefile {tx_out}'
+        rx_command = f'{RX} {TEMP_DIR} -q -c 1 -t 2 --prefix rx --extension raw --savefile {tx_out}'
+
+        proc = subprocess.Popen(tx_command.split())
+
+        sleep(0.05) # Give tx time to get set up
+
+        test_files = [f'{TEMP_DIR}/test_{x}.raw' for x in range(10)]
+        for file in test_files:
+            genbytes(file, 10, 1024)
+            # There's an issue with inotify where the file name does not accompany the event if we
+            # create files really fast. Slow it down here until we figure out a fix. 
+            sleep(0.05) 
+
+        proc.wait()
+
+        subprocess.run(rx_command.split())
+
+        results = [filecmp.cmp(src, copy) for src, copy in zip(test_files, rx_out)]
+
+        self.assertEqual(all(results), True)
 
 
 if __name__ == '__main__':
