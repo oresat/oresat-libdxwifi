@@ -42,5 +42,25 @@ int main(int argc, const char * argv[]){
     FILE *fileIn  = fopen(argv[1], "r"); //input file
     FILE *fileOut = fopen(argv[2], "w"); //output file
 
+    //Get File Length
+    fseek(fileIn, 0, SEEK_END); //Seek to EOF
+    long fileLength = ftell(fileIn); //Get byte offset @ EOF
+    rewind(fileIn); //Seek to Beginning
+
+    //Buffer Handling, derived from file length
+    char *buffer = (char *)malloc(fileLength * sizeof(char)); //Malloc enough in buffer for total file size 
+
+    //Structure buffer into list of packets
+        //Status of test data is unknown for now
+
+    //Apply error injection
+
+    //Write out to files
+    fwrite (buffer , sizeof(char), sizeof(buffer), fileOut);
+
+    //now close the files
+    fclose(fileIn);
+    fclose(fileOut);
+    //return success state
     return 1;
 }
