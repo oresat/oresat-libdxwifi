@@ -1,17 +1,17 @@
 # error-simulator
-## Channel Emulator
 
 ### Summary
-The channel emulator is designed to emulate the simple wireless communication. It will do this by injecting errors and packet loss from transmitted packets and send them to a receiver.
-
-<img width="1440" alt="Screen Shot 2021-03-07 at 6 33 55 PM" src="https://user-images.githubusercontent.com/43734825/110267676-298deb80-7f75-11eb-9544-209a401b543f.png">
+This error simulator is designed to injected but flips and packet loss into a data file and return a new file with currupted information. The error rate and packet loss are defined in the argument list for the program.
 
 
-### Cmake Instruction
+### Cmake Instructions
 ToDo
 
 ### File Information
 ToDo
 
 ### Error Injection Summary
-ToDo
+Error injection is defined by the error rate given from the command line. The command line argument is the negative factor of 10. See CMake instuctions for example. The error injection is preformed by iterating though the data in blocks defined by the rate. In each block one bit is randomly selected to be flipped.
+
+### Packet Loss Summary
+Packet loss is defined by the rate given from the command line. The command line argument is the negative factor of 10. See CMake instuctions for example. The packet loss will be preformed by ommiting packets from the write out process.
