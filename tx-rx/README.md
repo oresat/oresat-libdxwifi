@@ -71,3 +71,14 @@ omitting the file argument, set the blocksize to 200 bytes, address the packets 
 ```
 sudo ./tx --dev mon0 --blocksize 200 --address 11:22:33:44:55:66 --ordered -vvvvvv
 ``` 
+
+## Tests
+
+To run the system tests first you'll need to compile the project with `DXWIFI_TESTS` defined.
+The project Cmake file defines two build configurations with this macro defined, `TestDebug` and `TestRel`.
+Building with this macro defined will force `tx`/`rx` to run in *offline* mode causing them to write or read 
+packetized data from a `savefile`. With the correct binaries built, simply run the following to execute the tests:
+
+```
+python -m unittest
+```
