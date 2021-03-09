@@ -38,6 +38,11 @@ int main(int argc, const char * argv[]){
         exit(1);
     }
 
+    //Get int values for Packet Loss and Error Rate
+    int packetLoss, errorRate;
+    sscanf(argv[3],"%d", &errorRate); //Convert from char* to int
+    sscanf(argv[4],"%d", &packetLoss); //Convert from char* to int
+
     //target files and open them
     FILE *fileIn  = fopen(argv[1], "rb"); //input file
     FILE *fileOut = fopen(argv[2], "w"); //output file
