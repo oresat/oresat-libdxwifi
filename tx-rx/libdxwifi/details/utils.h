@@ -14,6 +14,8 @@
 #include <time.h>
 #include <errno.h>
 #include <stdint.h>
+#include <stddef.h>
+#include <stdbool.h>
 
 #include <sys/stat.h>
 
@@ -110,23 +112,6 @@ int msleep(unsigned msec, bool require_elapsed);
 
 
 /**
- *  DESCRIPTION:    Searches for the index matching the target value in an array
- * 
- *  ARGUMENTS: 
- *      
- *      array:      Allocated array
- * 
- *      n:          Number of elements in the array
- * 
- *  RETURNS:    
- *      
- *      int:        index to the matching value or -1
- * 
- */
-int get_index(int* array, size_t n, int target);
-
-
-/**
  *  DESCRIPTION:    Appends the filename to the path, adds in '/' if necessary
  * 
  *  ARGUMENTS: 
@@ -141,6 +126,24 @@ int get_index(int* array, size_t n, int target);
  * 
  */
 void combine_path(char* buffer, size_t n, const char* path, const char* filename);
+
+
+/**
+ *  DESCRIPTION:    Calculates the offset from a pointer
+ * 
+ *  ARGUMENTS: 
+ *      
+ *      base:       base pointer to calculate offset from
+ * 
+ *      count:      Number of units offset from base
+ * 
+ *      sz:         Step size of each unit
+ * 
+ *  NOTES: Undefined behavior if base is null, count is greater than the number
+ *  of items in the array, the computed offset overflows sizeof(void*)
+ * 
+ */
+static inline void* offset(void* base, size_t count, size_t sz)   { return ((uint8_t*) base) + (count * sz); }
 
 
 // Gets rid of `unused-parameter` warnings in release builds. Should only be 

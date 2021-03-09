@@ -158,7 +158,7 @@ class TestTxRx(unittest.TestCase):
         '''Tx can watch for new files in a directory and transmit them'''
 
         tx_out     = f'{TEMP_DIR}/tx.raw'
-        rx_out     = [f'{TEMP_DIR}/rx_{x}.raw' for x in range(100)]
+        rx_out     = [f'{TEMP_DIR}/rx_{x}.raw' for x in range(10)]
         tx_command = f'{TX} {TEMP_DIR} -q --watch-timeout 1 --filter test_*.raw -b 1024 --savefile {tx_out}'
         rx_command = f'{RX} {TEMP_DIR} -q -c 1 -t 2 --prefix rx --extension raw --savefile {tx_out}'
 

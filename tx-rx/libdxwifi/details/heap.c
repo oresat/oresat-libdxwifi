@@ -18,7 +18,6 @@
 static inline size_t parent(size_t i)               { return ((i-1)/2);     }
 static inline size_t left(size_t i)                 { return (2*i + 1);     }
 static inline size_t right(size_t i)                { return (2*i + 2);     }
-static inline size_t offset(size_t i, size_t sz)    { return i * sz;        }
 
 
 static void swap(uint8_t* a, uint8_t* b, size_t sz) {
@@ -35,14 +34,14 @@ static void heapify(binary_heap* heap, comparator compare, size_t i, size_t sz) 
     size_t r = right(i);
     size_t new_index = i;
 
-    if(l < heap->count && compare(heap->tree + offset(l, sz), heap->tree + offset(i, sz))) {
+    if(l < heap->count && compare(offset(heap->tree, l, sz), offset(heap->tree, i, sz))) {
         new_index = l;
     }
-    if(r < heap->count && compare(heap->tree + offset(r, sz), heap->tree + offset(new_index, sz))) {
+    if(r < heap->count && compare(offset(heap->tree, r, sz), offset(heap->tree, new_index, sz))) {
         new_index = r;
     }
     if(new_index != i) {
-        swap(heap->tree + offset(i, sz), heap->tree + offset(new_index, sz), sz);
+        swap(offset(heap->tree, i, sz), offset(heap->tree, new_index, sz), sz);
         heapify(heap, compare, new_index, sz);
     }
 }
@@ -78,11 +77,11 @@ void heap_push(binary_heap* heap, const void* data) {
     if(heap->count < heap->capacity) {
         size_t i = heap->count++;
 
-        memcpy(heap->tree + offset(i, sz), data, sz);
+        memcpy(offset(heap->tree, i, sz), data, sz);
 
         // Sift from the bottom up
-        while(i != 0 && heap->compare(heap->tree + offset(i, sz), heap->tree + offset(parent(i), sz))) {
-            swap(heap->tree + offset(i, sz), heap->tree + offset(parent(i), sz), sz);
+        while(i != 0 && heap->compare(offset(heap->tree, i, sz), offset(heap->tree, parent(i), sz))) {
+            swap(offset(heap->tree, i, sz), offset(heap->tree, parent(i), sz), sz);
             i = parent(i);
         }
     }
@@ -101,7 +100,7 @@ bool heap_pop(binary_heap* heap, void* out) {
 
         memcpy(out, heap->tree, sz);
 
-        memcpy(heap->tree, heap->tree + offset(--heap->count, sz), sz);
+        memcpy(heap->tree, offset(heap->tree, --heap->count, sz), sz);
 
         heapify(heap, heap->compare, 0, sz);
 
@@ -127,7 +126,7 @@ void heap_sort(void* data, size_t count, size_t step_size, comparator compare) {
     }
 
     while(--heap.count > 0) {
-        swap(data, data + offset(heap.count, step_size), step_size);
+        swap(data, offset(data, heap.count, step_size), step_size);
 
         heapify(&heap, compare, 0, step_size);
     }
