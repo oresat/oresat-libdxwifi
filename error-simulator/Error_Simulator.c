@@ -56,8 +56,7 @@ int main(int argc, const char * argv[]){
     char *buffer = (char *)malloc(fileLength * sizeof(char)); //Malloc enough in buffer for total file size 
     fread(buffer, fileLength, 1, fileIn); // Read in the entire file
 
-    //Structure buffer into list of packets
-        //Status of test data is unknown for now
+    //Apply packet loss
 
     //Apply error injection
 
