@@ -68,5 +68,5 @@ int main(int argc, const char * argv[]){
     fclose(fileIn);
     fclose(fileOut);
     //return success state
-    return 1;
+    return 0;
 } 
