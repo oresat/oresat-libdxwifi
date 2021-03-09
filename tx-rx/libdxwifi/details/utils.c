@@ -76,17 +76,6 @@ int msleep(unsigned msec, bool require_elapsed) {
 }
 
 
-int get_index(int* array, size_t n, int target) {
-    // TODO make generic search functions for arrays and a generic dynamic list 
-    for(size_t i = 0; i < n; ++i) {
-        if(array[i] == target) {
-            return i;
-        }
-    }
-    return -1;
-}
-
-
 void combine_path(char* buffer, size_t n, const char* path, const char* filename) {
     if(rindex(path, '/')) {
         snprintf(buffer, n, "%s%s", path, filename);
@@ -95,3 +84,4 @@ void combine_path(char* buffer, size_t n, const char* path, const char* filename
         snprintf(buffer, n, "%s/%s", path, filename);
     }
 }
+
