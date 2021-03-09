@@ -45,7 +45,7 @@ int main(int argc, const char * argv[]){
 
     //target files and open them
     FILE *fileIn  = fopen(argv[1], "rb"); //input file
-    FILE *fileOut = fopen(argv[2], "w"); //output file
+    FILE *fileOut = fopen(argv[2], "wb"); //output file
 
     //Get File Length
     fseek(fileIn, 0, SEEK_END); //Seek to EOF
@@ -54,14 +54,17 @@ int main(int argc, const char * argv[]){
 
     //Buffer Handling, derived from file length
     char *buffer = (char *)malloc(fileLength * sizeof(char)); //Malloc enough in buffer for total file size 
-    fread(buffer, fileLength, 1, fileIn); // Read in the entire file
+    fread(buffer, sizeof(buffer), 1, fileIn); // Read in the entire file
 
+    //Test Binary file read
+    for(int i = 0; i < sizeof(buffer); i++)
+        printf("%u ", buffer[i]);
     //Apply packet loss
 
     //Apply error injection
 
     //Write out to files
-    fwrite (buffer , sizeof(char), sizeof(buffer), fileOut);
+    fwrite (buffer , sizeof(buffer),1,fileOut);
 
     //now close the files
     fclose(fileIn);
