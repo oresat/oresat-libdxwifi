@@ -81,6 +81,23 @@ bool is_directory(const char* path);
 
 
 /**
+ *  DESCRIPTION:    Get the size of the file in bytes
+ * 
+ *  ARGUMENTS: 
+ *      
+ *      path:       Path to the file
+ * 
+ *  RETURNS:    
+ *      
+ *      off_t:     Size, in bytes, of the file  or -1
+ * 
+ *  NOTES: For 32 bit systems off_t is limited to about ~2GB. For Large File 
+ *  Support see https://users.suse.com/~aj/linux_lfs.html
+ */
+off_t get_file_size(const char* path);
+
+
+/**
  *  DESCRIPTION:    Converts the control frame type to a string
  * 
  *  ARGUMENTS: 
