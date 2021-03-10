@@ -9,7 +9,10 @@
 #include <string.h>
 #include <unistd.h>
 #include <math.h>
+#include <time.h>
 
+//Function declarations
+char * flipBit(char * byte);
 
 //Main
 int main(int argc, const char * argv[]){
@@ -64,6 +67,7 @@ int main(int argc, const char * argv[]){
 
     //Test Binary file read
     //display the first 64 bytes in a file and display the simular to HexEd.it
+    printf("%ld\n", fileLength);
     for(int i = 0; i < 64; i++){
         if(i % 16 == 0 && i != 0){
             printf("\n%x ", buffer[i]);
@@ -72,11 +76,18 @@ int main(int argc, const char * argv[]){
             printf("%x ", buffer[i]);
         }
     }
-        
-    //Apply packet loss
 
-    //Apply error injection
+    //Seed for random num generator
+    srand(time(0));
     
+    //Apply error injection
+    long errorLocation = 0;
+    if(errorRate >= fileLength){ //if the rate of error is larger than the file size
+        errorLocation = (rand() % (fileLength - 1)); //Select one bit in the range between 0 and EOF
+
+    }
+
+    //Apply packet loss
 
     //Write out to files
     fwrite (buffer , fileLength, 1,fileOut);
@@ -87,3 +98,270 @@ int main(int argc, const char * argv[]){
     //return success state
     return 0;
 } 
+
+//Funtions
+
+char * flipBit(char * byte){
+    int byteLength = sizeof(byte) / sizeof(char*);
+    int chosen = (rand() % (byteLength - 1)); //Pick a nibble to flip
+    int bit = (rand()% 3); //pick which bit in a nibble to flip
+    switch(byte[chosen]) {
+        case '0': 
+            switch(bit){
+                case 0:
+                    byte[chosen] = '1';
+                    break;
+                case 1:
+                    byte[chosen] = '2';
+                    break;
+                case 2:
+                    byte[chosen] = '4';
+                    break;
+                case 3:
+                    byte[chosen] = '8';
+                    break;
+            }  
+            break;
+        case '1':
+            switch(bit){
+                case 0:
+                    byte[chosen] = '0';
+                    break;
+                case 1:
+                    byte[chosen] = '3';
+                    break;
+                case 2:
+                    byte[chosen] = '5';
+                    break;
+                case 3:
+                    byte[chosen] = '9';
+                    break;
+            }
+            break;
+        case '2':
+            switch(bit){
+                case 0:
+                    byte[chosen] = '3';
+                    break;
+                case 1:
+                    byte[chosen] = '0';
+                    break;
+                case 2:
+                    byte[chosen] = '6';
+                    break;
+                case 3:
+                    byte[chosen] = 'a';
+                    break;
+            }
+            break;
+        case '3':
+            switch(bit){
+                case 0:
+                    byte[chosen] = '2';
+                    break;
+                case 1:
+                    byte[chosen] = '1';
+                    break;
+                case 2:
+                    byte[chosen] = '7';
+                    break;
+                case 3:
+                    byte[chosen] = 'b';
+                    break;
+            }
+            break;
+        case '4':
+            switch(bit){
+                case 0:
+                    byte[chosen] = '5';
+                    break;
+                case 1:
+                    byte[chosen] = '6';
+                    break;
+                case 2:
+                    byte[chosen] = '0';
+                    break;
+                case 3:
+                    byte[chosen] = 'c';
+                    break;
+            }
+            break;
+        case '5':
+            switch(bit){
+                case 0:
+                    byte[chosen] = '4';
+                    break;
+                case 1:
+                    byte[chosen] = '7';
+                    break;
+                case 2:
+                    byte[chosen] = '1';
+                    break;
+                case 3:
+                    byte[chosen] = 'd';
+                    break;
+            }
+            break;
+        case '6':
+            switch(bit){
+                case 0:
+                    byte[chosen] = '7';
+                    break;
+                case 1:
+                    byte[chosen] = '4';
+                    break;
+                case 2:
+                    byte[chosen] = '2';
+                    break;
+                case 3:
+                    byte[chosen] = 'e';
+                    break;
+            }
+            break;
+        case '7':
+            switch(bit){
+                case 0:
+                    byte[chosen] = '6';
+                    break;
+                case 1:
+                    byte[chosen] = '5';
+                    break;
+                case 2:
+                    byte[chosen] = '3';
+                    break;
+                case 3:
+                    byte[chosen] = 'f';
+                    break;
+            }
+            break;
+        case '8':
+            switch(bit){
+                case 0:
+                    byte[chosen] = '9';
+                    break;
+                case 1:
+                    byte[chosen] = 'a';
+                    break;
+                case 2:
+                    byte[chosen] = 'c';
+                    break;
+                case 3:
+                    byte[chosen] = '0';
+                    break;
+            }
+            break;
+        case '9':
+            switch(bit){
+                case 0:
+                    byte[chosen] = '8';
+                    break;
+                case 1:
+                    byte[chosen] = 'b';
+                    break;
+                case 2:
+                    byte[chosen] = 'd';
+                    break;
+                case 3:
+                    byte[chosen] = '1';
+                    break;
+            }
+            break;
+        case 'a':
+            switch(bit){
+                case 0:
+                    byte[chosen] = 'b';
+                    break;
+                case 1:
+                    byte[chosen] = '8';
+                    break;
+                case 2:
+                    byte[chosen] = 'e';
+                    break;
+                case 3:
+                    byte[chosen] = '2';
+                    break;
+            }
+            break;
+        case 'b':
+            switch(bit){
+                case 0:
+                    byte[chosen] = 'a';
+                    break;
+                case 1:
+                    byte[chosen] = '9';
+                    break;
+                case 2:
+                    byte[chosen] = 'f';
+                    break;
+                case 3:
+                    byte[chosen] = '3';
+                    break;
+            }
+            break;
+        case 'c':
+            switch(bit){
+                case 0:
+                    byte[chosen] = '9';
+                    break;
+                case 1:
+                    byte[chosen] = 'a';
+                    break;
+                case 2:
+                    byte[chosen] = 'c';
+                    break;
+                case 3:
+                    byte[chosen] = '0';
+                    break;
+            }
+            break;
+        case 'd':
+            switch(bit){
+                case 0:
+                    byte[chosen] = 'c';
+                    break;
+                case 1:
+                    byte[chosen] = 'f';
+                    break;
+                case 2:
+                    byte[chosen] = 'b';
+                    break;
+                case 3:
+                    byte[chosen] = '5';
+                    break;
+            }
+            break;
+        case 'e':
+            switch(bit){
+                case 0:
+                    byte[chosen] = 'f';
+                    break;
+                case 1:
+                    byte[chosen] = 'c';
+                    break;
+                case 2:
+                    byte[chosen] = 'a';
+                    break;
+                case 3:
+                    byte[chosen] = '6';
+                    break;
+            }
+            break;
+        case 'f':
+            switch(bit){
+                case 0:
+                    byte[chosen] = 'e';
+                    break;
+                case 1:
+                    byte[chosen] = 'd';
+                    break;
+                case 2:
+                    byte[chosen] = 'b';
+                    break;
+                case 3:
+                    byte[chosen] = '7';
+                    break;
+            }
+            break;
+    }
+    return byte;
+}
