@@ -8,7 +8,7 @@ This error simulator is designed to injected but flips and packet loss into a da
 ToDo
 
 ### File Information
-ToDo
+This program can be ran on any file type. Files are read as binary. If you are curious on what the program is viewing you can upload files to https://hexed.it/. You can read and write to the same file. This program can not generate its own files.
 
 ### Error Injection Summary
 Error injection is defined by the error rate given from the command line. The command line argument is the negative factor of 10. See CMake instuctions for example. The error injection is preformed by iterating though the data in blocks defined by the rate. In each block one bit is randomly selected to be flipped.
