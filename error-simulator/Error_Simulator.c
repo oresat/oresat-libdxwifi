@@ -54,17 +54,17 @@ int main(int argc, const char * argv[]){
 
     //Buffer Handling, derived from file length
     char *buffer = (char *)malloc(fileLength * sizeof(char)); //Malloc enough in buffer for total file size 
-    fread(buffer, sizeof(buffer), 1, fileIn); // Read in the entire file
+    fread(buffer, fileLength, 1, fileIn); // Read in the entire file
 
     //Test Binary file read
-    for(int i = 0; i < sizeof(buffer); i++)
-        printf("%u ", buffer[i]);
+    for(int i = 0; i < fileLength; i++)
+        printf("%x ", buffer[i]);
     //Apply packet loss
 
     //Apply error injection
 
     //Write out to files
-    fwrite (buffer , sizeof(buffer),1,fileOut);
+    fwrite (buffer , fileLength, 1,fileOut);
 
     //now close the files
     fclose(fileIn);
