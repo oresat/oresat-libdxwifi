@@ -43,6 +43,17 @@ bool is_directory(const char* path) {
 }
 
 
+off_t get_file_size(const char* path) {
+    struct stat path_stat;
+
+    if(stat(path, &path_stat) == 0 && S_ISREG(path_stat.st_mode)) {
+        return path_stat.st_size;
+    }
+
+    return -1;
+}
+
+
 const char* control_frame_type_to_str(dxwifi_control_frame_t type) {
     switch (type)
     {
