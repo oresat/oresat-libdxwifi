@@ -105,6 +105,7 @@ static void init_frame_controller(frame_controller* fc, const dxwifi_receiver* r
     fc->index           = 0;
     fc->rx              = rx;
     fc->fd              = fd;
+    fc->end_capture     = 0;
     fc->eot_reached     = false;
     fc->preamble_recv   = false;
     fc->pb_size         = rx->packet_buffer_size;
@@ -221,8 +222,6 @@ static dxwifi_control_frame_t check_frame_control(const uint8_t* frame, const st
     const ieee80211_radiotap_hdr* rtap = (const ieee80211_radiotap_hdr*)frame;
     const uint8_t* payload = frame + rtap->it_len + sizeof(ieee80211_hdr);
     size_t payload_size = pkt_stats->caplen - rtap->it_len - sizeof(ieee80211_hdr) - IEEE80211_FCS_SIZE;
-
-    log_warning("%d", payload_size);
 
     unsigned eot                = 0;
     unsigned preamble           = 0;
