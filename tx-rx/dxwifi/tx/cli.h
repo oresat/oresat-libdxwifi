@@ -28,7 +28,7 @@ typedef struct {
     const char*         file_filter;
     bool                transmit_current_files;
     bool                listen_for_new_files;
-    int                 watchdir_timeout; 
+    int                 dirwatch_timeout; 
     int                 verbosity;
     bool                quiet;
     unsigned            tx_delay;

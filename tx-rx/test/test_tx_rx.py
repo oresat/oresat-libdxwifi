@@ -16,7 +16,7 @@ from time import sleep
 from test.genbytes import genbytes
 
 
-INSTALL_DIR = 'bin/TestDebug'
+INSTALL_DIR = os.environ.get('DXWIFI_INSTALL_DIR', default='bin/TestDebug')
 TEMP_DIR    = '__temp'
 TX          = f'./{INSTALL_DIR}/tx'
 RX          = f'./{INSTALL_DIR}/rx'
@@ -147,7 +147,6 @@ class TestTxRx(unittest.TestCase):
         # Receive all the test files
         subprocess.run(rx_command.split())
 
-
         # Verify all the test files match the received files
         results = [filecmp.cmp(src, copy) for src, copy in zip(test_files, rx_out)]
 
@@ -158,7 +157,7 @@ class TestTxRx(unittest.TestCase):
         '''Tx can watch for new files in a directory and transmit them'''
 
         tx_out     = f'{TEMP_DIR}/tx.raw'
-        rx_out     = [f'{TEMP_DIR}/rx_{x}.raw' for x in range(10)]
+        rx_out     = [f'{TEMP_DIR}/rx_{x}.raw' for x in range(100)]
         tx_command = f'{TX} {TEMP_DIR} -q --watch-timeout 1 --filter test_*.raw -b 1024 --savefile {tx_out}'
         rx_command = f'{RX} {TEMP_DIR} -q -c 1 -t 2 --prefix rx --extension raw --savefile {tx_out}'
 
@@ -169,12 +168,9 @@ class TestTxRx(unittest.TestCase):
         sleep(0.05) # Give tx time to get set up
 
         # Create a bunch of test files in the directory, causing them to be transmitted
-        test_files = [f'{TEMP_DIR}/test_{x}.raw' for x in range(10)]
+        test_files = [f'{TEMP_DIR}/test_{x}.raw' for x in range(100)]
         for file in test_files:
             genbytes(file, 10, 1024)
-            # There's an issue with inotify where the file name does not accompany the event if we
-            # create files really fast. Slow it down here until we figure out a fix. 
-            sleep(0.05) 
 
         # Wait for tx to timeout and close
         proc.wait()
@@ -182,8 +178,12 @@ class TestTxRx(unittest.TestCase):
         # Receive all the transmitted test files
         subprocess.run(rx_command.split())
 
-        # Verify all the test files match the received files
-        results = [filecmp.cmp(src, copy) for src, copy in zip(test_files, rx_out)]
+        try:
+            # Verify all the test files match the received files
+            results = [filecmp.cmp(src, copy) for src, copy in zip(test_files, rx_out)]
+        except FileNotFoundError:
+            print("Caught exception")
+            sleep(1000)
 
         self.assertEqual(all(results), True)
 

@@ -25,13 +25,17 @@ typedef struct {
 static dxwifi_log_handler handlers[DXWIFI_LOG_MODULE_COUNT];
 
 
-// table entry must match the name of the file
+// table entry must match the name of the file and index of the enumeration
 static const char* file_lookup_tbl[DXWIFI_LOG_MODULE_COUNT] = {
     "generic",
     "transmitter",
     "tx",
     "receiver",
-    "rx"
+    "rx",
+    "dirwatch",
+
+    // Add new modules here
+
 };
 
 
@@ -40,6 +44,7 @@ static void default_logger(dxwifi_log_module_t module, dxwifi_log_module_t log_l
     printf("[ %s ][ %s ] : ", log_level_to_str(log_level), log_module_to_str(module));
     vprintf(fmt, args);
     printf("\n");
+    fflush(stdout);
 }
 
 
@@ -85,7 +90,7 @@ dxwifi_log_module_t file_to_log_module(const char* file_name) {
     char* module_name = basename(file_name);
 
     if(module_name) {
-        char* extension = index(module_name, '.');
+        char* extension = index(module_name, '.'); // Drop the file extension
         for(dxwifi_log_module_t module = DXWIFI_LOG_GENERIC; module < DXWIFI_LOG_MODULE_COUNT; ++module) {
             if(strncmp(module_name, file_lookup_tbl[module], extension - module_name) == 0) {
                 return module;

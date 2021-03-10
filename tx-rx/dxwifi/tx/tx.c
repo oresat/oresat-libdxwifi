@@ -21,7 +21,6 @@
 #include <fnmatch.h>
 
 #include <arpa/inet.h>
-#include <sys/inotify.h>
 #include <linux/limits.h>
 
 #include <dxwifi/tx/cli.h>
@@ -29,11 +28,11 @@
 #include <libdxwifi/dxwifi.h>
 #include <libdxwifi/transmitter.h>
 #include <libdxwifi/details/utils.h>
-#include <libdxwifi/details/assert.h>
 #include <libdxwifi/details/logging.h>
+#include <libdxwifi/details/dirwatch.h>
 
 
-volatile bool listen_for_files  = false;
+dirwatch* dirwatch_handle = NULL;
 dxwifi_transmitter* transmitter = NULL;
 
 
@@ -51,7 +50,7 @@ int main(int argc, char** argv) {
         .file_filter                = "*",
         .transmit_current_files     = false,
         .listen_for_new_files       = true,
-        .watchdir_timeout           = -1,
+        .dirwatch_timeout           = -1,
         .tx_delay                   = 0,
         .file_delay                 = 0,
         .device                     = "mon0",
@@ -121,7 +120,7 @@ void tx_sigint_handler(int signum) {
  * 
  */
 void watchdir_sigint_handler(int signum) {
-    listen_for_files = false;
+    dirwatch_stop(dirwatch_handle);
 }
 
 
@@ -302,6 +301,29 @@ void transmit_directory_contents(dxwifi_transmitter* tx, const char* filter, con
 
 
 /**
+ *  DESCRIPTION:    Dirwatch callback, transmits newly created file
+ * 
+ *  ARGUMENTS: 
+ *      
+ *      event:      Creation and close event
+ * 
+ *      user:       Command line arguments
+ * 
+ */
+static void transmit_new_file(const dirwatch_event* event, void* user) {
+    cli_args* args = (cli_args*) user;
+
+    char* path_buffer = calloc(PATH_MAX, sizeof(char));
+
+    combine_path(path_buffer, PATH_MAX, event->dirname, event->filename);
+
+    transmit_files(&args->tx, &path_buffer, 1, args->file_delay);
+
+    free(path_buffer);
+}
+
+
+/**
  *  DESCRIPTION:    Transmits current directory contents and listens for newly
  *                  created files to transmit
  * 
@@ -321,27 +343,9 @@ void transmit_directory(cli_args* args, dxwifi_transmitter* tx) {
     }
     if(args->listen_for_new_files) {
 
-        const int NUM_LISTENERS = 256;
+        dirwatch_handle = dirwatch_init();
 
-        int status = 0;
-        int watchdir = 0;
-        int watchfiles[NUM_LISTENERS];
-        char* path_buffer = calloc(PATH_MAX, sizeof(char));
-
-        memset(watchfiles, 0x00, NUM_LISTENERS * sizeof(int));
-
-        size_t buffsize = (sizeof(struct inotify_event)  + NAME_MAX + 1) * 16;
-        char buffer[buffsize]; // Buffer can process 16 events at a time
-
-        struct pollfd handle = {
-            .fd         = inotify_init1(IN_NONBLOCK),
-            .events     = POLLIN,
-            .revents    = 0
-        };
-        assert_M(handle.fd > 0, "Failed to initialize inotify: %s", strerror(errno));
-
-        watchdir = inotify_add_watch(handle.fd, dirname, IN_CREATE);
-        assert_M(watchdir > 0, "Failed to add %s to watchlist: %s", dirname, strerror(errno));
+        dirwatch_add(dirwatch_handle, dirname, args->file_filter, DW_CREATE_AND_CLOSE, true);
 
         // Setup handlers for exiting loop
         struct sigaction action, prev_action;
@@ -350,55 +354,11 @@ void transmit_directory(cli_args* args, dxwifi_transmitter* tx) {
         action.sa_handler = watchdir_sigint_handler;
         sigaction(SIGINT, &action, &prev_action);
 
-        log_info("Listening for new files in %s", dirname);
-        listen_for_files = true;
-        do {
-            status = poll(&handle, 1, args->watchdir_timeout * 1000);
-            if(status == 0) {
-                log_info("Watch Directory timeout occured");
-                listen_for_files = false;
-            }
-            else { // Events have occured, read them into the buffer
-                status = read(handle.fd, buffer, buffsize);
+        dirwatch_listen(dirwatch_handle, args->dirwatch_timeout * 1000, transmit_new_file, args);
 
-                int pos = 0;
-                while (pos < status) { // Process all events
-                    struct inotify_event* event = (struct inotify_event*) &buffer[pos];
-
-                    // New file was created, watch for file close
-                    if((event->mask & IN_CREATE) && !(event->mask & IN_ISDIR)) {
-                        if(fnmatch(args->file_filter, event->name, 0) == 0) {
-                            int idx = get_index(watchfiles, NUM_LISTENERS, 0);
-                            if( idx < 0) {
-                                log_error("Watchfile list is full");
-                            }
-                            else {
-                                combine_path(path_buffer, PATH_MAX, dirname, event->name);
-                                watchfiles[idx] = inotify_add_watch(handle.fd, path_buffer, IN_CLOSE_WRITE);
-                            }
-                        }
-                    }
-                    // File was closed, check if we were watching it
-                    else if(event->mask & IN_CLOSE_WRITE) {
-                        int idx = get_index(watchfiles, NUM_LISTENERS, event->wd);
-                        if(idx >= 0) {
-                            combine_path(path_buffer, PATH_MAX, dirname, event->name);
-                            transmit_files(tx, &path_buffer, 1, args->file_delay);
-                            inotify_rm_watch(handle.fd, watchfiles[idx]);
-                            watchfiles[idx] = 0;
-                        }
-                    }
-                    pos += sizeof(struct inotify_event) + event->len;
-                }
-            }
-        } while(listen_for_files);
         sigaction(SIGINT, &prev_action, NULL);
 
-        free(path_buffer);
-
-        log_info("Stopped listening for files");
-
-        close(handle.fd);
+        dirwatch_close(dirwatch_handle);
     }
 }
 

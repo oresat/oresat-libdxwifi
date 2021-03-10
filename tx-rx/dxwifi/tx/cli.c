@@ -193,7 +193,7 @@ static error_t parse_opt(int key, char* arg, struct argp_state *state) {
         break;
 
     case GET_KEY(WATCHDIR_TIMEOUT, DIRECTORY_MODE_GROUP):
-        args->watchdir_timeout = atoi(arg);
+        args->dirwatch_timeout = atoi(arg);
         break;
 
     case GET_KEY(1, MAC_HEADER_GROUP):
