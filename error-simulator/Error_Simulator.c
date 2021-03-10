@@ -8,6 +8,8 @@
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
+#include <math.h>
+
 
 //Main
 int main(int argc, const char * argv[]){
@@ -39,9 +41,13 @@ int main(int argc, const char * argv[]){
     }
 
     //Get int values for Packet Loss and Error Rate
-    int packetLoss, errorRate;
-    sscanf(argv[3],"%d", &errorRate); //Convert from char* to int
-    sscanf(argv[4],"%d", &packetLoss); //Convert from char* to int
+    int packetLossExponent, errorRateExponent;
+    sscanf(argv[3],"%d", &errorRateExponent); //Convert from char* to int
+    sscanf(argv[4],"%d", &packetLossExponent); //Convert from char* to int
+    
+    //Convert exponent values into actual values base ten
+    double errorRate = pow(10,errorRateExponent);
+    double packetLoss = pow(10,packetLossExponent);
 
     //target files and open them
     FILE *fileIn  = fopen(argv[1], "rb"); //input file
@@ -57,11 +63,20 @@ int main(int argc, const char * argv[]){
     fread(buffer, fileLength, 1, fileIn); // Read in the entire file
 
     //Test Binary file read
-    for(int i = 0; i < fileLength; i++)
-        printf("%x ", buffer[i]);
+    //display the first 64 bytes in a file and display the simular to HexEd.it
+    for(int i = 0; i < 64; i++){
+        if(i % 16 == 0 && i != 0){
+            printf("\n%x ", buffer[i]);
+        }
+        else{
+            printf("%x ", buffer[i]);
+        }
+    }
+        
     //Apply packet loss
 
     //Apply error injection
+    
 
     //Write out to files
     fwrite (buffer , fileLength, 1,fileOut);
