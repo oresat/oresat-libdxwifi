@@ -178,12 +178,7 @@ class TestTxRx(unittest.TestCase):
         # Receive all the transmitted test files
         subprocess.run(rx_command.split())
 
-        try:
-            # Verify all the test files match the received files
-            results = [filecmp.cmp(src, copy) for src, copy in zip(test_files, rx_out)]
-        except FileNotFoundError:
-            print("Caught exception")
-            sleep(1000)
+        results = [filecmp.cmp(src, copy) for src, copy in zip(test_files, rx_out)]
 
         self.assertEqual(all(results), True)
 

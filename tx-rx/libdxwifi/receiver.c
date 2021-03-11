@@ -479,6 +479,8 @@ void init_receiver(dxwifi_receiver* rx, const char* device_name) {
     status = pcap_setfilter(rx->__handle, &filter);
     assert_M(status != PCAP_ERROR, "Failed to set filter: %s", pcap_statustostr(status));
 
+    pcap_freecode(&filter);
+
     log_rx_configuration(rx, device_name);
 }
 

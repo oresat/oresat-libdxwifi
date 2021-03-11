@@ -131,7 +131,7 @@ void sigint_handler(int signum) {
 dxwifi_rx_state_t setup_handlers_and_capture(dxwifi_receiver* rx, int fd) {
     dxwifi_rx_stats stats;
 
-    struct sigaction action, prev_action;
+    struct sigaction action = { 0 }, prev_action = { 0 };
     sigemptyset(&action.sa_mask);
     sigaddset(&action.sa_mask, SIGINT);
     action.sa_handler = sigint_handler;

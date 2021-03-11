@@ -211,7 +211,7 @@ size_t attach_frame_number(dxwifi_tx_frame* frame, size_t payload_size, dxwifi_t
 dxwifi_tx_state_t setup_handlers_and_transmit(dxwifi_transmitter* tx, int fd) {
     dxwifi_tx_stats stats;
 
-    struct sigaction action, prev_action;
+    struct sigaction action = { 0 }, prev_action = { 0 };
 
     sigemptyset(&action.sa_mask);
     sigaddset(&action.sa_mask, SIGINT);
@@ -348,7 +348,8 @@ void transmit_directory(cli_args* args, dxwifi_transmitter* tx) {
         dirwatch_add(dirwatch_handle, dirname, args->file_filter, DW_CREATE_AND_CLOSE, true);
 
         // Setup handlers for exiting loop
-        struct sigaction action, prev_action;
+        struct sigaction action = { 0 }, prev_action = { 0 };
+        memset(&prev_action, 0x00, sizeof(sigaction));
         sigemptyset(&action.sa_mask);
         sigaddset(&action.sa_mask, SIGINT);
         action.sa_handler = watchdir_sigint_handler;

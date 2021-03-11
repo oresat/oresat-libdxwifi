@@ -22,13 +22,7 @@
 
 
 typedef enum {
-    // File was created and then closed
     DW_CREATE_AND_CLOSE = 0x00000001,
-
-    // File was subscribed to, but no events occured. This can occur if the 
-    // File was created and closed before we could finish subscribing to its 
-    // events.
-    DW_LEFTOVER_FILE    = 0x00000002
 } dirwatch_events_t;
 
 

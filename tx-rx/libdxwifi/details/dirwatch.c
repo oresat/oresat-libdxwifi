@@ -21,6 +21,9 @@
 #include <libdxwifi/details/logging.h>
 #include <libdxwifi/details/dirwatch.h>
 
+
+// TODO all the find operations just do a linear search, which is obviously suboptimal
+
 // Buffer can hold at a minimum, 32 events
 #define EVENT_BUFFSIZE ((sizeof(struct inotify_event) + NAME_MAX + 1) * 32)
 
@@ -32,52 +35,48 @@ typedef struct {
 
     char* dirname;              /* Name of directory where event occured    */
 
-    union {
-        char* file_filter;      /* Filter is used for watch directories    */
-        char* filename;         /* Name of file for which the event occured*/
-    } tag;
+    char* file_filter;          /* Glob pattern to filter file events       */
 
-} watch_node;
+    char* watchfiles[DIRWATCH_MAX];
+                                /* Name of each file to watch within the dir*/
+} watchdir;
 
 
 struct __dirwatch {
     struct pollfd handle;       /* Pollable inotify handle                  */
 
-    watch_node watchdirs[DIRWATCH_MAX];
+    watchdir watchdirs[DIRWATCH_MAX];
                                 /* Directory watchlist                      */
-    watch_node watchfiles[DIRWATCH_MAX];
-                                /* File watchlist                           */
 
-    volatile bool listen;
+    volatile bool listen;       /* Loop variable flag                       */
 };
 
 
 // Filtering expression for searching watch lists
-typedef bool (*filter)(const watch_node* node, const void* val);
+typedef bool (*filter)(const watchdir* node, const void* val);
 
 
 /**
- *  DESCRIPTION:    Finds the first watchnode that matches the filter
+ *  DESCRIPTION:    Finds the first watchdir that matches the filter
  * 
  *  ARGUMENTS:
- *      watch_node:     The watchlist
- * 
- *      n:              Number of elements in the watchlist
+ *      dw:             Allocated dirwatch object
  * 
  *      target:         Value to compare against
  * 
  *      match:          Filter expression
  * 
  *  RETURNS:
+ * 
  *      watch_node*:    Pointer to the matched watch node or NULL
  * 
  */
-static watch_node* find_node(watch_node* nodes, size_t n, const void* target, filter match) {
-    debug_assert(nodes && target);
+static watchdir* find_watchdir(dirwatch* dw, const void* target, filter match) {
+    debug_assert(dw && target);
 
-    for(size_t i = 0; i < n; ++i) {
-        if(match(&nodes[i], target)) {
-            return &nodes[i];
+    for(size_t i = 0; i < DIRWATCH_MAX; ++i) {
+        if(match(&dw->watchdirs[i], target)) {
+            return &dw->watchdirs[i];
         }
     }
     return NULL;
@@ -85,26 +84,25 @@ static watch_node* find_node(watch_node* nodes, size_t n, const void* target, fi
 
 
 /**
- *  DESCRIPTION:    Finds the integer index to the first watchnode that matches the filter
+ *  DESCRIPTION:    Finds the integer index to the first watchdir that matches the filter
  * 
  *  ARGUMENTS:
- *      watch_node:     The watchlist
- * 
- *      n:              Number of elements in the watchlist
+ *      dw:             Allocated dirwatch handle
  * 
  *      target:         Value to compare against
  * 
  *      match:          Filter expression
  * 
  *  RETURNS:
+ * 
  *      int:            Index to the matched watch node or -1
  * 
  */
-static int get_watchnode_idx(watch_node* nodes, size_t n, const void* target, filter match) {
-    debug_assert(nodes && target);
+static int get_watchdir_idx(dirwatch* dw, const void* target, filter match) {
+    debug_assert(dw && target);
 
-    for(size_t i = 0; i < n; ++i) {
-        if(match(&nodes[i], target)) {
+    for(size_t i = 0; i < DIRWATCH_MAX; ++i) {
+        if(match(&dw->watchdirs[i], target)) {
             return i;
         }
     }
@@ -116,19 +114,20 @@ static int get_watchnode_idx(watch_node* nodes, size_t n, const void* target, fi
  * 
  *  ARGUMENTS:
  * 
- *      watch_node:     Node in question
+ *      watch:          Watchdir to be tested
  * 
  *      val:            Target watch descriptor value
  * 
  *  RETURNS:
+ * 
  *      bool:           True if the watch descriptors match
  * 
  */
-static bool find_by_wd(const watch_node* node, const void* val) {
-    debug_assert(node && val);
+static bool find_by_wd(const watchdir* watch, const void* val) {
+    debug_assert(watch && val);
 
     int wd = *(const int*)val;
-    return node->wd == wd;
+    return watch->wd == wd;
 }
 
 
@@ -137,7 +136,7 @@ static bool find_by_wd(const watch_node* node, const void* val) {
  * 
  *  ARGUMENTS:
  * 
- *      watch_node:     Node in question
+ *      watch:          Watchdir to be tested
  * 
  *      val:            Target directory name
  * 
@@ -145,44 +144,11 @@ static bool find_by_wd(const watch_node* node, const void* val) {
  *      bool:           True if the directory names match
  * 
  */
-static bool find_by_dirname(const watch_node* node, const void* val) {
-    debug_assert(node && val);
+static bool find_by_dirname(const watchdir* watch, const void* val) {
+    debug_assert(watch && val);
 
-    if(node->dirname) {
-        return strcmp(node->dirname, (const char*)val) == 0;
-    }
-    return false;
-}
-
-
-/**
- *  DESCRIPTION:        Removes a node from a watchlist
- * 
- *  ARGUMENTS:
- * 
- *      inotify_handle: File descriptor to inotify instance
- * 
- *      nodes:          The watchlist
- * 
- *      n:              Number of elements in the watchlist
- * 
- *      index:          Index to the node to remove
- * 
- *  RETURNS:
- *      bool:           True if the node was successfully removed
- * 
- */
-static bool remove_node(int inotify_handle, watch_node* nodes, size_t n, unsigned index) {
-    debug_assert(nodes);
-
-    if(index < n) {
-        if(nodes[index].wd > 0) {
-            inotify_rm_watch(inotify_handle, nodes[index].wd);
-            free(nodes[index].tag.filename);
-            free(nodes[index].dirname);
-            nodes[index].wd = 0;
-            return true;
-        }
+    if(watch->dirname) {
+        return strcmp(watch->dirname, (const char*)val) == 0;
     }
     return false;
 }
@@ -203,7 +169,7 @@ static bool remove_node(int inotify_handle, watch_node* nodes, size_t n, unsigne
 static int get_inotify_mask(dirwatch_events_t events) {
     int mask = 0x00;
     if(events & DW_CREATE_AND_CLOSE) {
-        mask |= IN_CREATE;
+        mask |= IN_CREATE | IN_CLOSE_WRITE;
     }
     return mask;
 }
@@ -229,8 +195,7 @@ void dirwatch_close(dirwatch* dw) {
     debug_assert(dw);
     if(dw) {
         for(int i = 0; i < DIRWATCH_MAX; ++i) {
-            remove_node(dw->handle.fd, dw->watchdirs, DIRWATCH_MAX, i);
-            remove_node(dw->handle.fd, dw->watchfiles, DIRWATCH_MAX, i);
+            dirwatch_remove(dw, i);
         }
 
         close(dw->handle.fd);
@@ -246,23 +211,23 @@ int dirwatch_add(dirwatch* dw, const char* dirname, const char* file_filter, dir
     int mask = get_inotify_mask(events) | (clobber ? 0 : IN_MASK_ADD);
 
     // Check if node already exists, update it if it does
-    int idx = get_watchnode_idx(dw->watchdirs, DIRWATCH_MAX, dirname, find_by_dirname);
+    int idx = get_watchdir_idx(dw, dirname, find_by_dirname);
     if(idx >= 0) { 
         dw->watchdirs[idx].wd = inotify_add_watch(dw->handle.fd, dirname, mask);
 
         if(clobber) {
-            free(dw->watchdirs[idx].tag.file_filter); // Free old filter
-            dw->watchdirs[idx].tag.file_filter = strdup(file_filter);
+            free(dw->watchdirs[idx].file_filter); // Free old filter
+            dw->watchdirs[idx].file_filter = strdup(file_filter);
         }
     }
     else 
     {
         // Add watch to empty node
-        idx = get_watchnode_idx(dw->watchdirs, DIRWATCH_MAX, &EMPTY_NODE, find_by_wd);
+        idx = get_watchdir_idx(dw, &EMPTY_NODE, find_by_wd);
         if(idx >= 0) {
             dw->watchdirs[idx].wd = inotify_add_watch(dw->handle.fd, dirname, mask);
             dw->watchdirs[idx].dirname = strdup(dirname);
-            dw->watchdirs[idx].tag.file_filter = strdup(file_filter);
+            dw->watchdirs[idx].file_filter = strdup(file_filter);
         }
     }
 
@@ -274,8 +239,22 @@ int dirwatch_add(dirwatch* dw, const char* dirname, const char* file_filter, dir
 bool dirwatch_remove(dirwatch* dw, unsigned index) {
     debug_assert(dw);
 
-    if(dw) {
-        return remove_node(dw->handle.fd, dw->watchdirs, DIRWATCH_MAX, index);
+    if(dw && index < DIRWATCH_MAX) {
+        if(dw->watchdirs[index].wd > 0) {
+            inotify_rm_watch(dw->handle.fd, dw->watchdirs[index].wd);
+            free(dw->watchdirs[index].dirname);
+            free(dw->watchdirs[index].file_filter);
+
+            // Free any associated watch files
+            for(size_t i = 0; i < DIRWATCH_MAX; ++i) {
+                if(dw->watchdirs[index].watchfiles[i]) {
+                    free(dw->watchdirs[index].watchfiles[i]);
+                }
+            }
+
+            dw->watchdirs[index].wd = 0;
+            return true;
+        }
     }
     return false;
 }
@@ -294,12 +273,12 @@ void dirwatch_listen(dirwatch* dw, int timeout_ms, dirwatch_event_handler handle
     uint8_t event_buffer[EVENT_BUFFSIZE] 
         __attribute__((aligned(__alignof__(struct inotify_event))));
 
-    log_info("DirWatch activated");
+    log_info("Dirwatch activated");
     dw->listen = true;
     while(dw->listen) {
         int status = poll(&dw->handle, 1, timeout_ms);
         if(status == 0) {
-            log_info("DirWatch timeout occured");
+            log_info("Dirwatch timeout occured");
             dw->listen = false;
         }
         else if(status < 0) {
@@ -316,45 +295,43 @@ void dirwatch_listen(dirwatch* dw, int timeout_ms, dirwatch_event_handler handle
 
                 // New file was created, watch for file close
                 if((event->mask & IN_CREATE) && !(event->mask & IN_ISDIR)) {
-                    watch_node* watchdir = find_node(dw->watchdirs, DIRWATCH_MAX, &event->wd, find_by_wd);
-                    if(watchdir && fnmatch(watchdir->tag.file_filter, event->name, 0) == 0) {
-                        watch_node* watchfile = find_node(dw->watchfiles, DIRWATCH_MAX, &EMPTY_NODE, find_by_wd);
-                        if(watchfile) { 
-                            combine_path(path_buffer, PATH_MAX, watchdir->dirname, event->name);
-                            watchfile->wd = inotify_add_watch(dw->handle.fd, path_buffer, IN_CLOSE_WRITE);
-                            watchfile->dirname = strdup(watchdir->dirname);
-                            watchfile->tag.filename = strdup(event->name);
+
+                    watchdir* dir = find_watchdir(dw, &event->wd, find_by_wd);
+
+                    // Cache the filename if it matches the filter
+                    if(dir && fnmatch(dir->file_filter, event->name, 0) == 0) {
+                        for(int i = 0; i < DIRWATCH_MAX; ++i) { // Find an empty watchfile
+                            if(dir->watchfiles[i] == NULL){
+                                dir->watchfiles[i] = strdup(event->name);
+                            }
                         }
                     }
                 }
                 // File was closed, check if we were watching it
-                else if (event->mask & IN_CLOSE_WRITE) {
-                    int idx = get_watchnode_idx(dw->watchfiles, DIRWATCH_MAX, &event->wd, find_by_wd);
-                    if(idx >= 0) {
-                        dw_event.event      = DW_CREATE_AND_CLOSE;
-                        dw_event.dirname    = dw->watchfiles[idx].dirname;
-                        dw_event.filename   = dw->watchfiles[idx].tag.filename;
+                if (event->mask & IN_CLOSE_WRITE) {
 
-                        handler(&dw_event, user);
+                    watchdir* dir = find_watchdir(dw, &event->wd, find_by_wd);
 
-                        remove_node(dw->handle.fd, dw->watchfiles, DIRWATCH_MAX, idx);
+                    if(dir) {
+                        bool found = false;
+                        for(int i = 0; i < DIRWATCH_MAX && !found; ++i) {
+                            // TODO: strcmp in linear search is sub-optimal at best
+                            if(strcmp(event->name, dir->watchfiles[i]) == 0) {
+                                dw_event.event    = DW_CREATE_AND_CLOSE;
+                                dw_event.dirname  = dir->dirname;
+                                dw_event.filename = dir->watchfiles[i];
+
+                                handler(&dw_event, user);
+
+                                free(dir->watchfiles[i]);
+                                dir->watchfiles[i] = NULL;
+                                found = true;
+                            }
+                        }
                     }
                 }
                 next += sizeof(struct inotify_event) + event->len;
             }
-        }
-    }
-
-    // Check for any leftover files
-    for(size_t i = 0; i < DIRWATCH_MAX; ++i) {
-        if(dw->watchfiles[i].wd != 0) {
-            dw_event.event    = DW_LEFTOVER_FILE;
-            dw_event.dirname  = dw->watchfiles[i].dirname;
-            dw_event.filename = dw->watchfiles[i].tag.filename;
-
-            handler(&dw_event, user);
-
-            remove_node(dw->handle.fd, dw->watchfiles, DIRWATCH_MAX, i);
         }
     }
 
