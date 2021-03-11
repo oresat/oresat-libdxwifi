@@ -106,13 +106,13 @@ class TestTxRx(unittest.TestCase):
         '''Sending a list of files results in each file being received'''
 
         # Create a bunch of test files
-        test_files = [f'{TEMP_DIR}/test_{x}.raw' for x in range(100)]
+        test_files = [f'{TEMP_DIR}/test_{x}.raw' for x in range(10)]
         for file in test_files:
             genbytes(file, 10, 1024)
 
 
         tx_out     = f'{TEMP_DIR}/tx.raw'
-        rx_out     = [f'{TEMP_DIR}/rx_{x}.raw' for x in range(100)]
+        rx_out     = [f'{TEMP_DIR}/rx_{x}.raw' for x in range(10)]
         tx_command = f'{TX} {" ".join(test_files)} -q -b 1024 --savefile {tx_out}'
         rx_command = f'{RX} {TEMP_DIR} -q -c 1 -t 2 --prefix rx --extension raw --savefile {tx_out}'
 
@@ -132,12 +132,12 @@ class TestTxRx(unittest.TestCase):
         '''Tx can send all files currently in a directory'''
 
         # Create a bunch of files in a directory
-        test_files = [f'{TEMP_DIR}/test_{x}.raw' for x in range(100)]
+        test_files = [f'{TEMP_DIR}/test_{x}.raw' for x in range(10)]
         for file in test_files:
             genbytes(file, 10, 1024)
 
         tx_out     = f'{TEMP_DIR}/tx.raw'
-        rx_out     = [f'{TEMP_DIR}/rx_{x}.raw' for x in range(100)]
+        rx_out     = [f'{TEMP_DIR}/rx_{x}.raw' for x in range(10)]
         tx_command = f'{TX} {TEMP_DIR} -q --filter test_*.raw --include-all --no-listen -b 1024 --savefile {tx_out}'
         rx_command = f'{RX} {TEMP_DIR} -q -t 2 --prefix rx --extension raw --savefile {tx_out}'
 
@@ -157,7 +157,7 @@ class TestTxRx(unittest.TestCase):
         '''Tx can watch for new files in a directory and transmit them'''
 
         tx_out     = f'{TEMP_DIR}/tx.raw'
-        rx_out     = [f'{TEMP_DIR}/rx_{x}.raw' for x in range(100)]
+        rx_out     = [f'{TEMP_DIR}/rx_{x}.raw' for x in range(10)]
         tx_command = f'{TX} {TEMP_DIR} -q --watch-timeout 1 --filter test_*.raw -b 1024 --savefile {tx_out}'
         rx_command = f'{RX} {TEMP_DIR} -q -c 1 -t 2 --prefix rx --extension raw --savefile {tx_out}'
 
@@ -168,7 +168,7 @@ class TestTxRx(unittest.TestCase):
         sleep(0.05) # Give tx time to get set up
 
         # Create a bunch of test files in the directory, causing them to be transmitted
-        test_files = [f'{TEMP_DIR}/test_{x}.raw' for x in range(100)]
+        test_files = [f'{TEMP_DIR}/test_{x}.raw' for x in range(10)]
         for file in test_files:
             genbytes(file, 10, 1024)
 
