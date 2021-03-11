@@ -35,7 +35,7 @@ specific target with
 cmake --build --target dxwifi
 ```
 
-**Note**: If you're using VSCode I *highly* recommend just using the 
+**Note**: If you're using VSCode I **highly** recommend just using the 
 [CMake Tools](https://marketplace.visualstudio.com/items?itemName=ms-vscode.cmake-tools)
 extension. 
 
@@ -59,23 +59,26 @@ Congratulations you just copied this readme to the receiving device!
 Both the receiver and transmitter support a variety of different options. You can get a full list
 of options with the `--help` option. 
 
-Here's an example where we set the receiver to open test.cap in append mode, timeout
-after 10 seconds without receiving a packet, log everything, and only capture packets whose addressed to 11:22:33:44:55:66
+Here's an example where we set the receiver to output received files in the `test/` directory with the file format of `test_n.raw`,
+timeout after 10 seconds without receiving a packet, log everything, strictly order the packets and fill in missing packets with noise, and 
+only capture packets whose addressed to 11:22:33:44:55:66.
 ```
-sudo ./rx --dev mon0 -vvvvvv --append --timeout 10 --filter 'wlan addr1 11:22:33:44:55:66' test.cap
+sudo ./rx --dev mon0 -v 6 --ordered --add-noise --timeout 10 --extension raw --prefix test --filter 'wlan addr1 11:22:33:44:55:66` test/
 ```
 
-And for the transmitter we set it to transmit everything being read from stdin by 
-omitting the file argument, set the blocksize to 200 bytes, address the packets to 
-11:22:33:44:55:66, log everything, and specify that the packets should be strictly ordered
+And for the transmitter we set it to transmit everything in the `dxwifi` directory matching the glob pattern `*.md` and listen for new files, timeout after 20 seconds
+of no new files, transmit each file into 512 byte blocks, send 5 redundant control frames, and delay 10ms between each tranmission block and 10ms between each file transmission.
 ```
-sudo ./tx --dev mon0 --blocksize 200 --address 11:22:33:44:55:66 --ordered -vvvvvv
+sudo ./tx --dev mon0 --blocksize 512 --redundancy 5 --delay 10 --file-delay 10 --filter "*.md" --include-all --watch-timeout 20 dxwifi/
 ``` 
+
+**Note**: When doing multi-file transmission like the example above, it's critical to set the `--file-delay` and `--redundancy` parameters 
+to something reasonable for your channel. If these parameters are not set then file boundaries will not be clearly delimited to the receiver.
 
 ## Tests
 
 To run the system tests first you'll need to compile the project with `DXWIFI_TESTS` defined.
-The project Cmake file defines two build configurations with this macro defined, `TestDebug` and `TestRel`.
+The project Cmake file defines two build configurations with this macro enabled, `TestDebug` and `TestRel`.
 Building with this macro defined will force `tx`/`rx` to run in *offline* mode causing them to write or read 
 packetized data from a `savefile`. With the correct binaries built, simply run the following to execute the tests:
 
