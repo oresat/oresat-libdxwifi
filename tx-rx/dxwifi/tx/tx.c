@@ -10,7 +10,6 @@
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
-#include <stdarg.h>
 
 #include <poll.h>
 #include <errno.h>
@@ -20,7 +19,6 @@
 #include <dirent.h>
 #include <fnmatch.h>
 
-#include <arpa/inet.h>
 #include <linux/limits.h>
 
 #include <dxwifi/tx/cli.h>
@@ -48,6 +46,7 @@ int main(int argc, char** argv) {
         .quiet                      = false,
         .file_count                 = 0,
         .file_filter                = "*",
+        .retransmit_count           = 0,
         .transmit_current_files     = false,
         .listen_for_new_files       = true,
         .dirwatch_timeout           = -1,
@@ -238,12 +237,17 @@ dxwifi_tx_state_t setup_handlers_and_transmit(dxwifi_transmitter* tx, int fd) {
  * 
  *      delay:      Millisecond delay to add between file transmission. 
  * 
+ *      retransmit_count:
+ *                  Number of times to retransmit the file. If the count is -1
+ *                  then the file will be retransmitted forever or until the 
+ *                  transmitter reports a timeout or error
+ * 
  *  RETURNS:
  *      
  *      dxwifi_tx_state_t: The last reported state of the transmitter
  * 
  */
-dxwifi_tx_state_t transmit_files(dxwifi_transmitter* tx, char** files, size_t num_files, unsigned delay) {
+dxwifi_tx_state_t transmit_files(dxwifi_transmitter* tx, char** files, size_t num_files, unsigned delay, int retransmit_count) {
     int fd = 0;
     dxwifi_tx_state_t state = DXWIFI_TX_NORMAL;
 
@@ -253,9 +257,22 @@ dxwifi_tx_state_t transmit_files(dxwifi_transmitter* tx, char** files, size_t nu
         }
         else {
             log_info("Opened %s for transmission", files[i]);
-            state = setup_handlers_and_transmit(tx, fd);
+
+            bool transmit_forever = (retransmit_count == -1);
+            while((retransmit_count >= 0 || transmit_forever) && state == DXWIFI_TX_NORMAL) {
+                int status = lseek(fd, 0, SEEK_SET);
+
+                if(status == -1) {
+                    log_error("Failed to seek to beginning of file: %s", strerror(errno));
+                    state = DXWIFI_TX_ERROR;
+                }
+                else {
+                    state = setup_handlers_and_transmit(tx, fd);
+                    msleep(delay, false);
+                }
+                --retransmit_count;
+            }
             close(fd);
-            msleep(delay, false);
         }
     }
     return state;
@@ -276,7 +293,7 @@ dxwifi_tx_state_t transmit_files(dxwifi_transmitter* tx, char** files, size_t nu
  *      delay:      Inter-file transmission delay in milliseconds
  * 
  */
-void transmit_directory_contents(dxwifi_transmitter* tx, const char* filter, const char* dirname, unsigned delay) {
+void transmit_directory_contents(dxwifi_transmitter* tx, const char* filter, const char* dirname, unsigned delay, int retransmit_count) {
     DIR* dir;
     struct dirent* file;
     dxwifi_tx_state_t state = DXWIFI_TX_NORMAL;
@@ -290,7 +307,7 @@ void transmit_directory_contents(dxwifi_transmitter* tx, const char* filter, con
             if(fnmatch(filter, file->d_name, 0) == 0) {
                 combine_path(path_buffer, PATH_MAX, dirname, file->d_name);
                 if(is_regular_file(path_buffer)) {
-                    state = transmit_files(tx, &path_buffer, 1, delay);
+                    state = transmit_files(tx, &path_buffer, 1, delay, retransmit_count);
                 }
             }
         }
@@ -317,7 +334,7 @@ static void transmit_new_file(const dirwatch_event* event, void* user) {
 
     combine_path(path_buffer, PATH_MAX, event->dirname, event->filename);
 
-    transmit_files(&args->tx, &path_buffer, 1, args->file_delay);
+    transmit_files(&args->tx, &path_buffer, 1, args->file_delay, args->retransmit_count);
 
     free(path_buffer);
 }
@@ -339,7 +356,7 @@ void transmit_directory(cli_args* args, dxwifi_transmitter* tx) {
     const char* dirname = args->files[0];
 
     if(args->transmit_current_files) {
-        transmit_directory_contents(tx, args->file_filter, dirname, args->file_delay);
+        transmit_directory_contents(tx, args->file_filter, dirname, args->file_delay, args->retransmit_count);
     }
     if(args->listen_for_new_files) {
 
@@ -392,7 +409,7 @@ void transmit(cli_args* args, dxwifi_transmitter* tx) {
         break;
 
     case TX_FILE_MODE:
-        transmit_files(tx, args->files, args->file_count, args->file_delay);
+        transmit_files(tx, args->files, args->file_count, args->file_delay, args->retransmit_count);
         break;
 
     case TX_DIRECTORY_MODE:
