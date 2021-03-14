@@ -30,6 +30,7 @@
 
 #include <libdxwifi/details/utils.h>
 
+#define compiler_assert(expr, msg) _Static_assert(expr, msg)
 
 #ifdef LIBDXWIFI_DISABLE_ASSERTS
 #define assert(expr)                      __DXWIFI_UTILS_UNUSED(expr)
