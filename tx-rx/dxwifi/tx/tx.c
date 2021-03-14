@@ -83,8 +83,6 @@ int main(int argc, char** argv) {
 
     parse_args(argc, argv, &args);
 
-    init_logging();
-
     set_log_level(DXWIFI_LOG_ALL_MODULES, args.verbosity);
 
     init_transmitter(transmitter, args.device);

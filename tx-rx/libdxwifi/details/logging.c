@@ -7,12 +7,12 @@
  * 
  */
 
-#define _GNU_SOURCE
-#include <string.h>
-
 #include <stdio.h>
 #include <stdarg.h>
+#include <string.h>
 
+#include <libdxwifi/details/utils.h>
+#include <libdxwifi/details/assert.h>
 #include <libdxwifi/details/logging.h>
 
 
@@ -22,7 +22,18 @@ typedef struct {
 } dxwifi_log_handler;
 
 
-static dxwifi_log_handler handlers[DXWIFI_LOG_MODULE_COUNT];
+static dxwifi_log_handler handlers[] = {
+    { default_logger, DXWIFI_LOG_OFF },
+    { default_logger, DXWIFI_LOG_OFF },
+    { default_logger, DXWIFI_LOG_OFF },
+    { default_logger, DXWIFI_LOG_OFF },
+    { default_logger, DXWIFI_LOG_OFF },
+    { default_logger, DXWIFI_LOG_OFF },
+
+    // New modules should follow the same format
+
+};
+compiler_assert(NELEMS(handlers) == DXWIFI_LOG_MODULE_COUNT, "Handler count must match module count");
 
 
 // table entry must match the name of the file and index of the enumeration
@@ -39,20 +50,12 @@ static const char* file_lookup_tbl[DXWIFI_LOG_MODULE_COUNT] = {
 };
 
 
-static void default_logger(dxwifi_log_module_t module, dxwifi_log_module_t log_level, const char* fmt, va_list args) {
+void default_logger(dxwifi_log_module_t module, dxwifi_log_level_t log_level, const char* fmt, va_list args) {
     // For now just dump everything to stdout
     printf("[ %s ][ %s ] : ", log_level_to_str(log_level), log_module_to_str(module));
     vprintf(fmt, args);
     printf("\n");
     fflush(stdout);
-}
-
-
-void init_logging() {
-    for(int i = 0; i < DXWIFI_LOG_MODULE_COUNT; ++i) {
-        handlers[i].logger = (dxwifi_logger)default_logger;
-        handlers[i].log_level = DXWIFI_LOG_OFF;
-    }
 }
 
 
@@ -87,16 +90,18 @@ const char* log_module_to_str(dxwifi_log_module_t module) {
 
 dxwifi_log_module_t file_to_log_module(const char* file_name) {
 
-    char* module_name = basename(file_name);
+    char* path  = strdup(file_name);
+    char* bname = basename(path);
 
-    if(module_name) {
-        char* extension = index(module_name, '.'); // Drop the file extension
+    if(bname) {
+        char* extension = index(bname, '.'); // Drop the file extension
         for(dxwifi_log_module_t module = DXWIFI_LOG_GENERIC; module < DXWIFI_LOG_MODULE_COUNT; ++module) {
-            if(strncmp(module_name, file_lookup_tbl[module], extension - module_name) == 0) {
+            if(strncmp(bname, file_lookup_tbl[module], extension - bname) == 0) {
                 return module;
             }
         }
     }
+    free(path);
     return DXWIFI_LOG_GENERIC;
 }
 
