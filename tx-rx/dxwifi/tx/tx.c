@@ -28,6 +28,7 @@
 #include <libdxwifi/details/utils.h>
 #include <libdxwifi/details/logging.h>
 #include <libdxwifi/details/dirwatch.h>
+#include <libdxwifi/details/syslogger.h>
 
 
 dirwatch* dirwatch_handle = NULL;
@@ -44,6 +45,7 @@ int main(int argc, char** argv) {
         .tx_mode                    = TX_STREAM_MODE,
         .verbosity                  = DXWIFI_LOG_INFO,
         .quiet                      = false,
+        .use_syslog                 = false,
         .file_count                 = 0,
         .file_filter                = "*",
         .retransmit_count           = 0,
@@ -82,6 +84,12 @@ int main(int argc, char** argv) {
     transmitter = &args.tx;
 
     parse_args(argc, argv, &args);
+
+    if(args.use_syslog) {
+        init_syslogger();
+
+        set_logger(DXWIFI_LOG_ALL_MODULES, syslogger);
+    }
 
     set_log_level(DXWIFI_LOG_ALL_MODULES, args.verbosity);
 

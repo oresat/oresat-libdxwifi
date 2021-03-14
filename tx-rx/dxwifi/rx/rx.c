@@ -21,6 +21,7 @@
 #include <libdxwifi/dxwifi.h>
 #include <libdxwifi/receiver.h>
 #include <libdxwifi/details/logging.h>
+#include <libdxwifi/details/syslogger.h>
 
 
 dxwifi_receiver* receiver = NULL;
@@ -35,6 +36,7 @@ int main(int argc, char** argv) {
         .verbosity      = DXWIFI_LOG_INFO,
         .quiet          = false,
         .append         = false,
+        .use_syslog     = false,
         .device         = "mon0",
         .output_path    = ".",
         .file_prefix    = "rx",
@@ -55,6 +57,12 @@ int main(int argc, char** argv) {
     receiver = &args.rx;
 
     parse_args(argc, argv, &args);
+
+    if(args.use_syslog) {
+        init_syslogger();
+
+        set_logger(DXWIFI_LOG_ALL_MODULES, syslogger);
+    }
 
     set_log_level(DXWIFI_LOG_ALL_MODULES, args.verbosity);
 
