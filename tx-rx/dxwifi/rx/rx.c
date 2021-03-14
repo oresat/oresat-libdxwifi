@@ -59,8 +59,6 @@ int main(int argc, char** argv) {
     parse_args(argc, argv, &args);
 
     if(args.use_syslog) {
-        init_syslogger();
-
         set_logger(DXWIFI_LOG_ALL_MODULES, syslogger);
     }
 
