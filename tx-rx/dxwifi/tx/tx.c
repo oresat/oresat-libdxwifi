@@ -19,6 +19,7 @@
 #include <dirent.h>
 #include <fnmatch.h>
 
+#include <arpa/inet.h>
 #include <linux/limits.h>
 
 #include <dxwifi/tx/cli.h>
