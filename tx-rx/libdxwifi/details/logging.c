@@ -52,10 +52,10 @@ static const char* file_lookup_tbl[DXWIFI_LOG_MODULE_COUNT] = {
 
 void default_logger(dxwifi_log_module_t module, dxwifi_log_level_t log_level, const char* fmt, va_list args) {
     // For now just dump everything to stdout
-    printf("[ %s ][ %s ] : ", log_level_to_str(log_level), log_module_to_str(module));
-    vprintf(fmt, args);
+    fprintf(stderr, "[ %s ][ %s ] : ", log_level_to_str(log_level), log_module_to_str(module));
+    vfprintf(stderr, fmt, args);
     printf("\n");
-    fflush(stdout);
+    fflush(stderr);
 }
 
 

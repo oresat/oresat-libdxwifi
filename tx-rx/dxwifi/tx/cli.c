@@ -80,9 +80,9 @@ static struct argp_option opts[] = {
     { "ordered",        GET_KEY(IEEE80211_RADIOTAP_F_TX_ORDER,      RTAP_TX_FLAGS_GROUP),   0,          OPTION_NO_USAGE,  "Tx should not be reordered",             RTAP_TX_FLAGS_GROUP },
 
     { 0, 0, 0, 0, "Help Options", HELP_GROUP },
-    { "verbose",    'v', 0, 0, "Verbosity level",           HELP_GROUP },
-    { "syslog",     's', 0, 0, "Use SysLog for messages",   HELP_GROUP }, 
-    { "quiet",      'q', 0, 0, "Silence any output",        HELP_GROUP },
+    { "verbose",    'v', "<level>",     0, "Verbosity level",           HELP_GROUP },
+    { "syslog",     's', 0,             0, "Use SysLog for messages",   HELP_GROUP }, 
+    { "quiet",      'q', 0,             0, "Silence any output",        HELP_GROUP },
 
 #if defined(DXWIFI_TESTS)
     { 0, 0, 0, 0, "WARNING! You are running a test build!", TEST_GROUP },
@@ -158,7 +158,7 @@ static error_t parse_opt(int key, char* arg, struct argp_state *state) {
         break;
 
     case 'v':
-        args->verbosity++;
+        args->verbosity = atoi(arg);
         break;
 
     case 'q':
