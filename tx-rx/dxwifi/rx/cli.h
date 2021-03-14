@@ -23,6 +23,7 @@ typedef struct {
     int             verbosity;
     bool            quiet;
     bool            append;
+    bool            use_syslog;
     const char*     device;
     const char*     output_path;
     const char*     file_prefix;

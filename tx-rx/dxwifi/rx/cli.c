@@ -61,8 +61,9 @@ static struct argp_option opts[] = {
     { "no-optimize",    GET_KEY(NO_OPTIMIZE,    PCAP_SETTINGS_GROUP),    0,              OPTION_NO_USAGE,    "Do not optimize the BPF expression",   PCAP_SETTINGS_GROUP },
 
     { 0, 0, 0, 0, "Help options", HELP_GROUP },
-    { "verbose", 'v', "<level>", 0, "Verbosity level",      HELP_GROUP},
-    { "quiet",   'q', 0,         0, "Silence any output",   HELP_GROUP },
+    { "verbose", 'v', 0, 0, "Verbosity level",              HELP_GROUP },
+    { "syslog",  's', 0, 0, "Use SysLog for messages",      HELP_GROUP }, 
+    { "quiet",   'q', 0, 0, "Silence any output",           HELP_GROUP },
 
 #if defined(DXWIFI_TESTS)
     { 0, 0, 0, 0, "WARNING! You are running a test build!", TEST_GROUP },
@@ -139,12 +140,7 @@ static error_t parse_opt(int key, char* arg, struct argp_state *state) {
         break;
 
     case 'v':
-        if(arg) {
-            args->verbosity = atoi(arg);
-        } 
-        else {
-            args->verbosity++;
-        }
+        args->verbosity++;
         break;
 
     case 'q':
@@ -165,6 +161,10 @@ static error_t parse_opt(int key, char* arg, struct argp_state *state) {
 
     case 'n':
         args->rx.add_noise = true;
+        break;
+
+    case 's':
+        args->use_syslog = true;
         break;
 
     case GET_KEY(SNAPLEN, PCAP_SETTINGS_GROUP):

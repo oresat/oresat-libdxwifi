@@ -32,6 +32,7 @@ typedef struct {
     int                 dirwatch_timeout; 
     int                 verbosity;
     bool                quiet;
+    bool                use_syslog;
     unsigned            tx_delay;
     unsigned            file_delay;
     const char*         device;
