@@ -26,6 +26,7 @@ typedef struct {
     char*               files[TX_CLI_FILE_MAX];
     int                 file_count;
     const char*         file_filter;
+    int                 retransmit_count;
     bool                transmit_current_files;
     bool                listen_for_new_files;
     int                 dirwatch_timeout; 

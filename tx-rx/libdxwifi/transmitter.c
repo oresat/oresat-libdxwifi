@@ -486,6 +486,10 @@ void start_transmission(dxwifi_transmitter* tx, int fd, dxwifi_tx_stats* out) {
 
     send_control_frame(tx, &data_frame, DXWIFI_CONTROL_FRAME_EOT);
 
+    if(stats.tx_state == DXWIFI_TX_NORMAL && !tx->__activated) {
+        stats.tx_state = DXWIFI_TX_DEACTIVATED;
+    }
+
     if(out) {
         *out = stats;
     }

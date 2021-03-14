@@ -57,6 +57,7 @@ static struct argp_option opts[] = {
     { "delay",          'u', "<mseconds>",          0, "Length of time, in milliseconds, to delay between transmission blocks", PRIMARY_GROUP },
     { "file-delay",     'f', "<mseconds>",          0, "Length of time in milliseconds to delay between file transmissions",    PRIMARY_GROUP },
     { "redundancy",     'r', "<number>",            0, "Number of extra control frames to send",                                PRIMARY_GROUP },
+    { "retransmit",     'c', "<number>",            0, "Number of times to retransmit a file, -1 for infinity",                 PRIMARY_GROUP },
 
     { 0, 0, 0, 0, "The following settings are only applicable when reading from a directory", DIRECTORY_MODE_GROUP },
     { "filter",         GET_KEY(FILE_FILTER,        DIRECTORY_MODE_GROUP),  "<glob>",       OPTION_NO_USAGE,  "Only transmit files that match filter",      DIRECTORY_MODE_GROUP },
@@ -178,6 +179,10 @@ static error_t parse_opt(int key, char* arg, struct argp_state *state) {
 
     case 'f':
         args->file_delay = atoi(arg);
+        break;
+
+    case 'c':
+        args->retransmit_count = atoi(arg);
         break;
 
     case GET_KEY(FILE_FILTER, DIRECTORY_MODE_GROUP):
