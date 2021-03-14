@@ -171,4 +171,8 @@ static inline void __unused(const int dummy, ...) { (void)dummy; }
   do { if(0) __unused(0, ##__VA_ARGS__); } while(0)
 
 
+// Only use for array types NOT pointers
+#define NELEMS(x) (sizeof(x) / sizeof((x)[0]))
+
+
 #endif // LIBDXWIFI_UTILITY_H

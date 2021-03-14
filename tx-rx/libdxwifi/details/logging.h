@@ -54,11 +54,20 @@ typedef void(*dxwifi_logger)(dxwifi_log_module_t, dxwifi_log_level_t, const char
 
 
 /**
- *  DESCRIPTION:  Initializes the logging library, by default it will attach the
- *                default logger to every module and set the log level to 
- *                DXWIFI_LOG_OFF
+ *  DESCRIPTION:    Default logger simply dumps everything to stdout. By default all logging modules are
+ *                  configured to use the default_logger
+ * 
+ *  ARGUMENTS:
+ *  
+ *      module:     Module where log statement occured
+ * 
+ *      log_level:  Priority of log message
+ *      
+ *      fmt:        Formatted string
+ * 
+ *      args:       Formatted string args
  */
-void init_logging();
+void default_logger(dxwifi_log_module_t module, dxwifi_log_level_t log_level, const char* fmt, va_list args);
 
 
 /**
