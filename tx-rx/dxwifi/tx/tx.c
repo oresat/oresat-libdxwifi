@@ -137,7 +137,7 @@ void watchdir_sigint_handler(int signum) {
  * 
  */
 void log_tx_stats(dxwifi_tx_stats stats) {
-    log_info(
+    log_debug(
         "Transmission Stats\n"
         "\tTotal Bytes Read:    %d\n"
         "\tTotal Bytes Sent:    %d\n"

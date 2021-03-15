@@ -289,7 +289,7 @@ static void send_control_frame(dxwifi_transmitter* tx, dxwifi_tx_frame* frame, d
 
     for (int i = 0; i < tx->redundant_ctrl_frames + 1; ++i) {
         int status = inject_packet(tx, frame, sizeof(control_data));
-        log_info("%s Frame Sent: %d", control_frame_type_to_str(type), status);
+        log_debug("%s Frame Sent: %d", control_frame_type_to_str(type), status);
         log_hexdump(frame->__frame, DXWIFI_TX_HEADER_SIZE + sizeof(control_data) + IEEE80211_FCS_SIZE);
     }
 }

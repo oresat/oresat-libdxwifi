@@ -83,7 +83,7 @@ int main(int argc, char** argv) {
  * 
  */
 void log_rx_stats(dxwifi_rx_stats stats) {
-    log_info(
+    log_debug(
         "Receiver Capture Stats\n"
         "\tTotal Payload Size:          %d\n"
         "\tTotal Write length:          %d\n"
