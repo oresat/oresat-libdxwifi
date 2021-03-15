@@ -23,12 +23,12 @@ typedef struct {
 
 
 static dxwifi_log_handler handlers[] = {
-    { default_logger, DXWIFI_LOG_OFF },
-    { default_logger, DXWIFI_LOG_OFF },
-    { default_logger, DXWIFI_LOG_OFF },
-    { default_logger, DXWIFI_LOG_OFF },
-    { default_logger, DXWIFI_LOG_OFF },
-    { default_logger, DXWIFI_LOG_OFF },
+    { default_logger, DXWIFI_LOG_FATAL },
+    { default_logger, DXWIFI_LOG_FATAL },
+    { default_logger, DXWIFI_LOG_FATAL },
+    { default_logger, DXWIFI_LOG_FATAL },
+    { default_logger, DXWIFI_LOG_FATAL },
+    { default_logger, DXWIFI_LOG_FATAL },
 
     // New modules should follow the same format
 
