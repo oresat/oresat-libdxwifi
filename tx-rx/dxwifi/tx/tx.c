@@ -263,8 +263,9 @@ dxwifi_tx_state_t transmit_files(dxwifi_transmitter* tx, char** files, size_t nu
         else {
             log_info("Opened %s for transmission", files[i]);
 
+            int count = retransmit_count;
             bool transmit_forever = (retransmit_count == -1);
-            while((retransmit_count >= 0 || transmit_forever) && state == DXWIFI_TX_NORMAL) {
+            while((count >= 0 || transmit_forever) && state == DXWIFI_TX_NORMAL) {
                 int status = lseek(fd, 0, SEEK_SET);
 
                 if(status == -1) {
@@ -275,7 +276,7 @@ dxwifi_tx_state_t transmit_files(dxwifi_transmitter* tx, char** files, size_t nu
                     state = setup_handlers_and_transmit(tx, fd);
                     msleep(delay, false);
                 }
-                --retransmit_count;
+                --count;
             }
             close(fd);
         }
