@@ -5,10 +5,10 @@
  * 
  *  This logging facade supports formatted strings as well as user, module, and 
  *  compiler log levels. Logging under the compiler log level gets culled out 
- *  and won't be present in release builds. By default, logging is disabled and
- *  the default logger just pipes everything to stdout. To use a different 
- *  logging library simply create a function that fulfills the dxwifi_logger 
- *  interface and call the set_logger method
+ *  and won't be present in release builds. By default, logging is set to fatal 
+ *  messages and the default logger just pipes everything to stderr. To use a 
+ *  different logging library simply create a function that fulfills the 
+ *  dxwifi_logger interface and call the set_logger method
  * 
  *  https://github.com/oresat/oresat-dxwifi-software
  * 
