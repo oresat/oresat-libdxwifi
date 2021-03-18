@@ -138,7 +138,7 @@ bool set_log_level(dxwifi_log_module_t module, dxwifi_log_level_t level) {
 }
 
 
-void __log(dxwifi_log_level_t log_level, const char* file, const char* fmt, ...) {
+void __dxwifi_log(dxwifi_log_level_t log_level, const char* file, const char* fmt, ...) {
 
     dxwifi_log_module_t module  = file_to_log_module(file);
     dxwifi_log_handler  handler = handlers[module];
@@ -152,7 +152,7 @@ void __log(dxwifi_log_level_t log_level, const char* file, const char* fmt, ...)
 }
 
 
-void __log_hexdump(const char* file, const uint8_t* data, int size) {
+void __dxwifi_log_hexdump(const char* file, const uint8_t* data, int size) {
 
     int i           = 0;
     int nbytes      = 0;
@@ -183,5 +183,5 @@ void __log_hexdump(const char* file, const uint8_t* data, int size) {
     }
     formatted_str[location] = '\0';
 
-    __log(DXWIFI_LOG_TRACE, file, "%s", formatted_str);
+    __dxwifi_log(DXWIFI_LOG_TRACE, file, "%s", formatted_str);
 }
