@@ -33,6 +33,9 @@ typedef enum {
     NO_OPTIMIZE,
 } pcap_settings_t;
 
+
+const char* argp_program_version = DXWIFI_VERSION;
+
 // Description of key arguments 
 static char args_doc[] = "output-file/directory";
 

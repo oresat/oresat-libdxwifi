@@ -42,6 +42,8 @@ typedef enum {
 } directory_mode_settings_t;
 
 
+const char* argp_program_version = DXWIFI_VERSION;
+
 // Description of key arguments 
 static char args_doc[] = "input-file(s)/directory(s)";
 

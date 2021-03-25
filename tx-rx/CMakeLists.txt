@@ -11,6 +11,8 @@ if(NOT CMAKE_BUILD_TYPE)
         FORCE)
 endif()
 
+add_compile_definitions(DXWIFI_BUILD_TYPE="${CMAKE_BUILD_TYPE}")
+
 option(LIBDXWIFI_DISABLE_ASSERTS    "Disable Assert Functions"     OFF)
 option(LIBDXWIFI_DISABLE_LOGGING    "Disable Logging"              OFF)
 
