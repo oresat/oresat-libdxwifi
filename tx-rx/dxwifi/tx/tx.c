@@ -413,6 +413,7 @@ void transmit_test_sequence(dxwifi_transmitter* tx, int retransmit) {
     // TODO magic number
     uint32_t transmit_buffer[10240 / sizeof(uint32_t)];
 
+    log_info("Transmitting test sequence...");
     while (count <= retransmit || transmit_forever) {
 
         for(size_t i = 0; i < NELEMS(transmit_buffer); ++i) {
@@ -425,6 +426,7 @@ void transmit_test_sequence(dxwifi_transmitter* tx, int retransmit) {
 
         ++count;
     }
+    log_info("Test sequence completed, transmitted %d times", count);
 }
 
 
