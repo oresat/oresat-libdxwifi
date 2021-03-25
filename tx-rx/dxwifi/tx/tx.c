@@ -391,7 +391,9 @@ void transmit_directory(cli_args* args, dxwifi_transmitter* tx) {
 
 
 /**
- *  DESCRIPTION:    Transmit a test sequence of bytes. 
+ *  DESCRIPTION:    Transmit a test sequence of bytes. The test sequence is a 
+ *                  10Kb block of data with the transmission count encoded in 
+ *                  every four bytes as the payload
  * 
  *  ARGUMENTS: 
  *      
@@ -401,7 +403,28 @@ void transmit_directory(cli_args* args, dxwifi_transmitter* tx) {
  * 
  */
 void transmit_test_sequence(dxwifi_transmitter* tx, int retransmit) {
-    log_fatal("test");
+
+    dxwifi_tx_stats stats;
+
+    bool transmit_forever = (retransmit == -1);
+
+    uint32_t count = 0;
+
+    // TODO magic number
+    uint32_t transmit_buffer[10240 / sizeof(uint32_t)];
+
+    while (count <= retransmit || transmit_forever) {
+
+        for(size_t i = 0; i < NELEMS(transmit_buffer); ++i) {
+            transmit_buffer[i] = count;
+        }
+
+        transmit_bytes(tx, transmit_buffer, 10240, &stats);
+
+        log_tx_stats(stats);
+
+        ++count;
+    }
 }
 
 

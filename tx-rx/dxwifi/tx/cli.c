@@ -68,7 +68,7 @@ static struct argp_option opts[] = {
     { "retransmit",     'c', "<number>",            0, "Number of times to retransmit, -1 for infinity",                        PRIMARY_GROUP },
 
     { 0, 0, 0, 0, "Secondary Tx Settings", SECONDARY_GROUP },
-    { "test",   GET_KEY(TX_TEST, SECONDARY_GROUP),  0,  OPTION_NO_USAGE,    "Transmit a test sequence of bytes, use -r to retransmit it multiple times",    SECONDARY_GROUP },
+    { "test",   GET_KEY(TX_TEST, SECONDARY_GROUP),  0,  OPTION_NO_USAGE,    "Transmit a test sequence of bytes, use -c to retransmit it multiple times",    SECONDARY_GROUP },
     { "daemon", GET_KEY(DAEMON,  SECONDARY_GROUP),  0,  OPTION_NO_USAGE,    "Run the tx program as a forked daemon process (Sets logger to syslog as well)",SECONDARY_GROUP },
 
     { 0, 0, 0, 0, "The following settings are only applicable when reading from a directory", DIRECTORY_MODE_GROUP },
