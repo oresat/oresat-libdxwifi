@@ -308,7 +308,7 @@ bool remove_postinject_handler(dxwifi_transmitter* tx, int index);
  * 
  *  ARGUMENTS:
  * 
- *      transmitter:    Pointer to an allocated transmitter object
+ *      transmitter:    Pointer to an initialized transmitter object
  * 
  *      fd:             File descriptor of the data to be sent. 
  * 
@@ -324,6 +324,24 @@ bool remove_postinject_handler(dxwifi_transmitter* tx, int index);
  * 
  */
 void start_transmission(dxwifi_transmitter* transmitter, int fd, dxwifi_tx_stats* out);
+
+
+/**
+ *  DESCRIPTION:        Transmit nbytes from data, 
+ * 
+ *  ARGUMENTS:
+ * 
+ *      transmitter:    pointer to an initialized transmitter object
+ * 
+ *      data:           Bytes to transmit
+ * 
+ *      nbytes:         Number of bytes to transmit
+ * 
+ *      out:            Pointer to an allocated stats object or NULL if stats
+ *                      aren't needed. 
+ * 
+ */
+void transmit_bytes(dxwifi_transmitter* transmitter, const void* data, size_t nbytes, dxwifi_tx_stats* out);
 
 
 /**
