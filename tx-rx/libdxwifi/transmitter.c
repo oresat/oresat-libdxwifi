@@ -516,7 +516,7 @@ void transmit_bytes(dxwifi_transmitter* tx, const void* data, size_t nbytes, dxw
 
     construct_ieee80211_header(data_frame.mac_hdr, tx->fctl, 0xffff, tx->address);
 
-    log_info("Starting DxWiFi Transmission...");
+    log_debug("Starting DxWiFi Transmission...");
 
     send_control_frame(tx, &data_frame, DXWIFI_CONTROL_FRAME_PREAMBLE);
 
@@ -547,7 +547,7 @@ void transmit_bytes(dxwifi_transmitter* tx, const void* data, size_t nbytes, dxw
 
     send_control_frame(tx, &data_frame, DXWIFI_CONTROL_FRAME_EOT);
 
-    log_info("DxWiFI Transmission stopped");
+    log_debug("DxWiFI Transmission stopped");
 
     if(out) {
         *out = stats;
