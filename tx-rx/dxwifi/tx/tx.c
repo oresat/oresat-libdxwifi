@@ -44,6 +44,7 @@ int main(int argc, char** argv) {
 
     cli_args args = {
         .tx_mode                    = TX_STREAM_MODE,
+        .daemon                     = false,
         .verbosity                  = DXWIFI_LOG_INFO,
         .quiet                      = false,
         .use_syslog                 = false,
@@ -85,8 +86,10 @@ int main(int argc, char** argv) {
     transmitter = &args.tx;
 
     parse_args(argc, argv, &args);
+    
+    // TODO daemonize
 
-    if(args.use_syslog) {
+    if(args.daemon || args.use_syslog) {
         set_logger(DXWIFI_LOG_ALL_MODULES, syslogger);
     }
 
@@ -386,6 +389,23 @@ void transmit_directory(cli_args* args, dxwifi_transmitter* tx) {
     }
 }
 
+
+/**
+ *  DESCRIPTION:    Transmit a test sequence of bytes. 
+ * 
+ *  ARGUMENTS: 
+ *      
+ *      tx:         Initialized transmitter
+ * 
+ *      retransmit: Number of times to transmit test sequence
+ * 
+ */
+void transmit_test_sequence(dxwifi_transmitter* tx, int retransmit) {
+    log_fatal("test");
+}
+
+
+
 /**
  *  DESCRIPTION:    Determine the transmission mode and transmit files
  * 
@@ -420,6 +440,10 @@ void transmit(cli_args* args, dxwifi_transmitter* tx) {
 
     case TX_DIRECTORY_MODE:
         transmit_directory(args, tx);
+        break;
+
+    case TX_TEST_MODE:
+        transmit_test_sequence(tx, args->retransmit_count);
         break;
     
     default:

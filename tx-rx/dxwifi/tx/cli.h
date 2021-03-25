@@ -12,9 +12,10 @@
 
 
 typedef enum {
-    TX_FILE_MODE,
-    TX_STREAM_MODE,
-    TX_DIRECTORY_MODE,
+    TX_TEST_MODE,       // Sanity check, transmit a test sequence of bytes
+    TX_FILE_MODE,       // Transmit a file or list of files
+    TX_STREAM_MODE,     // Transmit all data from stdin
+    TX_DIRECTORY_MODE,  // Transmit contents of a directory
 } tx_mode_t;
 
 // TODO this is defined arbitrarily, is there an upper limit to the number of 
@@ -23,6 +24,7 @@ typedef enum {
 
 typedef struct {
     tx_mode_t           tx_mode;
+    bool                daemon;
     char*               files[TX_CLI_FILE_MAX];
     int                 file_count;
     const char*         file_filter;

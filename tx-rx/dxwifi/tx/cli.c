@@ -20,12 +20,13 @@
 
 
 #define PRIMARY_GROUP           0
-#define DIRECTORY_MODE_GROUP    500
-#define MAC_HEADER_GROUP        1000
-#define RTAP_CONF_GROUP         1500
-#define RTAP_FLAGS_GROUP        2000
-#define RTAP_TX_FLAGS_GROUP     2500
-#define HELP_GROUP              3000
+#define SECONDARY_GROUP         500
+#define DIRECTORY_MODE_GROUP    1000
+#define MAC_HEADER_GROUP        1500
+#define RTAP_CONF_GROUP         2000
+#define RTAP_FLAGS_GROUP        2500
+#define RTAP_TX_FLAGS_GROUP     3000
+#define HELP_GROUP              3500
 
 #if defined(DXWIFI_TESTS)
 #define TEST_GROUP (HELP_GROUP + 500)
@@ -40,6 +41,11 @@ typedef enum {
     NO_LISTEN_FLAG,
     WATCHDIR_TIMEOUT,
 } directory_mode_settings_t;
+
+typedef enum {
+    TX_TEST,
+    DAEMON
+} secondary_group_settings_t;
 
 
 const char* argp_program_version = DXWIFI_VERSION;
@@ -59,7 +65,11 @@ static struct argp_option opts[] = {
     { "delay",          'u', "<mseconds>",          0, "Length of time, in milliseconds, to delay between transmission blocks", PRIMARY_GROUP },
     { "file-delay",     'f', "<mseconds>",          0, "Length of time in milliseconds to delay between file transmissions",    PRIMARY_GROUP },
     { "redundancy",     'r', "<number>",            0, "Number of extra control frames to send",                                PRIMARY_GROUP },
-    { "retransmit",     'c', "<number>",            0, "Number of times to retransmit a file, -1 for infinity",                 PRIMARY_GROUP },
+    { "retransmit",     'c', "<number>",            0, "Number of times to retransmit, -1 for infinity",                        PRIMARY_GROUP },
+
+    { 0, 0, 0, 0, "Secondary Tx Settings", SECONDARY_GROUP },
+    { "test",   GET_KEY(TX_TEST, SECONDARY_GROUP),  0,  OPTION_NO_USAGE,    "Transmit a test sequence of bytes, use -r to retransmit it multiple times",    SECONDARY_GROUP },
+    { "daemon", GET_KEY(DAEMON,  SECONDARY_GROUP),  0,  OPTION_NO_USAGE,    "Run the tx program as a forked daemon process (Sets logger to syslog as well)",SECONDARY_GROUP },
 
     { 0, 0, 0, 0, "The following settings are only applicable when reading from a directory", DIRECTORY_MODE_GROUP },
     { "filter",         GET_KEY(FILE_FILTER,        DIRECTORY_MODE_GROUP),  "<glob>",       OPTION_NO_USAGE,  "Only transmit files that match filter",      DIRECTORY_MODE_GROUP },
@@ -109,17 +119,23 @@ static error_t parse_opt(int key, char* arg, struct argp_state *state) {
     switch (key)
     {
     case ARGP_KEY_END:
-        if(args->file_count > 0) {
-            if(args->file_count == 1 && is_directory(args->files[0])) {
-                args->tx_mode = TX_DIRECTORY_MODE;
+        // Determine TX Mode
+        if(!(args->tx_mode == TX_TEST_MODE)) {
+            if(args->file_count > 0) {
+                // TODO Dirwatch now supports multiple directories we don't need to limit to 1 anymore
+                if(args->file_count == 1 && is_directory(args->files[0])) {
+                    args->tx_mode = TX_DIRECTORY_MODE;
+                }
+                else { // TODO verify every file in the list is actually a file
+                    args->tx_mode = TX_FILE_MODE;
+                }
             }
-            else { // TODO verify every file in the list is actually a file
-                args->tx_mode = TX_FILE_MODE;
+            else {
+                args->tx_mode = TX_STREAM_MODE;
             }
         }
-        else {
-            args->tx_mode = TX_STREAM_MODE;
-        }
+
+        // Determine Verbosity
         if(args->quiet) {
             args->verbosity = 0;
         }
@@ -185,6 +201,14 @@ static error_t parse_opt(int key, char* arg, struct argp_state *state) {
 
     case 's':
         args->use_syslog = true;
+        break;
+
+    case GET_KEY(TX_TEST, SECONDARY_GROUP):
+        args->tx_mode = TX_TEST_MODE;
+        break;
+
+    case GET_KEY(DAEMON, SECONDARY_GROUP):
+        args->daemon = true;
         break;
 
     case GET_KEY(FILE_FILTER, DIRECTORY_MODE_GROUP):
