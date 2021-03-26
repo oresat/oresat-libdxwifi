@@ -29,6 +29,7 @@ static dxwifi_log_handler handlers[] = {
     { default_logger, DXWIFI_LOG_FATAL },
     { default_logger, DXWIFI_LOG_FATAL },
     { default_logger, DXWIFI_LOG_FATAL },
+    { default_logger, DXWIFI_LOG_FATAL },
 
     // New modules should follow the same format
 
@@ -44,10 +45,12 @@ static const char* file_lookup_tbl[DXWIFI_LOG_MODULE_COUNT] = {
     "receiver",
     "rx",
     "dirwatch",
+    "daemon",
 
     // Add new modules here
 
 };
+compiler_assert(NELEMS(file_lookup_tbl) == DXWIFI_LOG_MODULE_COUNT, "File table count must match module count");
 
 
 void default_logger(dxwifi_log_module_t module, dxwifi_log_level_t log_level, const char* fmt, va_list args) {

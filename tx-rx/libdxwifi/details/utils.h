@@ -81,6 +81,20 @@ bool is_directory(const char* path);
 
 
 /**
+ *  DESCRIPTION:    Determines if a process is still alive
+ * 
+ *  ARGUMENTS: 
+ *      
+ *      pid:        PID in question
+ * 
+ *  RETURNS:    
+ *      
+ *      bool:       True if the pid exists in /proc/
+ */
+bool is_alive(int pid);
+
+
+/**
  *  DESCRIPTION:    Get the size of the file in bytes
  * 
  *  ARGUMENTS: 

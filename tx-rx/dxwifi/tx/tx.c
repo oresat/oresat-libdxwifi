@@ -27,12 +27,11 @@
 #include <libdxwifi/dxwifi.h>
 #include <libdxwifi/transmitter.h>
 #include <libdxwifi/details/utils.h>
+#include <libdxwifi/details/daemon.h>
 #include <libdxwifi/details/logging.h>
 #include <libdxwifi/details/dirwatch.h>
 #include <libdxwifi/details/syslogger.h>
 
-
-#define TX_DEFAULT_PID_FILE "/run/oresat-live-txd.pid"
 
 
 dirwatch* dirwatch_handle = NULL;
@@ -50,20 +49,24 @@ int main(int argc, char** argv) {
 
     parse_args(argc, argv, &args);
     
+    set_log_level(DXWIFI_LOG_ALL_MODULES, args.verbosity);
+
     if(args.use_syslog) {
         set_logger(DXWIFI_LOG_ALL_MODULES, syslogger);
     }
     if(args.daemon) {
-
+        daemon_run(args.pid_file, args.daemon);
     }
-
-    set_log_level(DXWIFI_LOG_ALL_MODULES, args.verbosity);
 
     init_transmitter(transmitter, args.device);
 
     transmit(&args, transmitter);
 
     close_transmitter(transmitter);
+
+    if(args.daemon) {
+        stop_daemon(args.pid_file);
+    }
 
     exit(0);
 }

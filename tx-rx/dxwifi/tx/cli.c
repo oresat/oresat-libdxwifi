@@ -53,23 +53,24 @@ static char doc[] =
 
 // Available command line options 
 static struct argp_option opts[] = {
-    { "dev",            'd', "<network-device>",    0,                      "Monitor mode enabled network interface",                                        PRIMARY_GROUP },
-    { "blocksize",      'b', "<blocksize>",         0,                      "Size in bytes of each block read from file",                                    PRIMARY_GROUP },
-    { "timeout",        't', "<seconds>",           0,                      "Number of seconds to wait for an available read",                               PRIMARY_GROUP },
-    { "delay",          'u', "<mseconds>",          0,                      "Length of time, in milliseconds, to delay between transmission blocks",         PRIMARY_GROUP },
-    { "file-delay",     'f', "<mseconds>",          0,                      "Length of time in milliseconds to delay between file transmissions",            PRIMARY_GROUP },
-    { "redundancy",     'r', "<number>",            0,                      "Number of extra control frames to send",                                        PRIMARY_GROUP },
-    { "retransmit",     'R', "<number>",            0,                      "Number of times to retransmit, -1 for infinity",                                PRIMARY_GROUP },
-    { "test",           'T',  0,                    0,                      "Transmit a test sequence of bytes, use -c to retransmit it multiple times",     PRIMARY_GROUP },
-    { "daemon",         'D',  "<command>",          OPTION_ARG_OPTIONAL,    "Run the tx program as a forked daemon process (Sets logger to syslog as well)", PRIMARY_GROUP },
+    { "dev",            'd', "<network-device>",    0,  "Monitor mode enabled network interface",                                        PRIMARY_GROUP },
+    { "blocksize",      'b', "<blocksize>",         0,  "Size in bytes of each block read from file",                                    PRIMARY_GROUP },
+    { "timeout",        't', "<seconds>",           0,  "Number of seconds to wait for an available read",                               PRIMARY_GROUP },
+    { "delay",          'u', "<mseconds>",          0,  "Length of time, in milliseconds, to delay between transmission blocks",         PRIMARY_GROUP },
+    { "file-delay",     'f', "<mseconds>",          0,  "Length of time in milliseconds to delay between file transmissions",            PRIMARY_GROUP },
+    { "redundancy",     'r', "<number>",            0,  "Number of extra control frames to send",                                        PRIMARY_GROUP },
+    { "retransmit",     'R', "<number>",            0,  "Number of times to retransmit, -1 for infinity",                                PRIMARY_GROUP },
+    { "test",           'T',  0,                    0,  "Transmit a test sequence of bytes, use -c to retransmit it multiple times",     PRIMARY_GROUP },
+    { "daemon",         'D',  "<start|stop>",       0,  "Run the tx program as a forked daemon process (Sets logger to syslog as well)", PRIMARY_GROUP },
+    { "pid-file",       'P',  "<file-path>",        0,  "Location of the Daemon's PID File",                                             PRIMARY_GROUP },
 
-    { 0, 0, 0, 0, "The following settings are only applicable when reading from a directory", DIRECTORY_MODE_GROUP },
+    { 0, 0, 0, OPTION_DOC, "The following settings are only applicable when reading from a directory", DIRECTORY_MODE_GROUP },
     { "filter",         GET_KEY(FILE_FILTER,        DIRECTORY_MODE_GROUP),  "<glob>",       OPTION_NO_USAGE,  "Only transmit files whose filename matches the filter",      DIRECTORY_MODE_GROUP },
     { "include-all",    GET_KEY(INCLUDE_ALL_FLAG,   DIRECTORY_MODE_GROUP),  0,              OPTION_NO_USAGE,  "include files currently in the directory",                   DIRECTORY_MODE_GROUP },
     { "no-listen",      GET_KEY(NO_LISTEN_FLAG,     DIRECTORY_MODE_GROUP),  0,              OPTION_NO_USAGE,  "Don't listen for new files in the directory",                DIRECTORY_MODE_GROUP },
     { "watch-timeout",  GET_KEY(WATCHDIR_TIMEOUT,   DIRECTORY_MODE_GROUP),  "<seconds>",    OPTION_NO_USAGE,  "Number of seconds to listen for new files",                  DIRECTORY_MODE_GROUP },
 
-    { 0, 0, 0, 0, "IEEE80211 MAC Header Configuration Options", MAC_HEADER_GROUP },
+    { 0, 0, 0, OPTION_DOC, "IEEE80211 MAC Header Configuration Options", MAC_HEADER_GROUP },
     { "address",        GET_KEY(1, MAC_HEADER_GROUP), "<macaddr>", OPTION_NO_USAGE, "MAC address of the transmitter", MAC_HEADER_GROUP },
 
     { 0, 0, 0, 0, "Radiotap Header Configuration Options (WARN: settings are driver dependent and/or may not be supported by DxWiFi)", RTAP_CONF_GROUP  },
@@ -83,13 +84,13 @@ static struct argp_option opts[] = {
     { "sequence",       GET_KEY(IEEE80211_RADIOTAP_F_TX_NOSEQNO,    RTAP_TX_FLAGS_GROUP),   0,          OPTION_NO_USAGE,  "Tx includes preconfigured sequence id",  RTAP_TX_FLAGS_GROUP },
     { "ordered",        GET_KEY(IEEE80211_RADIOTAP_F_TX_ORDER,      RTAP_TX_FLAGS_GROUP),   0,          OPTION_NO_USAGE,  "Tx should not be reordered",             RTAP_TX_FLAGS_GROUP },
 
-    { 0, 0, 0, 0, "Help Options", HELP_GROUP },
+    { 0, 0, 0, OPTION_DOC, "Help Options", HELP_GROUP },
     { "verbose",    'v', 0, 0, "Verbosity level",           HELP_GROUP },
     { "syslog",     's', 0, 0, "Use SysLog for messages",   HELP_GROUP }, 
     { "quiet",      'q', 0, 0, "Silence any output",        HELP_GROUP },
 
 #if defined(DXWIFI_TESTS)
-    { 0, 0, 0, 0, "WARNING! You are running a test build!", TEST_GROUP },
+    { 0, 0, 0, OPTION_DOC, "WARNING! You are running a development test build!", TEST_GROUP },
     { "savefile", GET_KEY(1, TEST_GROUP), "<filename>", 0, "Dump packetized data into this file", TEST_GROUP },
 #endif
 
@@ -200,13 +201,11 @@ static error_t parse_opt(int key, char* arg, struct argp_state *state) {
         break;
 
     case 'D':
-        args->daemon = true;
-        if(arg) {
-            args->daemon_cmd = str_to_daemon_cmd(arg);
-        }
-        else { // Default command is to start the daemon
-            args->daemon_cmd = DAEMON_START;
-        }
+        args->daemon = str_to_daemon_cmd(arg);
+        break;
+
+    case 'P':
+        args->pid_file = arg;
         break;
 
     case GET_KEY(FILE_FILTER, DIRECTORY_MODE_GROUP):

@@ -29,8 +29,7 @@ typedef enum {
 
 typedef struct {
     tx_mode_t           tx_mode;
-    bool                daemon;
-    dxwifi_daemon_cmd_t daemon_cmd;
+    dxwifi_daemon_cmd_t daemon;
     const char*         pid_file;
     char*               files[TX_CLI_FILE_MAX];
     int                 file_count;
@@ -51,8 +50,7 @@ typedef struct {
 
 #define DEFAULT_CLI_ARGS  {\
         .tx_mode                    = TX_STREAM_MODE,\
-        .daemon                     = false,\
-        .daemon_cmd                 = DAEMON_START,\
+        .daemon                     = DAEMON_UNKNOWN_CMD,\
         .pid_file                   = TX_DEFAULT_PID_FILE,\
         .verbosity                  = DXWIFI_LOG_INFO,\
         .quiet                      = false,\
