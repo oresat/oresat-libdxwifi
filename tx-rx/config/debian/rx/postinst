@@ -1,0 +1,5 @@
+#!/bin/sh
+
+echo "rx Postint"
+
+exit 0
