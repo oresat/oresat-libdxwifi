@@ -49,7 +49,7 @@ static inline int dxwifi_log_level_to_syslog(dxwifi_log_level_t log_level) {
  *  DESCRIPTION:    Syslog adapter for the DxWiFI logging facade. See logging.h
  *                  for description of arguments
  */
-void syslogger(dxwifi_log_module_t module, dxwifi_log_level_t log_level, const char* fmt, va_list args) {
+static void syslogger(dxwifi_log_module_t module, dxwifi_log_level_t log_level, const char* fmt, va_list args) {
     __DXWIFI_UTILS_UNUSED(module);
 
     openlog("dxwifi", LOG_PERROR | LOG_PID, LOG_USER);
