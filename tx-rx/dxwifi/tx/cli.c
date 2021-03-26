@@ -19,8 +19,11 @@
 #include <libdxwifi/details/ieee80211.h>
 
 
+#ifndef DXWIFI_TX_VERSION
+#define DXWIFI_TX_VERSION "0.1.0-dev"
+#endif // DXWIFI_TX_VERSION
+
 #define PRIMARY_GROUP           0
-#define SECONDARY_GROUP         500
 #define DIRECTORY_MODE_GROUP    1000
 #define MAC_HEADER_GROUP        1500
 #define RTAP_CONF_GROUP         2000
@@ -42,13 +45,8 @@ typedef enum {
     WATCHDIR_TIMEOUT,
 } directory_mode_settings_t;
 
-typedef enum {
-    TX_TEST,
-    DAEMON
-} secondary_group_settings_t;
 
-
-const char* argp_program_version = DXWIFI_VERSION;
+const char* argp_program_version = DXWIFI_TX_VERSION;
 
 // Description of key arguments 
 static char args_doc[] = "input-file(s)/directory(s)";
@@ -59,23 +57,21 @@ static char doc[] =
 
 // Available command line options 
 static struct argp_option opts[] = {
-    { "dev",            'd', "<network-device>",    0, "Monitor mode enabled network interface",                                PRIMARY_GROUP },
-    { "blocksize",      'b', "<blocksize>",         0, "Size in bytes of each block read from file",                            PRIMARY_GROUP },
-    { "timeout",        't', "<seconds>",           0, "Number of seconds to wait for an available read",                       PRIMARY_GROUP },
-    { "delay",          'u', "<mseconds>",          0, "Length of time, in milliseconds, to delay between transmission blocks", PRIMARY_GROUP },
-    { "file-delay",     'f', "<mseconds>",          0, "Length of time in milliseconds to delay between file transmissions",    PRIMARY_GROUP },
-    { "redundancy",     'r', "<number>",            0, "Number of extra control frames to send",                                PRIMARY_GROUP },
-    { "retransmit",     'c', "<number>",            0, "Number of times to retransmit, -1 for infinity",                        PRIMARY_GROUP },
-
-    { 0, 0, 0, 0, "Secondary Tx Settings", SECONDARY_GROUP },
-    { "test",   GET_KEY(TX_TEST, SECONDARY_GROUP),  0,  OPTION_NO_USAGE,    "Transmit a test sequence of bytes, use -c to retransmit it multiple times",    SECONDARY_GROUP },
-    { "daemon", GET_KEY(DAEMON,  SECONDARY_GROUP),  0,  OPTION_NO_USAGE,    "Run the tx program as a forked daemon process (Sets logger to syslog as well)",SECONDARY_GROUP },
+    { "dev",            'd', "<network-device>",    0, "Monitor mode enabled network interface",                                        PRIMARY_GROUP },
+    { "blocksize",      'b', "<blocksize>",         0, "Size in bytes of each block read from file",                                    PRIMARY_GROUP },
+    { "timeout",        't', "<seconds>",           0, "Number of seconds to wait for an available read",                               PRIMARY_GROUP },
+    { "delay",          'u', "<mseconds>",          0, "Length of time, in milliseconds, to delay between transmission blocks",         PRIMARY_GROUP },
+    { "file-delay",     'f', "<mseconds>",          0, "Length of time in milliseconds to delay between file transmissions",            PRIMARY_GROUP },
+    { "redundancy",     'r', "<number>",            0, "Number of extra control frames to send",                                        PRIMARY_GROUP },
+    { "retransmit",     'R', "<number>",            0, "Number of times to retransmit, -1 for infinity",                                PRIMARY_GROUP },
+    { "test",           'T',  0,                    0, "Transmit a test sequence of bytes, use -c to retransmit it multiple times",     PRIMARY_GROUP },
+    { "daemon",         'D',  0,                    0, "Run the tx program as a forked daemon process (Sets logger to syslog as well)", PRIMARY_GROUP },
 
     { 0, 0, 0, 0, "The following settings are only applicable when reading from a directory", DIRECTORY_MODE_GROUP },
-    { "filter",         GET_KEY(FILE_FILTER,        DIRECTORY_MODE_GROUP),  "<glob>",       OPTION_NO_USAGE,  "Only transmit files that match filter",      DIRECTORY_MODE_GROUP },
-    { "include-all",    GET_KEY(INCLUDE_ALL_FLAG,   DIRECTORY_MODE_GROUP),  0,              OPTION_NO_USAGE,  "include files currently in the directory",   DIRECTORY_MODE_GROUP },
-    { "no-listen",      GET_KEY(NO_LISTEN_FLAG,     DIRECTORY_MODE_GROUP),  0,              OPTION_NO_USAGE,  "Don't listen for new files in the directory",DIRECTORY_MODE_GROUP },
-    { "watch-timeout",  GET_KEY(WATCHDIR_TIMEOUT,   DIRECTORY_MODE_GROUP),  "<seconds>",    OPTION_NO_USAGE,  "Number of seconds to listen for new files",  DIRECTORY_MODE_GROUP },
+    { "filter",         GET_KEY(FILE_FILTER,        DIRECTORY_MODE_GROUP),  "<glob>",       OPTION_NO_USAGE,  "Only transmit files whose filename matches the filter",      DIRECTORY_MODE_GROUP },
+    { "include-all",    GET_KEY(INCLUDE_ALL_FLAG,   DIRECTORY_MODE_GROUP),  0,              OPTION_NO_USAGE,  "include files currently in the directory",                   DIRECTORY_MODE_GROUP },
+    { "no-listen",      GET_KEY(NO_LISTEN_FLAG,     DIRECTORY_MODE_GROUP),  0,              OPTION_NO_USAGE,  "Don't listen for new files in the directory",                DIRECTORY_MODE_GROUP },
+    { "watch-timeout",  GET_KEY(WATCHDIR_TIMEOUT,   DIRECTORY_MODE_GROUP),  "<seconds>",    OPTION_NO_USAGE,  "Number of seconds to listen for new files",                  DIRECTORY_MODE_GROUP },
 
     { 0, 0, 0, 0, "IEEE80211 MAC Header Configuration Options", MAC_HEADER_GROUP },
     { "address",        GET_KEY(1, MAC_HEADER_GROUP), "<macaddr>", OPTION_NO_USAGE, "MAC address of the transmitter", MAC_HEADER_GROUP },
@@ -195,7 +191,7 @@ static error_t parse_opt(int key, char* arg, struct argp_state *state) {
         args->file_delay = atoi(arg);
         break;
 
-    case 'c':
+    case 'R':
         args->retransmit_count = atoi(arg);
         break;
 
@@ -203,11 +199,11 @@ static error_t parse_opt(int key, char* arg, struct argp_state *state) {
         args->use_syslog = true;
         break;
 
-    case GET_KEY(TX_TEST, SECONDARY_GROUP):
+    case 'T':
         args->tx_mode = TX_TEST_MODE;
         break;
 
-    case GET_KEY(DAEMON, SECONDARY_GROUP):
+    case 'D':
         args->daemon = true;
         break;
 
