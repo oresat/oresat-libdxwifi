@@ -183,6 +183,30 @@ typedef struct {
 } dxwifi_transmitter;
 
 
+#define DXWIFI_TRANSMITTER_DFLT_INITIALIZER {\
+    .blocksize              = 1024,\
+    .transmit_timeout       = -1,\
+    .redundant_ctrl_frames  = 0,\
+    .rtap_flags             = IEEE80211_RADIOTAP_F_FCS,\
+    .rtap_rate_mbps         = 1,\
+    .rtap_tx_flags          = IEEE80211_RADIOTAP_F_TX_NOACK,\
+    .fctl = {\
+        .protocol_version   = IEEE80211_PROTOCOL_VERSION,\
+        .type               = IEEE80211_FTYPE_DATA,\
+        .stype              = { IEEE80211_STYPE_DATA },\
+        .to_ds              = false,\
+        .from_ds            = true,\
+        .more_frag          = false,\
+        .retry              = false,\
+        .power_mgmt         = false,\
+        .more_data          = true,\
+        .wep                = false,\
+        .order              = false\
+    },\
+    .address = {0xAA, 0xAA ,0xAA, 0xAA, 0xAA, 0xAA },\
+}\
+
+
 /************************
  *  Functions
  ***********************/

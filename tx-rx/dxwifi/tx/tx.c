@@ -32,6 +32,9 @@
 #include <libdxwifi/details/syslogger.h>
 
 
+#define TX_DEFAULT_PID_FILE "/run/oresat-live-txd.pid"
+
+
 dirwatch* dirwatch_handle = NULL;
 dxwifi_transmitter* transmitter = NULL;
 
@@ -42,55 +45,16 @@ void transmit(cli_args* args, dxwifi_transmitter* tx);
 
 int main(int argc, char** argv) {
 
-    cli_args args = {
-        .tx_mode                    = TX_STREAM_MODE,
-        .daemon                     = false,
-        .verbosity                  = DXWIFI_LOG_INFO,
-        .quiet                      = false,
-        .use_syslog                 = false,
-        .file_count                 = 0,
-        .file_filter                = "*",
-        .retransmit_count           = 0,
-        .transmit_current_files     = false,
-        .listen_for_new_files       = true,
-        .dirwatch_timeout           = -1,
-        .tx_delay                   = 0,
-        .file_delay                 = 0,
-        .device                     = "mon0",
-
-        .tx = {
-            .blocksize              = 1024,
-            .transmit_timeout       = -1, 
-            .redundant_ctrl_frames  = 0,
-            .rtap_flags             = IEEE80211_RADIOTAP_F_FCS,
-            .rtap_rate_mbps         = 1, 
-            .rtap_tx_flags          = IEEE80211_RADIOTAP_F_TX_NOACK,
-
-            .fctl = {
-                .protocol_version   = IEEE80211_PROTOCOL_VERSION,
-                .type               = IEEE80211_FTYPE_DATA,
-                .stype              = { IEEE80211_STYPE_DATA },
-                .to_ds              = false,
-                .from_ds            = true,
-                .more_frag          = false,
-                .retry              = false,
-                .power_mgmt         = false,
-                .more_data          = true, 
-                .wep                = false,
-                .order              = false
-            },
-
-            .address = {0xAA, 0xAA ,0xAA, 0xAA, 0xAA, 0xAA },
-        }
-    };
+    cli_args args = DEFAULT_CLI_ARGS;
     transmitter = &args.tx;
 
     parse_args(argc, argv, &args);
     
-    // TODO daemonize
-
-    if(args.daemon || args.use_syslog) {
+    if(args.use_syslog) {
         set_logger(DXWIFI_LOG_ALL_MODULES, syslogger);
+    }
+    if(args.daemon) {
+
     }
 
     set_log_level(DXWIFI_LOG_ALL_MODULES, args.verbosity);
