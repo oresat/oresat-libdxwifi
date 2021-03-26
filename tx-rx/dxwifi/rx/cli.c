@@ -14,6 +14,9 @@
 
 #include <libdxwifi/details/utils.h>
 
+#ifndef DXWIFI_RX_VERSION
+#define DXWIFI_RX_VERSION "0.1.0-dev"
+#endif // DXWIFI_RX_VERSION
 
 #define PRIMARY_GROUP           0
 #define DIRECTORY_MODE_GROUP    500
@@ -34,7 +37,7 @@ typedef enum {
 } pcap_settings_t;
 
 
-const char* argp_program_version = DXWIFI_VERSION;
+const char* argp_program_version = DXWIFI_RX_VERSION;
 
 // Description of key arguments 
 static char args_doc[] = "output-file/directory";
