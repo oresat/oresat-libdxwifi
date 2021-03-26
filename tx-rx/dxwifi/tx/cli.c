@@ -19,10 +19,6 @@
 #include <libdxwifi/details/ieee80211.h>
 
 
-#ifndef DXWIFI_TX_VERSION
-#define DXWIFI_TX_VERSION "0.1.0-dev"
-#endif // DXWIFI_TX_VERSION
-
 #define PRIMARY_GROUP           0
 #define DIRECTORY_MODE_GROUP    1000
 #define MAC_HEADER_GROUP        1500
@@ -46,7 +42,7 @@ typedef enum {
 } directory_mode_settings_t;
 
 
-const char* argp_program_version = DXWIFI_TX_VERSION;
+const char* argp_program_version = DXWIFI_VERSION;
 
 // Description of key arguments 
 static char args_doc[] = "input-file(s)/directory(s)";

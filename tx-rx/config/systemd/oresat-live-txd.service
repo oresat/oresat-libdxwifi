@@ -1,0 +1,10 @@
+[Unit]
+Description=OreSat Live Transmission service
+
+[Service]
+Type=forking
+PIDFile=/run/oresat-live-txd.pid
+ExecStart=/usr/bin/tx --test --daemon -c -1
+
+[Install]
+WantedBy=multi-user.target
