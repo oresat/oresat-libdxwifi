@@ -1,0 +1,14 @@
+[Unit]
+Description=OreSat Live Transmission service
+
+[Service]
+Type=forking
+PIDFile=/run/oresat-dxwifi-txd.pid
+ExecStartPre=/usr/bin/startmonitor mon0
+ExecStart=/usr/bin/tx --dev mon0 --test --retransmit -1 --daemon start
+ExecStop=/usr/bin/tx --daemon stop
+User=root
+Group=root
+
+[Install]
+WantedBy=multi-user.target

@@ -30,6 +30,7 @@ add_compile_definitions(DXWIFI_VERSION="${DXWIFI_VERSION}")
 # User Options
 option(LIBDXWIFI_DISABLE_ASSERTS    "Disable Assert Functions"     OFF)
 option(LIBDXWIFI_DISABLE_LOGGING    "Disable Logging"              OFF)
+option(INSTALL_SYSLOG_CONFIG        "Include configuration files for rsyslog and logrotate" OFF)
 
 if(LIBDXWIFI_DISABLE_ASSERTS)
     add_compile_definitions(LIBDXWIFI_DISABLE_ASSERTS)
