@@ -1,5 +1,5 @@
 #!/bin/sh
 
-echo "tx Postint"
+systemctl daemon-reload
 
 exit 0

@@ -1,4 +1,4 @@
-#!/usr/bin/env bash
+#!/bin/bash
 # Script attempts to enable a network interface into monitor mode.
 # Note: Must be run with super user privileges
 

@@ -1,6 +1,5 @@
 #!/bin/sh
 
-# TODO systemctl daemon-reload
-echo "tx postrm"
+systemctl daemon-reload
 
 exit 0

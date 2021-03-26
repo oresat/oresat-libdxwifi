@@ -12,7 +12,7 @@
 #include <libdxwifi/details/daemon.h>
 
 
-#define TX_DEFAULT_PID_FILE "/run/oresat-live-txd.pid"
+#define TX_DEFAULT_PID_FILE "/run/oresat-dxwifi-txd.pid"
 
 // TODO this is defined arbitrarily, is there an upper limit to the number of 
 // Files to transmit at a time? 

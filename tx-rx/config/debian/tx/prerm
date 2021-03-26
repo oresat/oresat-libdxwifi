@@ -1,8 +1,7 @@
 #!/bin/sh
 
-# TODO SERVICE_FILE=oresat-live-txd.service
-# TODO systemctl stop $SERVICE_FILE
+SERVICE_FILE=oresat-dxwifi-txd.service
 
-echo "tx prerm"
+systemctl stop $SERVICE_FILE
 
 exit 0

@@ -1,0 +1,9 @@
+# Renames the atheros device to 'mon0', the default device name DxWiFi looks for
+# Place this file in /etc/systemd/network/
+
+[Match]
+Driver=ath9k_htc
+
+[Link]
+Name=mon0
+Description="Atheros WiFI adapter in Monitor mode"
