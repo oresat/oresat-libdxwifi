@@ -53,15 +53,15 @@ static char doc[] =
 
 // Available command line options 
 static struct argp_option opts[] = {
-    { "dev",            'd', "<network-device>",    0, "Monitor mode enabled network interface",                                        PRIMARY_GROUP },
-    { "blocksize",      'b', "<blocksize>",         0, "Size in bytes of each block read from file",                                    PRIMARY_GROUP },
-    { "timeout",        't', "<seconds>",           0, "Number of seconds to wait for an available read",                               PRIMARY_GROUP },
-    { "delay",          'u', "<mseconds>",          0, "Length of time, in milliseconds, to delay between transmission blocks",         PRIMARY_GROUP },
-    { "file-delay",     'f', "<mseconds>",          0, "Length of time in milliseconds to delay between file transmissions",            PRIMARY_GROUP },
-    { "redundancy",     'r', "<number>",            0, "Number of extra control frames to send",                                        PRIMARY_GROUP },
-    { "retransmit",     'R', "<number>",            0, "Number of times to retransmit, -1 for infinity",                                PRIMARY_GROUP },
-    { "test",           'T',  0,                    0, "Transmit a test sequence of bytes, use -c to retransmit it multiple times",     PRIMARY_GROUP },
-    { "daemon",         'D',  0,                    0, "Run the tx program as a forked daemon process (Sets logger to syslog as well)", PRIMARY_GROUP },
+    { "dev",            'd', "<network-device>",    0,                      "Monitor mode enabled network interface",                                        PRIMARY_GROUP },
+    { "blocksize",      'b', "<blocksize>",         0,                      "Size in bytes of each block read from file",                                    PRIMARY_GROUP },
+    { "timeout",        't', "<seconds>",           0,                      "Number of seconds to wait for an available read",                               PRIMARY_GROUP },
+    { "delay",          'u', "<mseconds>",          0,                      "Length of time, in milliseconds, to delay between transmission blocks",         PRIMARY_GROUP },
+    { "file-delay",     'f', "<mseconds>",          0,                      "Length of time in milliseconds to delay between file transmissions",            PRIMARY_GROUP },
+    { "redundancy",     'r', "<number>",            0,                      "Number of extra control frames to send",                                        PRIMARY_GROUP },
+    { "retransmit",     'R', "<number>",            0,                      "Number of times to retransmit, -1 for infinity",                                PRIMARY_GROUP },
+    { "test",           'T',  0,                    0,                      "Transmit a test sequence of bytes, use -c to retransmit it multiple times",     PRIMARY_GROUP },
+    { "daemon",         'D',  "<command>",          OPTION_ARG_OPTIONAL,    "Run the tx program as a forked daemon process (Sets logger to syslog as well)", PRIMARY_GROUP },
 
     { 0, 0, 0, 0, "The following settings are only applicable when reading from a directory", DIRECTORY_MODE_GROUP },
     { "filter",         GET_KEY(FILE_FILTER,        DIRECTORY_MODE_GROUP),  "<glob>",       OPTION_NO_USAGE,  "Only transmit files whose filename matches the filter",      DIRECTORY_MODE_GROUP },
@@ -201,6 +201,12 @@ static error_t parse_opt(int key, char* arg, struct argp_state *state) {
 
     case 'D':
         args->daemon = true;
+        if(arg) {
+            args->daemon_cmd = str_to_daemon_cmd(arg);
+        }
+        else { // Default command is to start the daemon
+            args->daemon_cmd = DAEMON_START;
+        }
         break;
 
     case GET_KEY(FILE_FILTER, DIRECTORY_MODE_GROUP):
