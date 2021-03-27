@@ -17,14 +17,20 @@ endif()
 set(DXWIFI_VERSION_MAJOR "0")
 set(DXWIFI_VERSION_MINOR "1")
 set(DXWIFI_VERSION_PATCH "0")
-set(DXWIFI_VERSION_EXTRA "alpha")
-string(CONCAT DXWIFI_VERSION 
+set(DXWIFI_VERSION_REVISION "0")
+
+string(CONCAT CPACK_PACKAGE_VERSION 
     "${DXWIFI_VERSION_MAJOR}."
     "${DXWIFI_VERSION_MINOR}."
     "${DXWIFI_VERSION_PATCH}-"
-    "${DXWIFI_VERSION_EXTRA}-"
+    "${DXWIFI_VERSION_REVISION}"
+    )
+
+string(CONCAT DXWIFI_VERSION 
+    "${CPACK_PACKAGE_VERSION}-"
     "${CMAKE_BUILD_TYPE}"
     )
+
 add_compile_definitions(DXWIFI_VERSION="${DXWIFI_VERSION}")
 
 # User Options
@@ -47,10 +53,15 @@ set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${PROJECT_SOURCE_DIR}/lib/${CMAKE_BUILD_TYPE}
 set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${PROJECT_SOURCE_DIR}/lib/${CMAKE_BUILD_TYPE})
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${PROJECT_SOURCE_DIR}/bin/${CMAKE_BUILD_TYPE})
 
-# CPack configuration
+# Deal with dependencies
+find_library(PCAP_LIB pcap)
+if(NOT PCAP_LIB)
+    message(FATAL_ERROR "pcap not found. Please install libpcap-dev")
+endif()
+
+# Global CPack configuration
 set(CPACK_GENERATOR "DEB")
 set(CPACK_PACKAGE_NAME "oresat-dxwifi")
-set(CPACK_PACKAGE_VERSION ${DXWIFI_VERSION})
 set(CPACK_PACKAGE_CONTACT "PSAS <oresat@pdx.edu>")
 set(CPACK_DEBIAN_PACKAGE_DESCRIPTION "Oresat Live DxWiFi")
 set(CPACK_DEBIAN_PACKAGE_SECTION "net")
@@ -58,16 +69,27 @@ set(CPACK_DEBIAN_PACKAGE_DEPENDS "libpcap-dev (>= 1.8.1-6), iw")
 set(CPACK_DEB_COMPONENT_INSTALL ON)
 set(CPACK_DEBIAN_ENABLE_COMPONENT_DEPENDS ON)
 set(CPACK_DEBIAN_PACKAGE_HOMEPAGE "https://github.com/oresat/oresat-dxwifi-software")
+execute_process(COMMAND dpkg --print-architecture OUTPUT_VARIABLE CPACK_DEBIAN_PACKAGE_ARCHITECTURE OUTPUT_STRIP_TRAILING_WHITESPACE)
+if ("${CPACK_DEBIAN_PACKAGE_ARCHITECTURE}" STREQUAL "")
+    set(CPACK_DEBIAN_PACKAGE_ARCHITECTURE "i386")
+endif()
+
+# RX component CPack config
 set(CPACK_DEBIAN_RX_PACKAGE_CONTROL_EXTRA 
     "${CMAKE_SOURCE_DIR}/config/debian/rx/postinst" 
     "${CMAKE_SOURCE_DIR}/config/debian/rx/postrm" 
     "${CMAKE_SOURCE_DIR}/config/debian/rx/prerm"
     )
+set(CPACK_DEBIAN_RX_FILE_NAME "${CPACK_PACKAGE_NAME}-rx_${CPACK_PACKAGE_VERSION}_${CPACK_DEBIAN_PACKAGE_ARCHITECTURE}.deb")
+
+# TX component CPack config
 set(CPACK_DEBIAN_TX_PACKAGE_CONTROL_EXTRA 
     "${CMAKE_SOURCE_DIR}/config/debian/tx/postinst" 
     "${CMAKE_SOURCE_DIR}/config/debian/tx/postrm" 
     "${CMAKE_SOURCE_DIR}/config/debian/tx/prerm"
     )
+set(CPACK_DEBIAN_TX_FILE_NAME "${CPACK_PACKAGE_NAME}-tx_${CPACK_PACKAGE_VERSION}_${CPACK_DEBIAN_PACKAGE_ARCHITECTURE}.deb")
+
 include(CPack)
 
 # Sub targets
