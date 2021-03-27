@@ -64,7 +64,7 @@ int main(int argc, char** argv) {
 
     close_transmitter(transmitter);
 
-    if(args.daemon) {
+    if(args.daemon == DAEMON_START) { // This process is the daemon, tear it down
         stop_daemon(args.pid_file);
     }
 

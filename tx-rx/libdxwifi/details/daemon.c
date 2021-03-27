@@ -21,6 +21,7 @@
 #include <libdxwifi/details/logging.h>
 #include <libdxwifi/details/syslogger.h>
 
+
 /**
  *  DESCRIPTION:    Attempts to read pid from pid file
  * 
@@ -86,7 +87,11 @@ static int write_pid_file(const char* pid_file, int pid) {
     }
 }
 
+
+//
 // See daemon.h for non-static function descriptions
+//
+
 
 dxwifi_daemon_cmd_t str_to_daemon_cmd(const char* cmd) {
     if(strncasecmp(cmd, "start", strlen("start")) == 0) {
@@ -147,6 +152,7 @@ int start_daemon(const char* pid_file) {
 
     return 1;
 }
+
 
 int stop_daemon(const char* pid_file) {
 

@@ -71,6 +71,5 @@ int daemon_run(const char* pid_file, dxwifi_daemon_cmd_t cmd);
  */
 dxwifi_daemon_cmd_t str_to_daemon_cmd(const char* cmd);
 
+
 #endif // LIBDXWIFI_DAEMON_H
-
-
