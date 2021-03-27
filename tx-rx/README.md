@@ -56,8 +56,8 @@ To build debian packages to install you can run the following in the `build` dir
 cpack  # or `make package`
 ```
 
-This will create two debian packages `oresat-dxwifi-<version>-<build-type>-<platform>-RX.deb` and `oresat-dxwifi-<version>-<build-type>-<platform>-TX.deb`. The **RX** package
-install the `rx` and `startmonitor` programs and the **TX** package installs `tx`, `startmonitor` and the `oresat-dxwifi-txd.service` daemon.
+This will create two debian packages `oresat-dxwifi-rx_<version>_<arch>.deb` and `oresat-dxwifi-tx_<version>_<arch>.deb`. The **RX** package just 
+installs the `rx` program. The **TX** package installs `tx`, `startmonitor` and the `oresat-dxwifi-txd.service` daemon.
 
 **Note**: The `oresat-dxwifi-txd.service` daemon is currently configured for testing on OreSat 0, as such all it does is transmit a test sequence of bytes ad infinitum or until stopped. 
 
