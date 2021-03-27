@@ -73,7 +73,7 @@ static struct argp_option opts[] = {
     { 0, 0, 0, OPTION_DOC, "IEEE80211 MAC Header Configuration Options", MAC_HEADER_GROUP },
     { "address",        GET_KEY(1, MAC_HEADER_GROUP), "<macaddr>", OPTION_NO_USAGE, "MAC address of the transmitter", MAC_HEADER_GROUP },
 
-    { 0, 0, 0, 0, "Radiotap Header Configuration Options (WARN: settings are driver dependent and/or may not be supported by DxWiFi)", RTAP_CONF_GROUP  },
+    { 0, 0, 0, OPTION_DOC, "Radiotap Header Configuration Options (WARN: settings are driver dependent and/or may not be supported by DxWiFi)", RTAP_CONF_GROUP  },
     { "rate",           GET_KEY(IEEE80211_RADIOTAP_RATE,            RTAP_CONF_GROUP),       "<Mbps>",   OPTION_NO_USAGE,  "Tx data rate (Mbps)",                    RTAP_CONF_GROUP  },
     { "cfp",            GET_KEY(IEEE80211_RADIOTAP_F_CFP,           RTAP_FLAGS_GROUP),      0,          OPTION_NO_USAGE,  "Sent during CFP",                        RTAP_FLAGS_GROUP },
     { "short-preamble", GET_KEY(IEEE80211_RADIOTAP_F_SHORTPRE,      RTAP_FLAGS_GROUP),      0,          OPTION_NO_USAGE,  "Sent with short preamble",               RTAP_FLAGS_GROUP },

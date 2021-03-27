@@ -32,6 +32,20 @@ typedef struct {
 } cli_args;
 
 
+#define DEFAULT_CLI_ARGS {\
+        .rx_mode        = RX_STREAM_MODE,\
+        .verbosity      = DXWIFI_LOG_INFO,\
+        .quiet          = false,\
+        .append         = false,\
+        .use_syslog     = false,\
+        .device         = "mon0",\
+        .output_path    = ".",\
+        .file_prefix    = "rx",\
+        .file_extension = "cap",\
+        .rx = DXWIFI_RECEIVER_DFLT_INITIALIZER\
+    }\
+
+
 /**
  *  DESCRIPTION:    Parse command line arguments into the cli_args struct
  * 

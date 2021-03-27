@@ -31,29 +31,7 @@ void receive(cli_args* args, dxwifi_receiver* rx);
 
 
 int main(int argc, char** argv) {
-    cli_args args = {
-        .rx_mode        = RX_STREAM_MODE,
-        .verbosity      = DXWIFI_LOG_INFO,
-        .quiet          = false,
-        .append         = false,
-        .use_syslog     = false,
-        .device         = "mon0",
-        .output_path    = ".",
-        .file_prefix    = "rx",
-        .file_extension = "cap",
-        .rx = {
-            .dispatch_count     = 1,
-            .capture_timeout    = -1, // No timeout
-            .packet_buffer_size = DXWIFI_RX_PACKET_BUFFER_SIZE_MAX,
-            .ordered            = false,
-            .add_noise          = false,
-            .noise_value        = 0xff,
-            .filter             = "wlan addr2 aa:aa:aa:aa:aa:aa",
-            .optimize           = true,
-            .snaplen            = DXWIFI_SNAPLEN_MAX,
-            .pb_timeout         = DXWIFI_DFLT_PACKET_BUFFER_TIMEOUT
-        }
-    };
+    cli_args args = DEFAULT_CLI_ARGS;
     receiver = &args.rx;
 
     parse_args(argc, argv, &args);
