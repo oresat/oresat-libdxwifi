@@ -8,7 +8,6 @@
 typedef struct {
     const char* file_in;
     const char* file_out;
-    unsigned    blocksize;
     float       coderate;
     int         verbosity;
     bool        quiet;

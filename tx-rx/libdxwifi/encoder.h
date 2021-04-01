@@ -48,7 +48,6 @@ typedef struct __attribute__((packed)) {
     uint32_t n;
     uint32_t k;
     uint32_t crc;
-    uint32_t symbol_size;
 } dxwifi_oti; 
 
 
@@ -67,8 +66,6 @@ typedef struct __dxwifi_encoder dxwifi_encoder;
  * 
  *      msglen:         Length, in bytes, of the raw message to encode
  * 
- *      symbol_size:    Desired size of each FEC block
- * 
  *      coderate:       Rate at which to encode repair symbols
  * 
  *  RETURNS:
@@ -77,7 +74,7 @@ typedef struct __dxwifi_encoder dxwifi_encoder;
  *      to free this encoder. Please use the close_encoder() method instead. 
  * 
  */
-dxwifi_encoder* init_encoder(size_t msglen, size_t symbol_size, float coderate);
+dxwifi_encoder* init_encoder(size_t msglen, float coderate);
 
 
 /**

@@ -27,16 +27,15 @@ size_t dxwifi_decode(void* encoded_msg, size_t msglen, void** out) {
     uint32_t n           = ntohl(oti->n);
     uint32_t k           = ntohl(oti->k);
     //uint32_t crc         = ntohl(oti->crc);
-    uint32_t symbol_size = ntohl(oti->symbol_size);
 
-    log_debug("esi=%d, n=%d, k=%d, symbol size=%d", esi, n, k, symbol_size);
+    log_debug("esi=%d, n=%d, k=%d", esi, n, k);
 
     of_ldpc_parameters_t codec_params = {
         .nb_source_symbols      = k,
         .nb_repair_symbols      = n - k,
-        .encoding_symbol_length = symbol_size,
+        .encoding_symbol_length = DXWIFI_FEC_SYMBOL_SIZE,
         .prng_seed              = rand(),
-        .N1                     = (n-k) > 10 ? 10 : (n-k) // TODO magic numbers
+        .N1                     = (n-k) > DXWIFI_LDPC_N1_MAX ? DXWIFI_LDPC_N1_MAX : (n-k)
     };
     of_session_t* openfec_session = NULL;
     of_status_t status = OF_STATUS_OK;
@@ -49,7 +48,7 @@ size_t dxwifi_decode(void* encoded_msg, size_t msglen, void** out) {
 
     void* symbol_table[n];
 
-    for (size_t i = 0; i < msglen; i += (symbol_size + sizeof(dxwifi_oti))) 
+    for (size_t i = 0; i < msglen; i += DXWIFI_LDPC_FRAME_SIZE) 
     {
         oti = encoded_msg + i;
         of_decode_with_new_symbol(openfec_session, encoded_msg + i + sizeof(dxwifi_oti), ntohl(oti->esi));
@@ -68,13 +67,17 @@ size_t dxwifi_decode(void* encoded_msg, size_t msglen, void** out) {
         // TODO Asssert here? write out what we have? Can we recover from this?
     }
 
-    void* decoded_msg = calloc(k, symbol_size);
+    void* decoded_msg = calloc(k, DXWIFI_FEC_SYMBOL_SIZE);
+
+    // TODO if the original file size is not evenly divisible by DXWIFI_FEC_SYMBOL_SIZE then the Kth 
+    // Symbol will have extra zeroes to pad it until it is of size DXWIFI_FEC_SYMBOL_SIZE. We will need 
+    // to find a way to identify and remove the extra padding.
 
     for(size_t esi = 0; esi < k; ++esi) {
-        void* symbol = offset(decoded_msg, esi, symbol_size);
-        memcpy(symbol, symbol_table[esi], symbol_size);
+        void* symbol = offset(decoded_msg, esi, DXWIFI_FEC_SYMBOL_SIZE);
+        memcpy(symbol, symbol_table[esi], DXWIFI_FEC_SYMBOL_SIZE);
     }
     *out = decoded_msg;
 
-    return k * symbol_size;
+    return k * DXWIFI_FEC_SYMBOL_SIZE;
 }

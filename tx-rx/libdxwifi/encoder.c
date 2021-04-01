@@ -23,7 +23,6 @@
 struct __dxwifi_encoder {
     uint32_t k;
     uint32_t n;
-    uint32_t symbol_size;
     of_session_t* openfec_session;
 };
 
@@ -32,27 +31,24 @@ static void log_encoder_config(dxwifi_encoder* encoder) {
     log_info(
         "DxWiFi Encoder\n"
         "\tK:           %d\n"
-        "\tN:           %d\n"
-        "\tSymbol Size: %d\n",
+        "\tN:           %d\n",
         encoder->k,
-        encoder->n,
-        encoder->symbol_size
+        encoder->n
     );
 }
 
 
-dxwifi_encoder* init_encoder(size_t msglen, size_t symbol_size, float coderate) {
+dxwifi_encoder* init_encoder(size_t msglen, float coderate) {
     of_status_t status = OF_STATUS_OK;
 
     dxwifi_encoder* encoder = calloc(1, sizeof(dxwifi_encoder));
     assert_M(encoder, "Failed to allocate space for encoder");
 
-    uint32_t k = ceil((float) msglen / symbol_size);
+    uint32_t k = ceil((float) msglen / DXWIFI_FEC_SYMBOL_SIZE);
     uint32_t n = k / coderate;  
 
     encoder->k = k;
     encoder->n = n;
-    encoder->symbol_size = symbol_size;
     encoder->openfec_session = NULL;
 
     log_encoder_config(encoder);
@@ -60,7 +56,7 @@ dxwifi_encoder* init_encoder(size_t msglen, size_t symbol_size, float coderate) 
     of_ldpc_parameters_t codec_params = {
         .nb_source_symbols      = k,
         .nb_repair_symbols      = n - k,
-        .encoding_symbol_length = symbol_size,
+        .encoding_symbol_length = DXWIFI_FEC_SYMBOL_SIZE,
         .prng_seed              =  rand(), // TODO no seed for rand()
         .N1                     = (n-k) > DXWIFI_LDPC_N1_MAX ? DXWIFI_LDPC_N1_MAX : (n-k) 
     };
@@ -91,7 +87,7 @@ size_t dxwifi_encode(dxwifi_encoder* encoder, void* message, size_t msglen, void
     debug_assert(encoder && message && out);
 
     of_status_t status = OF_STATUS_OK;
-    size_t stride = encoder->symbol_size + sizeof(dxwifi_oti);
+    size_t stride = DXWIFI_LDPC_FRAME_SIZE;
 
     void* encoded_message = calloc(encoder->n, stride);
     assert_M(encoded_message, "Failed to allocate memory for encoded message");
@@ -104,12 +100,12 @@ size_t dxwifi_encode(dxwifi_encoder* encoder, void* message, size_t msglen, void
         void* symbol = offset(encoded_message, esi, stride) + sizeof(dxwifi_oti);
 
         // Copy symbol size bytes from message, or whatevers left over
-        size_t nbytes = encoder->symbol_size < msglen ? encoder->symbol_size : msglen;
-        memcpy(symbol, offset(message, esi, encoder->symbol_size), nbytes);
+        size_t nbytes = DXWIFI_FEC_SYMBOL_SIZE < msglen ? DXWIFI_FEC_SYMBOL_SIZE : msglen;
+        memcpy(symbol, offset(message, esi, DXWIFI_FEC_SYMBOL_SIZE), nbytes);
 
         symbol_table[esi] = symbol;
 
-        crcs[esi] = crc32(symbol, encoder->symbol_size);
+        crcs[esi] = crc32(symbol, DXWIFI_FEC_SYMBOL_SIZE);
 
         msglen -= nbytes;
     }
@@ -120,7 +116,7 @@ size_t dxwifi_encode(dxwifi_encoder* encoder, void* message, size_t msglen, void
         status = of_build_repair_symbol(encoder->openfec_session, symbol_table, esi);
         assert_continue(status == OF_STATUS_OK, "Failed to build repair symbol. esi=%d", esi);
 
-        crcs[esi] = crc32(symbol_table[esi], encoder->symbol_size);
+        crcs[esi] = crc32(symbol_table[esi], DXWIFI_FEC_SYMBOL_SIZE);
     }
 
     // Fill out OTI headers
@@ -130,7 +126,6 @@ size_t dxwifi_encode(dxwifi_encoder* encoder, void* message, size_t msglen, void
         oti->n           = htonl(encoder->n);
         oti->k           = htonl(encoder->k);
         oti->crc         = htonl(crcs[esi]);
-        oti->symbol_size = htonl(encoder->symbol_size);
     }
 
     *out = encoded_message;
