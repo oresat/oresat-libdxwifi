@@ -71,9 +71,9 @@ static void init_encoder(dxwifi_encoder* encoder, size_t msglen, float coderate)
         .prng_seed              =  rand(), // TODO no seed for rand()
         .N1                     = (n-k) > DXWIFI_LDPC_N1_MAX ? DXWIFI_LDPC_N1_MAX : (n-k) 
     };
+    log_encoder_config(encoder, &codec_params);
     assert_M(codec_params.N1 >= DXWIFI_LDPC_N1_MIN, "N - K must be >= %d", DXWIFI_LDPC_N1_MIN);
 
-    log_encoder_config(encoder, &codec_params);
 
     status = of_create_codec_instance(&encoder->openfec_session, OF_CODEC_LDPC_STAIRCASE_STABLE, OF_ENCODER, 2); // TODO magic number
     assert_M(status == OF_STATUS_OK, "Failed to initialize OpenFEC session");

@@ -30,6 +30,9 @@ static dxwifi_log_handler handlers[] = {
     { default_logger, DXWIFI_LOG_FATAL },
     { default_logger, DXWIFI_LOG_FATAL },
     { default_logger, DXWIFI_LOG_FATAL },
+    { default_logger, DXWIFI_LOG_FATAL },
+    { default_logger, DXWIFI_LOG_FATAL },
+    { default_logger, DXWIFI_LOG_FATAL },
 
     // New modules should follow the same format
 
@@ -46,6 +49,9 @@ static const char* file_lookup_tbl[DXWIFI_LOG_MODULE_COUNT] = {
     "rx",
     "dirwatch",
     "daemon",
+    "fec",
+    "encode",
+    "decode",
 
     // Add new modules here
 
