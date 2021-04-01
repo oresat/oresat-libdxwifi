@@ -12,8 +12,11 @@
 *.so
 *.so.*
 
+# Python stuff
+**/__pycache__/*
+**/__temp/*
+
 # Build Output
 */bin/*
 */build/*
 */lib/*
-
