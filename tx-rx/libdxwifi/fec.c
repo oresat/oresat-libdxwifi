@@ -158,6 +158,8 @@ size_t dxwifi_encode(void* message, size_t msglen, float coderate, void** out) {
 size_t dxwifi_decode(void* encoded_msg, size_t msglen, void** out) {
     debug_assert(encoded_msg && out);
 
+    // TODO Need to RS Decode first
+
     // TODO we should search for a valid OTI in the encoded message instead of assuming that the first oti is valid
     dxwifi_oti* oti      = encoded_msg;
     uint32_t esi         = ntohl(oti->esi);
