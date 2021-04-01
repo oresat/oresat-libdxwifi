@@ -183,6 +183,30 @@ typedef struct {
 } dxwifi_transmitter;
 
 
+#define DXWIFI_TRANSMITTER_DFLT_INITIALIZER {\
+    .blocksize              = 1024,\
+    .transmit_timeout       = -1,\
+    .redundant_ctrl_frames  = 0,\
+    .rtap_flags             = IEEE80211_RADIOTAP_F_FCS,\
+    .rtap_rate_mbps         = 1,\
+    .rtap_tx_flags          = IEEE80211_RADIOTAP_F_TX_NOACK,\
+    .fctl = {\
+        .protocol_version   = IEEE80211_PROTOCOL_VERSION,\
+        .type               = IEEE80211_FTYPE_DATA,\
+        .stype              = { IEEE80211_STYPE_DATA },\
+        .to_ds              = false,\
+        .from_ds            = true,\
+        .more_frag          = false,\
+        .retry              = false,\
+        .power_mgmt         = false,\
+        .more_data          = true,\
+        .wep                = false,\
+        .order              = false\
+    },\
+    .address = {0xAA, 0xAA ,0xAA, 0xAA, 0xAA, 0xAA },\
+}\
+
+
 /************************
  *  Functions
  ***********************/
@@ -308,7 +332,7 @@ bool remove_postinject_handler(dxwifi_transmitter* tx, int index);
  * 
  *  ARGUMENTS:
  * 
- *      transmitter:    Pointer to an allocated transmitter object
+ *      transmitter:    Pointer to an initialized transmitter object
  * 
  *      fd:             File descriptor of the data to be sent. 
  * 
@@ -324,6 +348,24 @@ bool remove_postinject_handler(dxwifi_transmitter* tx, int index);
  * 
  */
 void start_transmission(dxwifi_transmitter* transmitter, int fd, dxwifi_tx_stats* out);
+
+
+/**
+ *  DESCRIPTION:        Transmit nbytes from data, 
+ * 
+ *  ARGUMENTS:
+ * 
+ *      transmitter:    pointer to an initialized transmitter object
+ * 
+ *      data:           Bytes to transmit
+ * 
+ *      nbytes:         Number of bytes to transmit
+ * 
+ *      out:            Pointer to an allocated stats object or NULL if stats
+ *                      aren't needed. 
+ * 
+ */
+void transmit_bytes(dxwifi_transmitter* transmitter, const void* data, size_t nbytes, dxwifi_tx_stats* out);
 
 
 /**

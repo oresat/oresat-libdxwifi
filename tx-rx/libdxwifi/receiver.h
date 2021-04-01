@@ -116,6 +116,20 @@ typedef struct {
 } dxwifi_receiver;
 
 
+#define DXWIFI_RECEIVER_DFLT_INITIALIZER {\
+    .dispatch_count     = 1,\
+    .capture_timeout    = -1,\
+    .packet_buffer_size = DXWIFI_RX_PACKET_BUFFER_SIZE_MAX,\
+    .ordered            = false,\
+    .add_noise          = false,\
+    .noise_value        = 0xff,\
+    .filter             = "wlan addr2 aa:aa:aa:aa:aa:aa",\
+    .optimize           = true,\
+    .snaplen            = DXWIFI_SNAPLEN_MAX,\
+    .pb_timeout         = DXWIFI_DFLT_PACKET_BUFFER_TIMEOUT\
+}\
+
+
 /************************
  *  Functions
  ***********************/

@@ -21,6 +21,7 @@
 #include <libdxwifi/dxwifi.h>
 #include <libdxwifi/receiver.h>
 #include <libdxwifi/details/logging.h>
+#include <libdxwifi/details/syslogger.h>
 
 
 dxwifi_receiver* receiver = NULL;
@@ -30,33 +31,14 @@ void receive(cli_args* args, dxwifi_receiver* rx);
 
 
 int main(int argc, char** argv) {
-    cli_args args = {
-        .rx_mode        = RX_STREAM_MODE,
-        .verbosity      = DXWIFI_LOG_INFO,
-        .quiet          = false,
-        .append         = false,
-        .device         = "mon0",
-        .output_path    = ".",
-        .file_prefix    = "rx",
-        .file_extension = "cap",
-        .rx = {
-            .dispatch_count     = 1,
-            .capture_timeout    = -1, // No timeout
-            .packet_buffer_size = DXWIFI_RX_PACKET_BUFFER_SIZE_MAX,
-            .ordered            = false,
-            .add_noise          = false,
-            .noise_value        = 0xff,
-            .filter             = "wlan addr2 aa:aa:aa:aa:aa:aa",
-            .optimize           = true,
-            .snaplen            = DXWIFI_SNAPLEN_MAX,
-            .pb_timeout         = DXWIFI_DFLT_PACKET_BUFFER_TIMEOUT
-        }
-    };
+    cli_args args = DEFAULT_CLI_ARGS;
     receiver = &args.rx;
 
     parse_args(argc, argv, &args);
 
-    init_logging();
+    if(args.use_syslog) {
+        set_logger(DXWIFI_LOG_ALL_MODULES, syslogger);
+    }
 
     set_log_level(DXWIFI_LOG_ALL_MODULES, args.verbosity);
 
@@ -79,7 +61,7 @@ int main(int argc, char** argv) {
  * 
  */
 void log_rx_stats(dxwifi_rx_stats stats) {
-    log_info(
+    log_debug(
         "Receiver Capture Stats\n"
         "\tTotal Payload Size:          %d\n"
         "\tTotal Write length:          %d\n"

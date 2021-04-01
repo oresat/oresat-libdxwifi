@@ -273,6 +273,14 @@ static void handle_frame_control(frame_controller* fc, dxwifi_control_frame_t ty
 
     switch (type)
     {
+    // TODO if the dispatch count is greater than 1 then the reciever will 
+    // continue to process packets until number of packets processed is greater
+    // than the dispatch count. If we encounter the EOT before we've processed 
+    // all the packets we will end up processing the next files packets as 
+    // part of this capture. This can ruin file boundaries, so we need to find 
+    // a way to short circuit the loop or maybe just callback to the user that 
+    // the EOT was found so that they can do some action like opening a new 
+    // file for capture.
     case DXWIFI_CONTROL_FRAME_PREAMBLE:
         if(fc->rx_stats.num_packets_processed > 0) {
             fc->end_capture = true;
