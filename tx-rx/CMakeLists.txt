@@ -93,7 +93,9 @@ set(CPACK_DEBIAN_TX_FILE_NAME "${CPACK_PACKAGE_NAME}-tx_${CPACK_PACKAGE_VERSION}
 include(CPack)
 
 # Sub targets
+add_subdirectory(rscode)
 add_subdirectory(openfec)
 add_subdirectory(libdxwifi)
 add_subdirectory(dxwifi/tx)
 add_subdirectory(dxwifi/rx)
+add_subdirectory(dxwifi/encode)
