@@ -68,6 +68,8 @@ void encode_file(cli_args *args) {
 
     if (encoded_message) { // FEC encode success, write out encoded message
 
+        log_info("Successfully encoded %s. Encoded file size: %d", args->file_in, msg_size);
+
         int nbytes = write(fd_out, encoded_message, msg_size);
         assert_M(nbytes == msg_size, "Partial write occured: %d/%d - %s", nbytes, msg_size, strerror(errno));
 
