@@ -64,10 +64,8 @@ void decode_file(cli_args* args) {
     assert_M(file_data != MAP_FAILED, "Failed to map file to memory - %s", strerror(errno));
 
     // Decode file
-    dxwifi_decoder* decoder = init_decoder(file_data, file_size);
-
     void* decoded_msg = NULL;
-    size_t msglen = dxwifi_decode(decoder, file_data, file_size, &decoded_msg);
+    size_t msglen = dxwifi_decode(file_data, file_size, &decoded_msg);
 
     if(decoded_msg) {
         int nbytes = write(fd_out, decoded_msg, msglen);
@@ -80,7 +78,6 @@ void decode_file(cli_args* args) {
     if(args->file_out) {
         close(fd_out);
     }
-    close_decoder(decoder);
     munmap(file_data, file_size);
 }
 

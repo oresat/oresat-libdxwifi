@@ -27,6 +27,7 @@ int main(int argc, char **argv) {
     cli_args args = {
         .file_in = NULL,
         .file_out = NULL,
+        .blocksize = 1024,
         .coderate = 0.667,
         .verbosity = DXWIFI_LOG_INFO,
         .quiet = false
@@ -64,8 +65,7 @@ void encode_file(cli_args *args) {
 
     // FEC Encode File-In
     void *encoded_message = NULL;
-
-    dxwifi_encoder *encoder = init_encoder(file_size, args->coderate);
+    dxwifi_encoder* encoder = init_encoder(file_size, args->blocksize, args->coderate);
 
     size_t msg_size = dxwifi_encode(encoder, file_data, file_size, &encoded_message);
 
