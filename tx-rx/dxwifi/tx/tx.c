@@ -10,7 +10,6 @@
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
-#include <stdarg.h>
 
 #include <poll.h>
 #include <errno.h>
@@ -28,8 +27,11 @@
 #include <libdxwifi/dxwifi.h>
 #include <libdxwifi/transmitter.h>
 #include <libdxwifi/details/utils.h>
+#include <libdxwifi/details/daemon.h>
 #include <libdxwifi/details/logging.h>
 #include <libdxwifi/details/dirwatch.h>
+#include <libdxwifi/details/syslogger.h>
+
 
 
 dirwatch* dirwatch_handle = NULL;
@@ -42,57 +44,29 @@ void transmit(cli_args* args, dxwifi_transmitter* tx);
 
 int main(int argc, char** argv) {
 
-    cli_args args = {
-        .tx_mode                    = TX_STREAM_MODE,
-        .verbosity                  = DXWIFI_LOG_INFO,
-        .quiet                      = false,
-        .file_count                 = 0,
-        .file_filter                = "*",
-        .transmit_current_files     = false,
-        .listen_for_new_files       = true,
-        .dirwatch_timeout           = -1,
-        .tx_delay                   = 0,
-        .file_delay                 = 0,
-        .device                     = "mon0",
-
-        .tx = {
-            .blocksize              = 1024,
-            .transmit_timeout       = -1, 
-            .redundant_ctrl_frames  = 0,
-            .rtap_flags             = IEEE80211_RADIOTAP_F_FCS,
-            .rtap_rate_mbps         = 1, 
-            .rtap_tx_flags          = IEEE80211_RADIOTAP_F_TX_NOACK,
-
-            .fctl = {
-                .protocol_version   = IEEE80211_PROTOCOL_VERSION,
-                .type               = IEEE80211_FTYPE_DATA,
-                .stype              = { IEEE80211_STYPE_DATA },
-                .to_ds              = false,
-                .from_ds            = true,
-                .more_frag          = false,
-                .retry              = false,
-                .power_mgmt         = false,
-                .more_data          = true, 
-                .wep                = false,
-                .order              = false
-            },
-
-            .address = {0xAA, 0xAA ,0xAA, 0xAA, 0xAA, 0xAA },
-        }
-    };
+    cli_args args = DEFAULT_CLI_ARGS;
     transmitter = &args.tx;
 
     parse_args(argc, argv, &args);
-
-    init_logging();
-
+    
     set_log_level(DXWIFI_LOG_ALL_MODULES, args.verbosity);
+
+    if(args.use_syslog) {
+        set_logger(DXWIFI_LOG_ALL_MODULES, syslogger);
+    }
+    if(args.daemon) {
+        daemon_run(args.pid_file, args.daemon);
+    }
 
     init_transmitter(transmitter, args.device);
 
     transmit(&args, transmitter);
 
     close_transmitter(transmitter);
+
+    if(args.daemon == DAEMON_START) { // This process is the daemon, tear it down
+        stop_daemon(args.pid_file);
+    }
 
     exit(0);
 }
@@ -133,7 +107,7 @@ void watchdir_sigint_handler(int signum) {
  * 
  */
 void log_tx_stats(dxwifi_tx_stats stats) {
-    log_info(
+    log_debug(
         "Transmission Stats\n"
         "\tTotal Bytes Read:    %d\n"
         "\tTotal Bytes Sent:    %d\n"
@@ -238,12 +212,17 @@ dxwifi_tx_state_t setup_handlers_and_transmit(dxwifi_transmitter* tx, int fd) {
  * 
  *      delay:      Millisecond delay to add between file transmission. 
  * 
+ *      retransmit_count:
+ *                  Number of times to retransmit the file. If the count is -1
+ *                  then the file will be retransmitted forever or until the 
+ *                  transmitter reports a timeout or error
+ * 
  *  RETURNS:
  *      
  *      dxwifi_tx_state_t: The last reported state of the transmitter
  * 
  */
-dxwifi_tx_state_t transmit_files(dxwifi_transmitter* tx, char** files, size_t num_files, unsigned delay) {
+dxwifi_tx_state_t transmit_files(dxwifi_transmitter* tx, char** files, size_t num_files, unsigned delay, int retransmit_count) {
     int fd = 0;
     dxwifi_tx_state_t state = DXWIFI_TX_NORMAL;
 
@@ -253,9 +232,23 @@ dxwifi_tx_state_t transmit_files(dxwifi_transmitter* tx, char** files, size_t nu
         }
         else {
             log_info("Opened %s for transmission", files[i]);
-            state = setup_handlers_and_transmit(tx, fd);
+
+            int count = retransmit_count;
+            bool transmit_forever = (retransmit_count == -1);
+            while((count >= 0 || transmit_forever) && state == DXWIFI_TX_NORMAL) {
+                int status = lseek(fd, 0, SEEK_SET);
+
+                if(status == -1) {
+                    log_error("Failed to seek to beginning of file: %s", strerror(errno));
+                    state = DXWIFI_TX_ERROR;
+                }
+                else {
+                    state = setup_handlers_and_transmit(tx, fd);
+                    msleep(delay, false);
+                }
+                --count;
+            }
             close(fd);
-            msleep(delay, false);
         }
     }
     return state;
@@ -276,7 +269,7 @@ dxwifi_tx_state_t transmit_files(dxwifi_transmitter* tx, char** files, size_t nu
  *      delay:      Inter-file transmission delay in milliseconds
  * 
  */
-void transmit_directory_contents(dxwifi_transmitter* tx, const char* filter, const char* dirname, unsigned delay) {
+void transmit_directory_contents(dxwifi_transmitter* tx, const char* filter, const char* dirname, unsigned delay, int retransmit_count) {
     DIR* dir;
     struct dirent* file;
     dxwifi_tx_state_t state = DXWIFI_TX_NORMAL;
@@ -290,7 +283,7 @@ void transmit_directory_contents(dxwifi_transmitter* tx, const char* filter, con
             if(fnmatch(filter, file->d_name, 0) == 0) {
                 combine_path(path_buffer, PATH_MAX, dirname, file->d_name);
                 if(is_regular_file(path_buffer)) {
-                    state = transmit_files(tx, &path_buffer, 1, delay);
+                    state = transmit_files(tx, &path_buffer, 1, delay, retransmit_count);
                 }
             }
         }
@@ -317,7 +310,7 @@ static void transmit_new_file(const dirwatch_event* event, void* user) {
 
     combine_path(path_buffer, PATH_MAX, event->dirname, event->filename);
 
-    transmit_files(&args->tx, &path_buffer, 1, args->file_delay);
+    transmit_files(&args->tx, &path_buffer, 1, args->file_delay, args->retransmit_count);
 
     free(path_buffer);
 }
@@ -339,7 +332,7 @@ void transmit_directory(cli_args* args, dxwifi_transmitter* tx) {
     const char* dirname = args->files[0];
 
     if(args->transmit_current_files) {
-        transmit_directory_contents(tx, args->file_filter, dirname, args->file_delay);
+        transmit_directory_contents(tx, args->file_filter, dirname, args->file_delay, args->retransmit_count);
     }
     if(args->listen_for_new_files) {
 
@@ -362,6 +355,48 @@ void transmit_directory(cli_args* args, dxwifi_transmitter* tx) {
         dirwatch_close(dirwatch_handle);
     }
 }
+
+
+/**
+ *  DESCRIPTION:    Transmit a test sequence of bytes. The test sequence is a 
+ *                  10Kb block of data with the transmission count encoded in 
+ *                  every four bytes as the payload
+ * 
+ *  ARGUMENTS: 
+ *      
+ *      tx:         Initialized transmitter
+ * 
+ *      retransmit: Number of times to transmit test sequence
+ * 
+ */
+void transmit_test_sequence(dxwifi_transmitter* tx, int retransmit) {
+
+    dxwifi_tx_stats stats;
+
+    bool transmit_forever = (retransmit == -1);
+
+    uint32_t count = 0;
+
+    // TODO magic number
+    uint32_t transmit_buffer[10240 / sizeof(uint32_t)];
+
+    log_info("Transmitting test sequence...");
+    while (count <= retransmit || transmit_forever) {
+
+        for(size_t i = 0; i < NELEMS(transmit_buffer); ++i) {
+            transmit_buffer[i] = count;
+        }
+
+        transmit_bytes(tx, transmit_buffer, 10240, &stats);
+
+        log_tx_stats(stats);
+
+        ++count;
+    }
+    log_info("Test sequence completed, transmitted %d times", count);
+}
+
+
 
 /**
  *  DESCRIPTION:    Determine the transmission mode and transmit files
@@ -392,11 +427,15 @@ void transmit(cli_args* args, dxwifi_transmitter* tx) {
         break;
 
     case TX_FILE_MODE:
-        transmit_files(tx, args->files, args->file_count, args->file_delay);
+        transmit_files(tx, args->files, args->file_count, args->file_delay, args->retransmit_count);
         break;
 
     case TX_DIRECTORY_MODE:
         transmit_directory(args, tx);
+        break;
+
+    case TX_TEST_MODE:
+        transmit_test_sequence(tx, args->retransmit_count);
         break;
     
     default:

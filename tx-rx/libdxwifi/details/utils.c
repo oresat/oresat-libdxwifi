@@ -43,6 +43,14 @@ bool is_directory(const char* path) {
 }
 
 
+bool is_alive(int pid) {
+    char path[256];
+    struct stat pid_stat;
+    snprintf(path, 256, "/proc/%d", pid);
+    return !(stat(path, &pid_stat) == -1 && errno == ENOENT);
+}
+
+
 off_t get_file_size(const char* path) {
     struct stat path_stat;
 

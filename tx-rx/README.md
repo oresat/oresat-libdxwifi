@@ -39,6 +39,28 @@ cmake --build --target dxwifi
 [CMake Tools](https://marketplace.visualstudio.com/items?itemName=ms-vscode.cmake-tools)
 extension. 
 
+## Installation and Packaging
+
+With the project built and cmake files present in the `build` directory you do the following:
+
+```
+make install
+```
+
+This will install the `rx`, `tx`, and `startmonitor` programs into `/usr/bin` as well as define the `oresat-dxwifi-txd.service`
+daemon that you can start with `systemctl start oresat-dxwifi-txd.service`.
+
+To build debian packages to install you can run the following in the `build` directory:
+
+```
+cpack  # or `make package`
+```
+
+This will create two debian packages `oresat-dxwifi-rx_<version>_<arch>.deb` and `oresat-dxwifi-tx_<version>_<arch>.deb`. The **RX** package just 
+installs the `rx` program. The **TX** package installs `tx`, `startmonitor` and the `oresat-dxwifi-txd.service` daemon.
+
+**Note**: The `oresat-dxwifi-txd.service` daemon is currently configured for testing on OreSat 0, as such all it does is transmit a test sequence of bytes ad infinitum or until stopped. 
+
 ## Usage
 
 On the receiver

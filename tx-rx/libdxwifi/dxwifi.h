@@ -10,6 +10,15 @@
 #ifndef LIBDXWIFI_H
 #define LIBDXWIFI_H
 
+/************************
+ *  Versioning
+ ***********************/
+
+#ifndef DXWIFI_VERSION
+// Version is defined in root CMake file
+#define DXWIFI_VERSION "0.1.0-dev"
+#endif // LIBDXWIFI_VERSION
+
 
 /************************
  *  Constants

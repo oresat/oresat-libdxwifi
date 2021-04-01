@@ -1,0 +1,6 @@
+#!/bin/sh
+
+# TODO systemctl daemon-reload
+echo "rx postrm"
+
+exit 0

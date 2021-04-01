@@ -5,10 +5,10 @@
  * 
  *  This logging facade supports formatted strings as well as user, module, and 
  *  compiler log levels. Logging under the compiler log level gets culled out 
- *  and won't be present in release builds. By default, logging is disabled and
- *  the default logger just pipes everything to stdout. To use a different 
- *  logging library simply create a function that fulfills the dxwifi_logger 
- *  interface and call the set_logger method
+ *  and won't be present in release builds. By default, logging is set to fatal 
+ *  messages and the default logger just pipes everything to stderr. To use a 
+ *  different logging library simply create a function that fulfills the 
+ *  dxwifi_logger interface and call the set_logger method
  * 
  *  https://github.com/oresat/oresat-dxwifi-software
  * 
@@ -42,6 +42,7 @@ typedef enum {
     DXWIFI_LOG_RECEIVER     = 3,
     DXWIFI_LOG_RX           = 4,
     DXWIFI_DIRWATCH         = 5,
+    DXWIFI_DAEMON           = 6,
 
     // Add new modules here
 
@@ -54,11 +55,20 @@ typedef void(*dxwifi_logger)(dxwifi_log_module_t, dxwifi_log_level_t, const char
 
 
 /**
- *  DESCRIPTION:  Initializes the logging library, by default it will attach the
- *                default logger to every module and set the log level to 
- *                DXWIFI_LOG_OFF
+ *  DESCRIPTION:    Default logger simply dumps everything to stdout. By default all logging modules are
+ *                  configured to use the default_logger
+ * 
+ *  ARGUMENTS:
+ *  
+ *      module:     Module where log statement occured
+ * 
+ *      log_level:  Priority of log message
+ *      
+ *      fmt:        Formatted string
+ * 
+ *      args:       Formatted string args
  */
-void init_logging();
+void default_logger(dxwifi_log_module_t module, dxwifi_log_level_t log_level, const char* fmt, va_list args);
 
 
 /**
@@ -153,31 +163,31 @@ bool set_log_level(dxwifi_log_module_t module, dxwifi_log_level_t level);
 #if DXWIFI_LOG_LEVEL < 1
   #define log_fatal(fmt, ...) __DXWIFI_UTILS_UNUSED(fmt, ##__VA_ARGS__)
 #else
-  #define log_fatal(fmt, ...) __log(DXWIFI_LOG_FATAL, __FILE__, fmt, ##__VA_ARGS__)
+  #define log_fatal(fmt, ...) __dxwifi_log(DXWIFI_LOG_FATAL, __FILE__, fmt, ##__VA_ARGS__)
 #endif
 
 #if DXWIFI_LOG_LEVEL < 2
   #define log_error(fmt, ...) __DXWIFI_UTILS_UNUSED(fmt, ##__VA_ARGS__)
 #else
-  #define log_error(fmt, ...) __log(DXWIFI_LOG_ERROR, __FILE__, fmt, ##__VA_ARGS__)
+  #define log_error(fmt, ...) __dxwifi_log(DXWIFI_LOG_ERROR, __FILE__, fmt, ##__VA_ARGS__)
 #endif
 
 #if DXWIFI_LOG_LEVEL < 3
   #define log_warning(fmt, ...) __DXWIFI_UTILS_UNUSED(fmt, ##__VA_ARGS__)
 #else
-  #define log_warning(fmt, ...) __log(DXWIFI_LOG_WARN, __FILE__, fmt, ##__VA_ARGS__)
+  #define log_warning(fmt, ...) __dxwifi_log(DXWIFI_LOG_WARN, __FILE__, fmt, ##__VA_ARGS__)
 #endif
 
 #if DXWIFI_LOG_LEVEL < 4
   #define log_info(fmt, ...) __DXWIFI_UTILS_UNUSED(fmt, ##__VA_ARGS__)
 #else
-  #define log_info(fmt, ...) __log(DXWIFI_LOG_INFO, __FILE__, fmt, ##__VA_ARGS__)
+  #define log_info(fmt, ...) __dxwifi_log(DXWIFI_LOG_INFO, __FILE__, fmt, ##__VA_ARGS__)
 #endif
 
 #if DXWIFI_LOG_LEVEL < 5
   #define log_debug(fmt, ...) __DXWIFI_UTILS_UNUSED(fmt, ##__VA_ARGS__)
 #else
-  #define log_debug(fmt, ...) __log(DXWIFI_LOG_DEBUG, __FILE__, fmt, ##__VA_ARGS__)
+  #define log_debug(fmt, ...) __dxwifi_log(DXWIFI_LOG_DEBUG, __FILE__, fmt, ##__VA_ARGS__)
 #endif
 
 // Hexdump is expensive, so it's only enabled for trace logging
@@ -185,13 +195,13 @@ bool set_log_level(dxwifi_log_module_t module, dxwifi_log_level_t level);
   #define log_trace(fmt, ...) __DXWIFI_UTILS_UNUSED(fmt, ##__VA_ARGS__)
   #define log_hexdump(data, size) __DXWIFI_UTILS_UNUSED(data, size)
 #else
-  #define log_trace(fmt, ...) __log(DXWIFI_LOG_TRACE, __FILE__, fmt, ##__VA_ARGS__)
-  #define log_hexdump(data, size) __log_hexdump(__FILE__, data, size);
+  #define log_trace(fmt, ...) __dxwifi_log(DXWIFI_LOG_TRACE, __FILE__, fmt, ##__VA_ARGS__)
+  #define log_hexdump(data, size) __dxwifi_log_hexdump(__FILE__, data, size);
 #endif
 
 
-void __log(dxwifi_log_level_t log_level, const char* file, const char* fmt, ...);
-void __log_hexdump(const char* file, const uint8_t* data, int size);
+void __dxwifi_log(dxwifi_log_level_t log_level, const char* file, const char* fmt, ...);
+void __dxwifi_log_hexdump(const char* file, const uint8_t* data, int size);
 
 
 #endif // LIBDXWIFI_LOGGING_H

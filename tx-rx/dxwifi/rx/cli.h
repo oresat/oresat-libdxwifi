@@ -23,12 +23,27 @@ typedef struct {
     int             verbosity;
     bool            quiet;
     bool            append;
+    bool            use_syslog;
     const char*     device;
     const char*     output_path;
     const char*     file_prefix;
     const char*     file_extension;
     dxwifi_receiver rx;
 } cli_args;
+
+
+#define DEFAULT_CLI_ARGS {\
+        .rx_mode        = RX_STREAM_MODE,\
+        .verbosity      = DXWIFI_LOG_INFO,\
+        .quiet          = false,\
+        .append         = false,\
+        .use_syslog     = false,\
+        .device         = "mon0",\
+        .output_path    = ".",\
+        .file_prefix    = "rx",\
+        .file_extension = "cap",\
+        .rx = DXWIFI_RECEIVER_DFLT_INITIALIZER\
+    }\
 
 
 /**
