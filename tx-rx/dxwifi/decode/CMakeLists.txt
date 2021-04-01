@@ -1,37 +1,37 @@
-file(GLOB encode_sources ./*)
+file(GLOB decode_sources ./*)
 
-add_executable(encode ${encode_sources})
+add_executable(decode ${decode_sources})
 
-set_target_properties(encode
+set_target_properties(decode
     PROPERTIES
     RUNTIME_OUTPUT_DIRECTORY ${DXWIFI_RUNTIME_OUTPUT_DIRECTORY}
     )
 
-target_link_libraries(encode dxwifi)
+target_link_libraries(decode dxwifi)
 
 install(
-    TARGETS encode
+    TARGETS decode
     DESTINATION /usr/bin
-    COMPONENT ENCODE
+    COMPONENT DECODE
     )
 
 if(INSTALL_SYSLOG_CONFIG)
     install(
         FILES ${CMAKE_SOURCE_DIR}/config/logrotate/dxwifi.conf
         DESTINATION /etc/logrotate.d
-        COMPONENT ENCODE
+        COMPONENT DECODE
         )
     install(
         FILES ${CMAKE_SOURCE_DIR}/config/rsyslog/00-dxwifi.conf
         DESTINATION /etc/rsyslog.d
-        COMPONENT ENCODE
+        COMPONENT DECODE
         )
 endif()
 
 cpack_add_component(
     DECODE
-    DISPLAY_NAME ENCODE
+    DISPLAY_NAME DECODE
     DESCRIPTION ${RX_DESCRIPTION}
-    GROUP ENCODE
+    GROUP DECODE
     INSTALL_TYPES Full
     )

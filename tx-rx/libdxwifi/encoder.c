@@ -18,6 +18,7 @@
 #include <libdxwifi/details/assert.h>
 #include <libdxwifi/details/logging.h>
 
+
 struct __dxwifi_encoder {
     uint32_t k;
     uint32_t n;
