@@ -70,7 +70,8 @@ void decode_file(cli_args* args) {
     size_t msglen = dxwifi_decode(decoder, file_data, file_size, &decoded_msg);
 
     if(decoded_msg) {
-        write(fd_out, decoded_msg, msglen);
+        int nbytes = write(fd_out, decoded_msg, msglen);
+        assert_M(nbytes == msglen, "Partial write occured: %d/%d - %s", nbytes, msglen, strerror(errno));
         free(decoded_msg);
     }
 
