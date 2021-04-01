@@ -15,7 +15,7 @@
 
 #include <dxwifi/decode/cli.h>
 
-#include <libdxwifi/decoder.h>
+#include <libdxwifi/fec.h>
 #include <libdxwifi/details/utils.h>
 #include <libdxwifi/details/assert.h>
 #include <libdxwifi/details/logging.h>

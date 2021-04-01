@@ -5,8 +5,8 @@
  * 
  */
 
-#ifndef LIBDXWIFI_ENCODER_H
-#define LIBDXWIFI_ENCODER_H
+#ifndef LIBDXWIFI_FEC_H
+#define LIBDXWIFI_FEC_H
 
 /************************
  *  Includes
@@ -83,4 +83,11 @@ typedef struct __attribute__((packed)) {
  */
 size_t dxwifi_encode(void *message, size_t msglen, float coderate, void **out);
 
-#endif // LIBDXWIFI_ENCODER_H
+
+/**
+ *  DESCRIPTION:  TODO
+ * 
+ */
+size_t dxwifi_decode(void* encoded_message, size_t msglen, void** out);
+
+#endif // LIBDXWIFI_FEC_H
