@@ -47,11 +47,11 @@ if(LIBDXWIFI_DISABLE_LOGGING)
 endif()
 
 # Include and output directories
-include_directories(${PROJECT_SOURCE_DIR})
+include_directories(${PROJECT_SOURCE_DIR} ${PROJECT_SOURCE_DIR}/openfec/src/lib_common)
 
-set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${PROJECT_SOURCE_DIR}/lib/${CMAKE_BUILD_TYPE})
-set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${PROJECT_SOURCE_DIR}/lib/${CMAKE_BUILD_TYPE})
-set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${PROJECT_SOURCE_DIR}/bin/${CMAKE_BUILD_TYPE})
+set(DXWIFI_RUNTIME_OUTPUT_DIRECTORY ${PROJECT_SOURCE_DIR}/bin/${CMAKE_BUILD_TYPE})
+set(DXWIFI_ARCHIVE_OUTPUT_DIRECTORY ${PROJECT_SOURCE_DIR}/lib/${CMAKE_BUILD_TYPE})
+set(DXWIFI_LIBRARY_OUTPUT_DIRECTORY ${PROJECT_SOURCE_DIR}/lib/${CMAKE_BUILD_TYPE})
 
 # Deal with dependencies
 find_library(PCAP_LIB pcap)
@@ -93,6 +93,7 @@ set(CPACK_DEBIAN_TX_FILE_NAME "${CPACK_PACKAGE_NAME}-tx_${CPACK_PACKAGE_VERSION}
 include(CPack)
 
 # Sub targets
+add_subdirectory(openfec)
 add_subdirectory(libdxwifi)
 add_subdirectory(dxwifi/tx)
 add_subdirectory(dxwifi/rx)
