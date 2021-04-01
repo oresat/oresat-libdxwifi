@@ -51,41 +51,9 @@ typedef struct __attribute__((packed)) {
 } dxwifi_oti; 
 
 
-typedef struct __dxwifi_encoder dxwifi_encoder;
-
-
 /************************
  *  Functions
  ***********************/
-
-
-/**
- *  DESCRIPTION:        Initializes the FEC encoder
- * 
- *  ARGUMENTS:
- * 
- *      msglen:         Length, in bytes, of the raw message to encode
- * 
- *      coderate:       Rate at which to encode repair symbols
- * 
- *  RETURNS:
- *      
- *      dxwifi_encoder*: Allocated and initialized encoder object. Do not attempt
- *      to free this encoder. Please use the close_encoder() method instead. 
- * 
- */
-dxwifi_encoder* init_encoder(size_t msglen, float coderate);
-
-
-/**
- *  DESCRIPTION:        Tearsdown any resources associated with the FEC encoder
- * 
- *  ARGUMENTS:
- *      
- *      encoder:        Pointer to an initialized dxwifi encoder
- * 
- */
-void close_encoder(dxwifi_encoder *encoder);
 
 
 /**
@@ -93,11 +61,11 @@ void close_encoder(dxwifi_encoder *encoder);
  * 
  *  ARGUMENTS:
  *      
- *      encoder:        Pointer to an initialized dxwifi encoder
- * 
  *      message:        Message data to be encoded
  * 
  *      msglen:         Size of the message in bytes
+ *
+ *      coderate:       Rate at which to add repair symbols for each source symbol
  * 
  *      out:            Pointer to a void pointer which will contain the encoded
  *                      message on function return. 
@@ -113,6 +81,6 @@ void close_encoder(dxwifi_encoder *encoder);
  *      the out parameter.
  * 
  */
-size_t dxwifi_encode(dxwifi_encoder *encoder, void *message, size_t msglen, void **out);
+size_t dxwifi_encode(void *message, size_t msglen, float coderate, void **out);
 
 #endif // LIBDXWIFI_ENCODER_H

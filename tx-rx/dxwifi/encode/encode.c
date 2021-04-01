@@ -64,9 +64,7 @@ void encode_file(cli_args *args) {
 
     // FEC Encode File-In
     void *encoded_message = NULL;
-    dxwifi_encoder* encoder = init_encoder(file_size, args->coderate);
-
-    size_t msg_size = dxwifi_encode(encoder, file_data, file_size, &encoded_message);
+    size_t msg_size = dxwifi_encode(file_data, file_size, args->coderate, &encoded_message);
 
     if (encoded_message) { // FEC encode success, write out encoded message
 
@@ -82,7 +80,6 @@ void encode_file(cli_args *args) {
     {
         close(fd_out);
     }
-    close_encoder(encoder);
     munmap(file_data, file_size);
 }
 
