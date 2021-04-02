@@ -16,6 +16,7 @@
 #include <stdint.h>
 #include <rscode/ecc.h>
 
+#include <libdxwifi/details/assert.h>
 
 /************************
  *  Constants
@@ -49,6 +50,35 @@ typedef struct __attribute__((packed)) {
     uint32_t k;
     uint32_t crc;
 } dxwifi_oti; 
+compiler_assert(sizeof(dxwifi_oti) == 16, "Mismatch in actual OTI size and calculated size");
+
+
+// TODO add comment
+typedef struct __attribute__((packed)) {
+    dxwifi_oti oti;
+    uint8_t symbol[DXWIFI_FEC_SYMBOL_SIZE];
+} dxwifi_ldpc_frame;
+compiler_assert(sizeof(dxwifi_ldpc_frame) == DXWIFI_LDPC_FRAME_SIZE, "Mismatch in actual LDPC Frame size and calculated size");
+
+
+// TODO add comment
+typedef struct __attribute__((packed)) {
+    uint8_t ldpc_frag0[RSCODE_MAX_MSG_LEN];
+    uint8_t rs_block0[RSCODE_NPAR];
+
+    uint8_t ldpc_frag1[RSCODE_MAX_MSG_LEN];
+    uint8_t rs_block1[RSCODE_NPAR];
+
+    uint8_t ldpc_frag2[RSCODE_MAX_MSG_LEN];
+    uint8_t rs_block2[RSCODE_NPAR];
+
+    uint8_t ldpc_frag3[RSCODE_MAX_MSG_LEN];
+    uint8_t rs_block3[RSCODE_NPAR];
+
+    uint8_t ldpc_frag4[RSCODE_MAX_MSG_LEN];
+    uint8_t rs_block4[RSCODE_NPAR];
+} dxwifi_rs_ldpc_frame;
+compiler_assert(sizeof(dxwifi_rs_ldpc_frame) == DXWIFI_RS_LDPC_FRAME_SIZE, "Mismatch in actual RS-LDPC Frame size and calculated size");
 
 
 /************************
