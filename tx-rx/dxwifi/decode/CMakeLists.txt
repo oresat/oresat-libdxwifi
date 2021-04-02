@@ -31,7 +31,7 @@ endif()
 cpack_add_component(
     DECODE
     DISPLAY_NAME DECODE
-    DESCRIPTION ${RX_DESCRIPTION}
+    DESCRIPTION "DxWiFi FEC Decoding program"
     GROUP DECODE
     INSTALL_TYPES Full
     )
