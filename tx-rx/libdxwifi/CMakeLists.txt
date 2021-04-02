@@ -9,4 +9,4 @@ set_target_properties(dxwifi
     ARCHIVE_OUTPUT_DIRECTORY ${DXWIFI_ARCHIVE_OUTPUT_DIRECTORY}
     )
 
-target_link_libraries(dxwifi pcap openfec)
+target_link_libraries(dxwifi pcap openfec rscode)
