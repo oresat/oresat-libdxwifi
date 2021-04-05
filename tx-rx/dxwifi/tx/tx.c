@@ -111,10 +111,12 @@ void log_tx_stats(dxwifi_tx_stats stats) {
         "Transmission Stats\n"
         "\tTotal Bytes Read:    %d\n"
         "\tTotal Bytes Sent:    %d\n"
-        "\tTotal Frames Sent:   %d\n",
+        "\tData Frames Sent:    %d\n"
+        "\tCtrl Frames Sent:    %d\n",
         stats.total_bytes_read,
         stats.total_bytes_sent,
-        stats.frame_count
+        stats.data_frame_count,
+        stats.ctrl_frame_count
     );
 }
 
@@ -130,7 +132,7 @@ void log_tx_stats(dxwifi_tx_stats stats) {
  */
 void log_frame_stats(dxwifi_tx_frame* frame, dxwifi_tx_stats stats, void* user) {
     if(stats.frame_type == DXWIFI_CONTROL_FRAME_NONE) {
-        log_debug("Frame: %d - (Read: %ld, Sent: %ld)", stats.frame_count, stats.prev_bytes_read, stats.prev_bytes_sent);
+        log_debug("Frame: %d - (Read: %ld, Sent: %ld)", stats.data_frame_count, stats.prev_bytes_read, stats.prev_bytes_sent);
     }
     else {
         log_debug("%s Frame Sent: %d", control_frame_type_to_str(stats.frame_type), stats.prev_bytes_sent);
@@ -166,7 +168,7 @@ void delay_transmission(dxwifi_tx_frame* frame, dxwifi_tx_stats stats, void* use
  * 
  */
 void attach_frame_number(dxwifi_tx_frame* frame, dxwifi_tx_stats stats, void* user) {
-    uint32_t frame_no = htonl(stats.frame_count);
+    uint32_t frame_no = htonl(stats.data_frame_count);
 
     memcpy(frame->mac_hdr.addr1 + 2, &frame_no, sizeof(uint32_t));
 }

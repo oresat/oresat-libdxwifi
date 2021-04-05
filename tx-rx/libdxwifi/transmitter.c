@@ -181,14 +181,14 @@ static bool remove_handler(dxwifi_tx_frame_handler* pipeline, int index) {
  *      tx_stats:   State of the current transmission
  * 
  */
-static void invoke_handlers(dxwifi_tx_frame_handler* pipeline, dxwifi_tx_frame* frame, dxwifi_tx_stats tx_stats) {
-    debug_assert(pipeline && frame);
+static void invoke_handlers(dxwifi_tx_frame_handler* pipeline, dxwifi_tx_frame* frame, dxwifi_tx_stats* tx_stats) {
+    debug_assert(pipeline && frame && tx_stats);
 
     for(int i = 0; i < DXWIFI_TX_FRAME_HANDLER_MAX; ++i) {
         if(pipeline[i].callback != NULL) {
             pipeline[i].callback(
                 frame, 
-                tx_stats, 
+                *tx_stats, 
                 pipeline[i].user_args
                 );
             assert_continue(
@@ -259,16 +259,12 @@ static int inject_packet(dxwifi_transmitter* tx, dxwifi_tx_frame* frame) {
  *      and sent over the wire X times for redundancy.
  * 
  */
-static void send_control_frame(dxwifi_transmitter* tx, dxwifi_tx_frame* frame, dxwifi_control_frame_t type) {
+static void send_control_frame(dxwifi_transmitter* tx, dxwifi_tx_frame* frame, dxwifi_control_frame_t type, dxwifi_tx_stats* stats) {
     debug_assert(tx && tx->__handle && frame);
 
-    dxwifi_tx_stats stats = {
-        .frame_count      = 0,
-        .total_bytes_sent = 0,
-        .prev_bytes_sent  = 0,
-        .tx_state         = DXWIFI_TX_NORMAL,
-        .frame_type       = type
-    };
+    dxwifi_control_frame_t prev_type = stats->frame_type;
+
+    stats->frame_type = type;
 
     uint8_t control_data[DXWIFI_FRAME_CONTROL_DATA_SIZE];
 
@@ -282,13 +278,14 @@ static void send_control_frame(dxwifi_transmitter* tx, dxwifi_tx_frame* frame, d
 
         invoke_handlers(tx->__preinjection, frame, stats);
 
-        stats.prev_bytes_sent = inject_packet(tx, frame);
+        stats->prev_bytes_sent = inject_packet(tx, frame);
 
-        stats.frame_count      += 1;
-        stats.total_bytes_sent += stats.prev_bytes_sent;
+        stats->ctrl_frame_count += 1;
+        stats->total_bytes_sent += stats->prev_bytes_sent;
 
         invoke_handlers(tx->__postinjection, frame, stats);
     }
+    stats->frame_type = prev_type;
 }
 
 
@@ -416,7 +413,8 @@ void start_transmission(dxwifi_transmitter* tx, int fd, dxwifi_tx_stats* out) {
     };
 
     dxwifi_tx_stats stats = {
-        .frame_count        = 0,
+        .data_frame_count   = 0,
+        .ctrl_frame_count   = 0,
         .total_bytes_read   = 0,
         .total_bytes_sent   = 0,
         .prev_bytes_read    = 0,
@@ -435,7 +433,7 @@ void start_transmission(dxwifi_transmitter* tx, int fd, dxwifi_tx_stats* out) {
 
     tx->__activated = true;
 
-    send_control_frame(tx, &data_frame, DXWIFI_CONTROL_FRAME_PREAMBLE);
+    send_control_frame(tx, &data_frame, DXWIFI_CONTROL_FRAME_PREAMBLE, &stats);
 
     do {
         status = poll(&request, 1, tx->transmit_timeout * 1000);
@@ -460,23 +458,22 @@ void start_transmission(dxwifi_transmitter* tx, int fd, dxwifi_tx_stats* out) {
 
                 data_frame.payload_size = stats.prev_bytes_read;
 
-                invoke_handlers(tx->__preinjection, &data_frame, stats);
+                invoke_handlers(tx->__preinjection, &data_frame, &stats);
 
-                status = inject_packet(tx, &data_frame);
+                stats.prev_bytes_sent = inject_packet(tx, &data_frame);
 
-                stats.prev_bytes_sent   = status;
                 stats.total_bytes_read += stats.prev_bytes_read;
                 stats.total_bytes_sent += stats.prev_bytes_sent;
-                stats.frame_count      += 1;
+                stats.data_frame_count += 1;
 
-                invoke_handlers(tx->__postinjection, &data_frame, stats);
+                invoke_handlers(tx->__postinjection, &data_frame, &stats);
             }
         }
     } while(tx->__activated && stats.prev_bytes_read > 0);
 
     log_info("DxWiFI Transmission stopped");
 
-    send_control_frame(tx, &data_frame, DXWIFI_CONTROL_FRAME_EOT);
+    send_control_frame(tx, &data_frame, DXWIFI_CONTROL_FRAME_EOT, &stats);
 
 #if defined(DXWIFI_TESTS)
     pcap_dump_flush(tx->dumper);
@@ -496,7 +493,8 @@ void transmit_bytes(dxwifi_transmitter* tx, const void* data, size_t nbytes, dxw
     debug_assert(tx && tx->__handle && data);
 
     dxwifi_tx_stats stats = {
-        .frame_count        = 0,
+        .data_frame_count   = 0,
+        .ctrl_frame_count   = 0,
         .total_bytes_read   = 0,
         .total_bytes_sent   = 0,
         .prev_bytes_read    = 0,
@@ -512,7 +510,7 @@ void transmit_bytes(dxwifi_transmitter* tx, const void* data, size_t nbytes, dxw
 
     log_debug("Starting DxWiFi Transmission...");
 
-    send_control_frame(tx, &data_frame, DXWIFI_CONTROL_FRAME_PREAMBLE);
+    send_control_frame(tx, &data_frame, DXWIFI_CONTROL_FRAME_PREAMBLE, &stats);
 
     while (nbytes > 0)
     {
@@ -523,20 +521,19 @@ void transmit_bytes(dxwifi_transmitter* tx, const void* data, size_t nbytes, dxw
 
         data_frame.payload_size = stats.prev_bytes_read;
 
-        invoke_handlers(tx->__preinjection, &data_frame, stats);
+        invoke_handlers(tx->__preinjection, &data_frame, &stats);
 
-        int status = inject_packet(tx, &data_frame);
+        stats.prev_bytes_sent = inject_packet(tx, &data_frame);
 
-        stats.prev_bytes_sent   = status;
-        stats.frame_count      += 1;
+        stats.data_frame_count += 1;
         stats.total_bytes_read += stats.prev_bytes_read;
         stats.total_bytes_sent += stats.prev_bytes_sent;
         nbytes                 -= stats.prev_bytes_read;
 
-        invoke_handlers(tx->__postinjection, &data_frame, stats);
+        invoke_handlers(tx->__postinjection, &data_frame, &stats);
     }
 
-    send_control_frame(tx, &data_frame, DXWIFI_CONTROL_FRAME_EOT);
+    send_control_frame(tx, &data_frame, DXWIFI_CONTROL_FRAME_EOT, &stats);
 
 #if defined(DXWIFI_TESTS)
     pcap_dump_flush(tx->dumper);
