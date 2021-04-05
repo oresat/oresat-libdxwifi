@@ -88,7 +88,7 @@ static void __assert_M(bool exit, const char* expr, const char* file, int line, 
     vsnprintf(fmt + chars, DXWIFI_ASSERT_MSG_MAX_LEN - chars, msg, args);
     va_end(args);
 
-    __dxwifi_log(DXWIFI_LOG_FATAL, file, "%s", fmt);
+    __dxwifi_log( exit ? DXWIFI_LOG_FATAL : DXWIFI_LOG_ERROR, file, "%s", fmt);
 
     free(path);
     if( exit ) {
