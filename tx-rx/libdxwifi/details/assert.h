@@ -73,7 +73,8 @@
 #define assert_always(msg, ...) assert_M(0, msg, ##__VA_ARGS__)
 
 
-static void __assert_M(bool exit, const char* expr, const char* file, int line, const char* msg, ...) {
+// This function may or may not be used in production. Add unused attribute to notify GCC to not produce errors
+__attribute__((unused)) static void __assert_M(bool exit, const char* expr, const char* file, int line, const char* msg, ...) {
 
     char* path  = strdup(file);
     char* bname = basename(path);
