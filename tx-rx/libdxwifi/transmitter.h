@@ -19,6 +19,7 @@
 
 #include <pcap.h>
 
+#include <libdxwifi/dxwifi.h>
 #include <libdxwifi/details/ieee80211.h>
 
 /************************
@@ -85,6 +86,7 @@ typedef struct {
     dxwifi_tx_radiotap_hdr  *radiotap_hdr;  /* frame metadata               */
     ieee80211_hdr           *mac_hdr;       /* link-layer header            */
     uint8_t                 *payload;       /* packet data                  */
+    size_t                  payload_size;   /* Size of the actual payload   */
 
     uint8_t                 __frame[DXWIFI_TX_FRAME_SIZE_MAX];       
                                             /* The actual data frame        */
@@ -104,29 +106,30 @@ typedef enum {
  *  is transmitted as well as overall stats about the transmission
  */
 typedef struct {
-    uint32_t            frame_count;        /* number of frames sent        */
-    uint32_t            total_bytes_read;   /* total bytes read from source */
-    uint32_t            total_bytes_sent;   /* total of bytes sent via pcap */
-    uint32_t            prev_bytes_read;    /* Size of last read            */
-    uint32_t            prev_bytes_sent;    /* Size of last transmission    */
-    dxwifi_tx_state_t   tx_state;           /* State of last transmission   */
+    uint32_t                frame_count;        /* number of frames sent        */
+    uint32_t                total_bytes_read;   /* total bytes read from source */
+    uint32_t                total_bytes_sent;   /* total of bytes sent via pcap */
+    uint32_t                prev_bytes_read;    /* Size of last read            */
+    uint32_t                prev_bytes_sent;    /* Size of last transmission    */
+    dxwifi_tx_state_t       tx_state;           /* State of last transmission   */
+    dxwifi_control_frame_t  frame_type;         /* Type of the last frame       */
 } dxwifi_tx_stats;
 
 
 /**
- *  The return value of the Tx frame callback is used to determine how many 
- *  payload bytes will be transmitted. Thus, if additional data is added to the 
- *  payload the NEW payload size must be returned. Conversely, to truncate the 
- *  data you can return a number less than the payload size. Lastly, modifying
- *  the radiotap/mac headers may result in transmission failure and should only
- *  be modified at your own risk.
+ *  Tx frame callbacks can modify how many payload bytes will be transmistted by 
+ *  modifying the frame->payload_size field. Thus, if additional data is added 
+ *  to the payload the NEW payload size must be attached to the frame->payload_size 
+ *  field. Conversely, to truncate the  data you can attach a number less than 
+ *  the payload size. If frame->payload_size is zero then the data frame WILL 
+ *  NOT be transmitted. Lastly, modifying the radiotap/mac headers may result in 
+ *  transmission failure and should only be modified at your own risk.
  * 
  *  Note: It is the user's responsiblity to handle scope and lifetime of user
  *  parameters
  */
-typedef size_t (*dxwifi_tx_frame_cb)( 
+typedef void (*dxwifi_tx_frame_cb)( 
         dxwifi_tx_frame* frame, /* Mutable reference to current data frame  */
-        size_t payload_size,    /* Size of the attached payload             */
         dxwifi_tx_stats stats,  /* Stats about the current transmission     */
         void* user              /* User supplied parameters                 */
         );

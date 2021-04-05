@@ -128,10 +128,14 @@ void log_tx_stats(dxwifi_tx_stats stats) {
  *      See definition of dxwifi_tx_frame_cb in transmitter.h
  * 
  */
-size_t log_frame_stats(dxwifi_tx_frame* frame, size_t payload_size, dxwifi_tx_stats stats, void* user) {
-    log_debug("Frame: %d - (Read: %ld, Sent: %ld)", stats.frame_count, stats.prev_bytes_read, stats.prev_bytes_sent);
-    log_hexdump(frame->__frame, DXWIFI_TX_HEADER_SIZE + payload_size + IEEE80211_FCS_SIZE);
-    return payload_size;
+void log_frame_stats(dxwifi_tx_frame* frame, dxwifi_tx_stats stats, void* user) {
+    if(stats.frame_type == DXWIFI_CONTROL_FRAME_NONE) {
+        log_debug("Frame: %d - (Read: %ld, Sent: %ld)", stats.frame_count, stats.prev_bytes_read, stats.prev_bytes_sent);
+    }
+    else {
+        log_debug("%s Frame Sent: %d", control_frame_type_to_str(stats.frame_type), stats.prev_bytes_sent);
+    }
+    log_hexdump(frame->__frame, DXWIFI_TX_HEADER_SIZE + frame->payload_size + IEEE80211_FCS_SIZE);
 }
 
 
@@ -144,12 +148,10 @@ size_t log_frame_stats(dxwifi_tx_frame* frame, size_t payload_size, dxwifi_tx_st
  *      See definition of dxwifi_tx_frame_cb in transmitter.h
  * 
  */
-size_t delay_transmission(dxwifi_tx_frame* frame, size_t payload_size, dxwifi_tx_stats stats, void* user) {
+void delay_transmission(dxwifi_tx_frame* frame, dxwifi_tx_stats stats, void* user) {
     unsigned delay_ms = *(unsigned*) user;
 
     msleep(delay_ms, false);
-
-    return payload_size;
 }
 
 
@@ -163,12 +165,10 @@ size_t delay_transmission(dxwifi_tx_frame* frame, size_t payload_size, dxwifi_tx
  *      See definition of dxwifi_tx_frame_cb in transmitter.h
  * 
  */
-size_t attach_frame_number(dxwifi_tx_frame* frame, size_t payload_size, dxwifi_tx_stats stats, void* user) {
+void attach_frame_number(dxwifi_tx_frame* frame, dxwifi_tx_stats stats, void* user) {
     uint32_t* frame_no = (uint32_t*)&frame->mac_hdr->addr1[2];
 
     *frame_no = htonl(stats.frame_count);
-
-    return payload_size;
 }
 
 
