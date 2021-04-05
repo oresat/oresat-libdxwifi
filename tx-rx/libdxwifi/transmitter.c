@@ -26,25 +26,6 @@
 
 
 /**
- *  DESCRIPTION:    Initializes transmission data frame
- * 
- *  ARGUMENTS:
- * 
- *     frame:       pointer to an allocated frame
- * 
- */
-static void setup_dxwifi_tx_frame(dxwifi_tx_frame* frame) {
-    debug_assert(frame);
-
-    memset(frame->__frame, 0x00, DXWIFI_TX_FRAME_SIZE_MAX);
-
-    frame->radiotap_hdr = (dxwifi_tx_radiotap_hdr*) frame->__frame;
-    frame->mac_hdr      = (ieee80211_hdr*) (frame->__frame + sizeof(dxwifi_tx_radiotap_hdr));
-    frame->payload      = frame->__frame + DXWIFI_TX_HEADER_SIZE;
-}
-
-
-/**
  *  DESCRIPTION:        Fills radiotap header with provided data
  * 
  *  ARGUMENTS:
@@ -247,10 +228,10 @@ static int inject_packet(dxwifi_transmitter* tx, dxwifi_tx_frame* frame) {
         gettimeofday(&pcap_hdr.ts, NULL);
         pcap_hdr.caplen = DXWIFI_TX_HEADER_SIZE + frame->payload_size + IEEE80211_FCS_SIZE;
         pcap_hdr.len = pcap_hdr.caplen;
-        pcap_dump((uint8_t*)tx->dumper, &pcap_hdr, frame->__frame);
+        pcap_dump((uint8_t*)tx->dumper, &pcap_hdr, (void*)frame);
         status = pcap_hdr.caplen;
 #else
-        status = pcap_inject(tx->__handle, frame->__frame, DXWIFI_TX_HEADER_SIZE + frame->payload_size + IEEE80211_FCS_SIZE);
+        status = pcap_inject(tx->__handle, frame, DXWIFI_TX_HEADER_SIZE + frame->payload_size + IEEE80211_FCS_SIZE);
 #endif
     }
     assert_continue(status != PCAP_ERROR, "Injection failure: %s", pcap_statustostr(status));
@@ -279,7 +260,7 @@ static int inject_packet(dxwifi_transmitter* tx, dxwifi_tx_frame* frame) {
  * 
  */
 static void send_control_frame(dxwifi_transmitter* tx, dxwifi_tx_frame* frame, dxwifi_control_frame_t type) {
-    debug_assert(tx && tx->__handle && frame && frame->__frame);
+    debug_assert(tx && tx->__handle && frame);
 
     dxwifi_tx_stats stats = {
         .frame_count      = 0,
@@ -446,11 +427,9 @@ void start_transmission(dxwifi_transmitter* tx, int fd, dxwifi_tx_stats* out) {
 
     dxwifi_tx_frame data_frame;
 
-    setup_dxwifi_tx_frame(&data_frame);
+    construct_radiotap_header(&data_frame.radiotap_hdr, tx->rtap_flags, tx->rtap_rate_mbps, tx->rtap_tx_flags);
 
-    construct_radiotap_header(data_frame.radiotap_hdr, tx->rtap_flags, tx->rtap_rate_mbps, tx->rtap_tx_flags);
-
-    construct_ieee80211_header(data_frame.mac_hdr, tx->fctl, 0xffff, tx->address); // TODO magic number
+    construct_ieee80211_header(&data_frame.mac_hdr, tx->fctl, 0xffff, tx->address); // TODO magic number
 
     log_info("Starting DxWiFi Transmission...");
 
@@ -527,11 +506,9 @@ void transmit_bytes(dxwifi_transmitter* tx, const void* data, size_t nbytes, dxw
 
     dxwifi_tx_frame data_frame;
 
-    setup_dxwifi_tx_frame(&data_frame);
+    construct_radiotap_header(&data_frame.radiotap_hdr, tx->rtap_flags, tx->rtap_rate_mbps, tx->rtap_tx_flags);
 
-    construct_radiotap_header(data_frame.radiotap_hdr, tx->rtap_flags, tx->rtap_rate_mbps, tx->rtap_tx_flags);
-
-    construct_ieee80211_header(data_frame.mac_hdr, tx->fctl, 0xffff, tx->address);
+    construct_ieee80211_header(&data_frame.mac_hdr, tx->fctl, 0xffff, tx->address);
 
     log_debug("Starting DxWiFi Transmission...");
 
