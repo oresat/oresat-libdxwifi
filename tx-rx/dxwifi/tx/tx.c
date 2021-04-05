@@ -135,7 +135,7 @@ void log_frame_stats(dxwifi_tx_frame* frame, dxwifi_tx_stats stats, void* user) 
     else {
         log_debug("%s Frame Sent: %d", control_frame_type_to_str(stats.frame_type), stats.prev_bytes_sent);
     }
-    log_hexdump(frame->__frame, DXWIFI_TX_HEADER_SIZE + frame->payload_size + IEEE80211_FCS_SIZE);
+    log_hexdump(frame, DXWIFI_TX_HEADER_SIZE + frame->payload_size + IEEE80211_FCS_SIZE);
 }
 
 
@@ -166,9 +166,9 @@ void delay_transmission(dxwifi_tx_frame* frame, dxwifi_tx_stats stats, void* use
  * 
  */
 void attach_frame_number(dxwifi_tx_frame* frame, dxwifi_tx_stats stats, void* user) {
-    uint32_t* frame_no = (uint32_t*)&frame->mac_hdr->addr1[2];
+    uint32_t frame_no = htonl(stats.frame_count);
 
-    *frame_no = htonl(stats.frame_count);
+    memcpy(frame->mac_hdr.addr1 + 2, &frame_no, sizeof(uint32_t));
 }
 
 

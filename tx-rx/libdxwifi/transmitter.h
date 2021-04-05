@@ -20,6 +20,7 @@
 #include <pcap.h>
 
 #include <libdxwifi/dxwifi.h>
+#include <libdxwifi/details/assert.h>
 #include <libdxwifi/details/ieee80211.h>
 
 /************************
@@ -40,6 +41,8 @@
     | 0x1 << IEEE80211_RADIOTAP_TX_FLAGS)\
 
 #define DXWIFI_TX_FRAME_HANDLER_MAX 8
+
+#define DXWIFI_TX_RADIOTAP_HDR_SIZE 12
 
 /************************
  *  Data structures
@@ -63,6 +66,9 @@ typedef struct  __attribute__((packed)) {
     uint16_t                tx_flags; /* transmission flags       */
 } dxwifi_tx_radiotap_hdr;
 
+compiler_assert(sizeof(dxwifi_tx_radiotap_hdr) == DXWIFI_TX_RADIOTAP_HDR_SIZE, 
+    "Mismatch in actual radiotap header size and calculated size");
+
 
 /**
  *  The DxWifi frame structure looks like this:
@@ -73,24 +79,22 @@ typedef struct  __attribute__((packed)) {
  *    [             payload               ]   |
  *    [       frame check sequence        ] <--
  *   
- * 
- *  The fields in the dxwifi_tx_frame struct simply point to the correct area in
- *  __frame array. We fill in the correct data for each header and then 
- *  transmit the entire frame of data. Note, there isn't a struct field for the
- *  frame check sequence (FCS) since the driver will populate that field for us.
- *  Thus, you should not manipulate the __frame field unless you know what 
- *  you're doing. 
+ *  
+ *  Note, the FCS lives in the same memory block as the payload. The FCS should 
+ *  always be the last four bytes of the frame and should always start at the 
+ *  address `frame.payload[frame.payload_size]`.
  * 
  */
-typedef struct { 
-    dxwifi_tx_radiotap_hdr  *radiotap_hdr;  /* frame metadata               */
-    ieee80211_hdr           *mac_hdr;       /* link-layer header            */
-    uint8_t                 *payload;       /* packet data                  */
-    size_t                  payload_size;   /* Size of the actual payload   */
-
-    uint8_t                 __frame[DXWIFI_TX_FRAME_SIZE_MAX];       
-                                            /* The actual data frame        */
+typedef struct __attribute__((packed)) { 
+    dxwifi_tx_radiotap_hdr  radiotap_hdr;  /* frame metadata               */
+    ieee80211_hdr           mac_hdr;       /* link-layer header            */
+    uint8_t                 payload[DXWIFI_TX_PAYLOAD_SIZE_MAX + IEEE80211_FCS_SIZE];       
+                                            /* packet data and FCS          */
+    uint32_t                payload_size;   /* Size of the actual payload   */
 } dxwifi_tx_frame;
+
+compiler_assert(sizeof(dxwifi_tx_frame) == sizeof(dxwifi_tx_frame), 
+    "Mismatch in actual tx frame size and calculated size");
 
 
 typedef enum {
