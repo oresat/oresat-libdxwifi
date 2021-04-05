@@ -110,7 +110,8 @@ typedef enum {
  *  is transmitted as well as overall stats about the transmission
  */
 typedef struct {
-    uint32_t                frame_count;        /* number of frames sent        */
+    uint32_t                data_frame_count;   /* number of data frames sent   */
+    uint32_t                ctrl_frame_count;   /* number of ctrl frames sent   */
     uint32_t                total_bytes_read;   /* total bytes read from source */
     uint32_t                total_bytes_sent;   /* total of bytes sent via pcap */
     uint32_t                prev_bytes_read;    /* Size of last read            */
