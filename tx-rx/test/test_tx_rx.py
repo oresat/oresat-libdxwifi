@@ -8,6 +8,7 @@
 '''
 
 import os
+import signal
 import shutil
 import filecmp
 import unittest
@@ -28,7 +29,9 @@ class TestTxRx(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         '''Setup test environment'''
-        if(os.path.isdir(TEMP_DIR)): # Temp dir was not removed correctly on last run
+
+        if(os.path.isdir(TEMP_DIR)): 
+            print("Warning: Temp dir was not removed correctly on last run, removing now")
             shutil.rmtree(TEMP_DIR)
 
         if(not os.access(TX, os.X_OK) or not os.access(RX, os.X_OK)):
@@ -46,7 +49,7 @@ class TestTxRx(unittest.TestCase):
         shutil.rmtree(TEMP_DIR)
 
 
-    def test_stream_transmission(self):
+    def testStreamTransmission(self):
         '''Tx reads from stdin should match Rx writes to stdout'''
 
         test_data   = bytes([1 for i in range(1024)])
@@ -77,7 +80,7 @@ class TestTxRx(unittest.TestCase):
         self.assertEqual(test_data, rx_out)
 
 
-    def test_single_file_transmission(self):
+    def testSingleFileTransmission(self):
         '''Transmitting a single file is succesfully received and unpackaged'''
 
         test_file   = f'{TEMP_DIR}/test.raw'
@@ -102,7 +105,7 @@ class TestTxRx(unittest.TestCase):
         self.assertEqual(status, True)
 
 
-    def test_multi_file_transmission(self):
+    def testMultiFileTransmission(self):
         '''Sending a list of files results in each file being received'''
 
         # Create a bunch of test files
@@ -128,7 +131,7 @@ class TestTxRx(unittest.TestCase):
         self.assertEqual(all(results), True)
 
 
-    def test_directory_transmission(self):
+    def testDirectoryTransmission(self):
         '''Tx can send all files currently in a directory'''
 
         # Create a bunch of files in a directory
@@ -153,7 +156,7 @@ class TestTxRx(unittest.TestCase):
         self.assertEqual(all(results), True)
 
 
-    def test_watch_directory(self):
+    def testWatchDirectory(self):
         '''Tx can watch for new files in a directory and transmit them'''
 
         tx_out     = f'{TEMP_DIR}/tx.raw'
@@ -181,6 +184,27 @@ class TestTxRx(unittest.TestCase):
         results = [filecmp.cmp(src, copy) for src, copy in zip(test_files, rx_out)]
 
         self.assertEqual(all(results), True)
+
+    def testSmallImageTransmission(self):
+        '''Small (~1mb), uncompressed images can be transmitted and recieved'''
+
+        test_file   = f'test/data/daisy.bmp'
+        tx_out      = f'{TEMP_DIR}/tx.raw'
+        rx_out      = f'{TEMP_DIR}/rx.raw'
+
+        tx_command = f'{TX} {test_file} -q -b 1024 --savefile {tx_out} --ordered'
+        rx_command = f'{RX} {rx_out} -q -t 2 --savefile {tx_out} --ordered'
+
+        # Transmit the test file
+        subprocess.run(tx_command.split())
+
+        # Receive the test file
+        subprocess.run(rx_command.split())
+
+        # Verify both files match
+        status = filecmp.cmp(test_file, rx_out)
+
+        self.assertEqual(status, True)
 
 
 if __name__ == '__main__':
