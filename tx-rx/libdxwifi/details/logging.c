@@ -100,6 +100,7 @@ dxwifi_log_module_t file_to_log_module(const char* file_name) {
         char* extension = index(bname, '.'); // Drop the file extension
         for(dxwifi_log_module_t module = DXWIFI_LOG_GENERIC; module < DXWIFI_LOG_MODULE_COUNT; ++module) {
             if(strncmp(bname, file_lookup_tbl[module], extension - bname) == 0) {
+                free(path);
                 return module;
             }
         }
