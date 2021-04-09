@@ -5,6 +5,16 @@
 
     https://github.com/oresat/oresat-dxwifi-software
 
+    NOTES: This test program runs the Tx/Rx programs in `offline` mode and 
+    only works with the `TestDebug` and `TestRel` configurations. 
+
+    By default, it will assume the binaries are installed in `bin/TestDebug`. 
+    If they are installed elsewhere please define the `DXWIFI_INSTALL_DIR` 
+    environment variable with the correct install location. 
+
+    If the environment variable `DXWIFI_MEMORY_CHECK` is defined then this test
+    program will run all tests cases through the `valgrind` utility and output
+    the results to stderr
 '''
 
 import os
@@ -19,12 +29,19 @@ from test.genbytes import genbytes
 
 INSTALL_DIR = os.environ.get('DXWIFI_INSTALL_DIR', default='bin/TestDebug')
 TEMP_DIR    = '__temp'
-TX          = f'./{INSTALL_DIR}/tx'
-RX          = f'./{INSTALL_DIR}/rx'
+
+TX_INSTALL = f'./{INSTALL_DIR}/tx'
+RX_INSTALL = f'./{INSTALL_DIR}/tx'
+
+if 'DXWIFI_MEMORY_CHECK' in os.environ: 
+    TX = f'valgrind --leak-check=full ./{INSTALL_DIR}/tx'
+    RX = f'valgrind --leak-check=full ./{INSTALL_DIR}/rx'
+else:
+    TX = f'./{INSTALL_DIR}/tx'
+    RX = f'./{INSTALL_DIR}/rx'
 
 
 class TestTxRx(unittest.TestCase):
-
 
     @classmethod
     def setUpClass(cls):
@@ -34,10 +51,9 @@ class TestTxRx(unittest.TestCase):
             print("Warning: Temp dir was not removed correctly on last run, removing now")
             shutil.rmtree(TEMP_DIR)
 
-        if(not os.access(TX, os.X_OK) or not os.access(RX, os.X_OK)):
+        if(not os.access(TX_INSTALL, os.X_OK) or not os.access(RX_INSTALL, os.X_OK)):
             print(f'Error! Verify that the Tx/Rx programs are installed in `{INSTALL_DIR}`')
             exit(1)
-
 
     def setUp(self):
         '''Create a directory to store test data'''
@@ -67,6 +83,9 @@ class TestTxRx(unittest.TestCase):
         # Wait for tx to timeout and close
         tx_proc.wait()
 
+        # Verify tx exited cleanly
+        self.assertEqual(tx_proc.returncode, 0)
+
         # Open rx to write to stdout
         rx_proc = subprocess.Popen(rx_command.split(), stdout=subprocess.PIPE)
 
@@ -75,6 +94,9 @@ class TestTxRx(unittest.TestCase):
 
         # Wait for rx to clean up and close down
         rx_proc.wait()
+
+        # Verify rx exited cleanly
+        self.assertEqual(rx_proc.returncode, 0)
 
         # Verify test data matches rx output
         self.assertEqual(test_data, rx_out)
@@ -90,14 +112,16 @@ class TestTxRx(unittest.TestCase):
         tx_command = f'{TX} {test_file} -q -b 1024 --savefile {tx_out}'
         rx_command = f'{RX} {rx_out} -q -t 2 --savefile {tx_out}'
 
+        # Store return codes
+
         # Create a single test file
         genbytes(test_file, 10, 1024) # Create test file
 
         # Transmit the test file
-        subprocess.run(tx_command.split())
+        subprocess.run(tx_command.split()).check_returncode()
 
         # Receive the test file
-        subprocess.run(rx_command.split())
+        subprocess.run(rx_command.split()).check_returncode()
 
         # Verify both files match
         status = filecmp.cmp(test_file, rx_out)
@@ -120,10 +144,10 @@ class TestTxRx(unittest.TestCase):
         rx_command = f'{RX} {TEMP_DIR} -q -c 1 -t 2 --prefix rx --extension raw --savefile {tx_out}'
 
         # Transmit all files the test files
-        subprocess.run(tx_command.split())
+        subprocess.run(tx_command.split()).check_returncode()
 
         # Receive all the test files
-        subprocess.run(rx_command.split())
+        subprocess.run(rx_command.split()).check_returncode()
 
         # Verify all the test files match the received files
         results = [filecmp.cmp(src, copy) for src, copy in zip(test_files, rx_out)]
@@ -145,10 +169,10 @@ class TestTxRx(unittest.TestCase):
         rx_command = f'{RX} {TEMP_DIR} -q -t 2 --prefix rx --extension raw --savefile {tx_out}'
 
         # Transmit all files in the directory
-        subprocess.run(tx_command.split())
+        subprocess.run(tx_command.split()).check_returncode()
 
         # Receive all the test files
-        subprocess.run(rx_command.split())
+        subprocess.run(rx_command.split()).check_returncode()
 
         # Verify all the test files match the received files
         results = [filecmp.cmp(src, copy) for src, copy in zip(test_files, rx_out)]
@@ -161,7 +185,7 @@ class TestTxRx(unittest.TestCase):
 
         tx_out     = f'{TEMP_DIR}/tx.raw'
         rx_out     = [f'{TEMP_DIR}/rx_{x}.raw' for x in range(10)]
-        tx_command = f'{TX} {TEMP_DIR} -q --watch-timeout 1 --filter test_*.raw -b 1024 --savefile {tx_out}'
+        tx_command = f'{TX_INSTALL} {TEMP_DIR} -q --watch-timeout 2 --filter=test_*.raw -b 1024 --savefile {tx_out}'
         rx_command = f'{RX} {TEMP_DIR} -q -c 1 -t 2 --prefix rx --extension raw --savefile {tx_out}'
 
 
@@ -177,6 +201,9 @@ class TestTxRx(unittest.TestCase):
 
         # Wait for tx to timeout and close
         proc.wait()
+
+        # Verify tx exited cleanly
+        self.assertEqual(proc.returncode, 0)
 
         # Receive all the transmitted test files
         subprocess.run(rx_command.split())
@@ -196,10 +223,10 @@ class TestTxRx(unittest.TestCase):
         rx_command = f'{RX} {rx_out} -q -t 2 --savefile {tx_out} --ordered'
 
         # Transmit the test file
-        subprocess.run(tx_command.split())
+        subprocess.run(tx_command.split()).check_returncode()
 
         # Receive the test file
-        subprocess.run(rx_command.split())
+        subprocess.run(rx_command.split()).check_returncode()
 
         # Verify both files match
         status = filecmp.cmp(test_file, rx_out)
