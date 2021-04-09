@@ -1,6 +1,6 @@
 file (GLOB_RECURSE openfec_sources *)
 
-add_library(openfec  SHARED  ${openfec_sources})
+add_library(openfec  STATIC  ${openfec_sources})
 
 # From: $cmake --help-property SOVERSION
 #		For shared libraries VERSION and SOVERSION can be used to specify
