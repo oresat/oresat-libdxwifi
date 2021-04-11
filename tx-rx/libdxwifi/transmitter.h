@@ -86,14 +86,17 @@ compiler_assert(sizeof(dxwifi_tx_radiotap_hdr) == DXWIFI_TX_RADIOTAP_HDR_SIZE,
  * 
  */
 typedef struct __attribute__((packed)) { 
+    // Actual Data Frame
     dxwifi_tx_radiotap_hdr  radiotap_hdr;  /* frame metadata               */
     ieee80211_hdr           mac_hdr;       /* link-layer header            */
     uint8_t                 payload[DXWIFI_TX_PAYLOAD_SIZE_MAX + IEEE80211_FCS_SIZE];       
                                             /* packet data and FCS          */
+
+    // Control data about the payload, not transmitted with the data frame
     uint32_t                payload_size;   /* Size of the actual payload   */
 } dxwifi_tx_frame;
 
-compiler_assert(sizeof(dxwifi_tx_frame) == sizeof(dxwifi_tx_frame), 
+compiler_assert(sizeof(dxwifi_tx_frame) == (DXWIFI_TX_FRAME_SIZE_MAX + sizeof(uint32_t)), 
     "Mismatch in actual tx frame size and calculated size");
 
 
