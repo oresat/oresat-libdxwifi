@@ -135,9 +135,6 @@ int start_daemon(const char* pid_file) {
         exit(EXIT_FAILURE);
     }
 
-    // Child process continues on
-    set_logger(DXWIFI_LOG_ALL_MODULES, syslogger);
-
     umask(0);
 
     pid = getpid();
@@ -148,6 +145,13 @@ int start_daemon(const char* pid_file) {
         exit(EXIT_FAILURE);
     }
 
+    // Use parents logger to notify calling process
+    log_info("Daemon successfully started! PID: %d PID File: %s", pid, pid_file);
+
+    // Child process continues on
+    set_logger(DXWIFI_LOG_ALL_MODULES, syslogger);
+    
+    // Log success onto syslog as well
     log_info("Daemon successfully started! PID: %d PID File: %s", pid, pid_file);
 
     return 1;
