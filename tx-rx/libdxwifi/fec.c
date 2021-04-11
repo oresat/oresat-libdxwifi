@@ -18,6 +18,8 @@
 #include <libdxwifi/details/assert.h>
 #include <libdxwifi/details/logging.h>
 
+//Max number of symbols that OpenFEC can handle
+#define OFEC_MAX_SYMBOLS 50000
 
 static void log_codec_params(const of_ldpc_parameters_t* params) {
     log_info(
@@ -80,6 +82,17 @@ size_t dxwifi_encode(void* message, size_t msglen, float coderate, void** out) {
     uint32_t k = ceil((float) msglen / DXWIFI_FEC_SYMBOL_SIZE);
     uint32_t n = k / coderate;  
 
+    //check if N > Max Symbols
+    if(n > OFEC_MAX_SYMBOLS) {
+        log_fatal("Failed to Encode Data.");
+        log_fatal("The operation exceeded the number of symbols that OpenFEC can handle");
+        log_fatal("The max number of symbols that OFEC can handle is 50,000");
+        log_fatal("If you still wish to encode this data, try increasing the coderate");
+        log_fatal("For example, if the -c flag was .25 and this was tripped, try using a larger value such as .50, or .75");
+        log_fatal("Now Terminating Program...");
+        exit(1);
+    }
+    
     of_session_t* openfec_session = init_openfec(n, k);
 
     dxwifi_ldpc_frame* ldpc_frames = calloc(n, sizeof(dxwifi_ldpc_frame));
