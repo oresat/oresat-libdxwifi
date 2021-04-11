@@ -173,7 +173,7 @@ size_t dxwifi_decode(void* encoded_msg, size_t msglen, void** out) {
     dxwifi_ldpc_frame* ldpc_frames = calloc(nframes, sizeof(dxwifi_ldpc_frame));
 
     if( msglen % DXWIFI_RS_LDPC_FRAME_SIZE != 0) {
-        log_warning("Shouldnt msglen be divisible by the size of a RS-LDPC Data frame?");
+        log_warning("Shouldn't msglen be divisible by the size of a RS-LDPC Data frame?");
     }
 
     // Cast encoded message as an array of RS-LDPC Frames
@@ -261,15 +261,18 @@ size_t dxwifi_decode(void* encoded_msg, size_t msglen, void** out) {
         status = of_finish_decoding(openfec_session);
         if(status != OF_STATUS_OK) {
             log_fatal("Couldn't finish decoding");
-            // TODO Asssert here? write out what we have? Can we recover from this?
+            log_fatal("Now Terminating Program...")
+            exit(1);
         }
     }
 
     void* symbol_table[n];
     status = of_get_source_symbols_tab(openfec_session, symbol_table);
     if(status != OF_STATUS_OK) {
+        //TODO, better error message(?)
         log_fatal("Failed to get src symbols");
-        // TODO Asssert here? write out what we have? Can we recover from this?
+        log_fatal("Now Terminating Program...")
+        exit(1);
     }
 
     // TODO if the original file size is not evenly divisible by DXWIFI_FEC_SYMBOL_SIZE then the Kth 
