@@ -1,3 +1,5 @@
+[![Build/Test](https://github.com/oresat/oresat-dxwifi-software/actions/workflows/build_test.yml/badge.svg)](https://github.com/oresat/oresat-dxwifi-software/actions/workflows/build_test.yml)
+
 ## tx-rx
 
 Software to construct, transmit, and receive data packets via packet injection and monitor mode using the AR9271 chip.
