@@ -15,24 +15,24 @@ jobs:
 
     steps:
       - name: Checkout DxWiFi Repository
-      uses: actions/checkout@v2
-      with:
-        submodules: recursive
+        uses: actions/checkout@v2
+        with: 
+          submodules: recursive
       
       - name: Get Developer Dependencies
-      run: sudo apt update && apt install build-essential libpcap-dev iw cmake python3 valgrind -y
+        run: sudo apt update && apt install build-essential libpcap-dev iw cmake python3 valgrind -y
 
       - name: Configure CMake
-      working-directory: tx-rx
-      shell: bash
-      run: cmake -S . -B build -DCMAKE_BUILD_TYPE=TestDebug -DCMAKE_VERBOSE_MAKEFILE:BOOL=ON -DCMAKE_EXPORT_COMPILE_COMMANDS=ON
+        working-directory: tx-rx
+        shell: bash
+        run: cmake -S . -B build -DCMAKE_BUILD_TYPE=TestDebug -DCMAKE_VERBOSE_MAKEFILE:BOOL=ON -DCMAKE_EXPORT_COMPILE_COMMANDS=ON
 
       - name: Build
-      working-directory: tx-rx
-      shell: bash
-      run: cmake --build build --parallel 6
+        working-directory: tx-rx
+        shell: bash
+        run: cmake --build build --parallel 6
 
       - name: Run System Tests
-      working-directory: tx-rx
-      shell: bash
-      run: python -m unittest
+        working-directory: tx-rx
+        shell: bash
+        run: python -m unittest
