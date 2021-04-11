@@ -35,7 +35,7 @@ jobs:
 
       - name: Run System Tests - TestDebug
         working-directory: tx-rx
-        if: ${{ matrix.build_type == TestDebug }}
+        if: ${{ matrix.build_type == 'TestDebug' }}
         env: 
           DXWIFI_INSTALL_DIR: bin/TestDebug
         shell: bash
@@ -43,7 +43,7 @@ jobs:
 
       - name: Run System Tests - TestRel
         working-directory: tx-rx
-        if: ${{ matrix.build_type == TestRel }}
+        if: ${{ matrix.build_type == 'TestRel' }}
         env: 
           DXWIFI_INSTALL_DIR: bin/TestRel
         shell: bash
