@@ -1,0 +1,38 @@
+name: Build & Test
+
+on: push
+
+jobs:
+  build:
+    # TODO: Should run this workflow on the correct oresat-generic-image. 
+    # We should do one of the following:
+    #   - Publish a docker image of the oresat-generic-image pull it down and run from it
+    #   - Make the FlatSat's dxwifi board a self-hosted runner
+    #   - Something else? 
+    runs-on: ubuntu-20.04
+
+    # TODO: Define build matrix so we can build and test for every cmake configuration
+
+    steps:
+      - name: Checkout DxWiFi Repository
+      uses: actions/checkout@v2
+      with:
+        submodules: recursive
+      
+      - name: Get Developer Dependencies
+      run: sudo apt update && apt install build-essential libpcap-dev iw cmake python3 valgrind -y
+
+      - name: Configure CMake
+      working-directory: tx-rx
+      shell: bash
+      run: cmake -S . -B build -DCMAKE_BUILD_TYPE=TestDebug -DCMAKE_VERBOSE_MAKEFILE:BOOL=ON -DCMAKE_EXPORT_COMPILE_COMMANDS=ON
+
+      - name: Build
+      working-directory: tx-rx
+      shell: bash
+      run: cmake --build build --parallel 6
+
+      - name: Run System Tests
+      working-directory: tx-rx
+      shell: bash
+      run: python -m unittest
