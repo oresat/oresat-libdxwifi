@@ -1,10 +1,11 @@
-cmake_minimum_required(VERSION 3.2)
-
-project(dxwifi)
+cmake_minimum_required(VERSION 3.10)
 
 # Define Test Variants
 set(CMAKE_C_FLAGS_TESTDEBUG "-Wall -Werror -g -DDXWIFI_TESTS")
 set(CMAKE_C_FLAGS_TESTREL   "-Wall -Werror -O3 -DNDEBUG -DDXWIFI_TESTS")
+
+# Project directive will detect toolchain if we did not specify a platform
+project(dxwifi)
 
 # Determine Build configuration
 if(NOT CMAKE_BUILD_TYPE)
@@ -34,9 +35,11 @@ string(CONCAT DXWIFI_VERSION
 add_compile_definitions(DXWIFI_VERSION="${DXWIFI_VERSION}")
 
 # User Options
-option(LIBDXWIFI_DISABLE_ASSERTS    "Disable Assert Functions"     OFF)
-option(LIBDXWIFI_DISABLE_LOGGING    "Disable Logging"              OFF)
-option(INSTALL_SYSLOG_CONFIG        "Include configuration files for rsyslog and logrotate" OFF)
+option(LIBDXWIFI_DISABLE_ASSERTS     "Disable Assert Functions"     OFF)
+option(LIBDXWIFI_DISABLE_LOGGING     "Disable Logging"              OFF)
+option(INSTALL_SYSLOG_CONFIG         "Include configuration files for rsyslog and logrotate" OFF)
+option(CMAKE_EXPORT_COMPILE_COMMANDS "Generate compile_commands.json file" ON)
+
 
 if(LIBDXWIFI_DISABLE_ASSERTS)
     add_compile_definitions(LIBDXWIFI_DISABLE_ASSERTS)
@@ -52,6 +55,7 @@ include_directories(${PROJECT_SOURCE_DIR})
 set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${PROJECT_SOURCE_DIR}/lib/${CMAKE_BUILD_TYPE})
 set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${PROJECT_SOURCE_DIR}/lib/${CMAKE_BUILD_TYPE})
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${PROJECT_SOURCE_DIR}/bin/${CMAKE_BUILD_TYPE})
+
 
 # Deal with dependencies
 find_library(PCAP_LIB pcap)
