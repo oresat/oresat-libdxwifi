@@ -7,10 +7,6 @@ on:
     - '**/README.md'
     - '**/LICENSE'
     - '**/.gitignore'
-  pull_request:
-    branches:
-      - main
-      - master
 
 jobs:
   build-test:
