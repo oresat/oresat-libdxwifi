@@ -156,6 +156,46 @@ void delay_transmission(dxwifi_tx_frame* frame, dxwifi_tx_stats stats, void* use
     msleep(delay_ms, false);
 }
 
+/**
+ *  DESCRIPTION:    Called before every frame is injected, will intentionally 
+ *                  drop packets according to packet loss rate
+ * 
+ *  ARGUMENTS: 
+ * 
+ *      packet_loss_rate:        Float percentage of packets lost   
+ * 
+ */
+void packet_loss_sim(dxwifi_tx_frame* frame, dxwifi_tx_stats stats, void* user) {
+    float packet_loss_rate = *(float*) user;
+    //generate random num withing range
+    srand((unsigned) time(&t));
+    if(packet_loss_rate < rand()%10){ //might be a design problem here
+        frame->payload_size = 0;
+    }
+    return;
+}
+
+/**
+ *  DESCRIPTION:    Called before every frame is injected, will intentionally 
+ *                  flip bits according to error rate
+ * 
+ *  ARGUMENTS: 
+ * 
+ *     error_rate:      Float percentage of bits flipped
+ * 
+ */
+void bit_error_rate_sim(dxwifi_tx_frame* frame, dxwifi_tx_stats stats, void* user) {
+    float error_rate = *(float*) user;
+    srand((unsigned) time(&t));
+    int mask = 0x01; //may need to change
+    int frame_size = DXWIFI_TX_HEADER_SIZE + frame->payload_size + IEEE80211_FCS_SIZE;
+    int rate = frame_size * error_rate;
+    for(int i = 0; i < rate; ++i){
+        uint8_t chosen_byte = rand()%frame_size;
+        frame[chosen_byte] ^= mask;
+    }
+    return;
+}
 
 /**
  *  DESCRIPTION:    Called before every frame is injected, packs the current 
@@ -421,7 +461,12 @@ void transmit(cli_args* args, dxwifi_transmitter* tx) {
     if(args->verbosity > DXWIFI_LOG_INFO ) {
         attach_postinject_handler(transmitter, log_frame_stats, NULL);
     }
-
+    if(args->packet_loss > 0){
+        attach_preinject_handler(transmitter, packet_loss_sim, &args->packet_loss)
+    }
+    if(args->error_rate > 0){
+        attach_preinject_handler(transmitter, bit_error_rate_sim, &args->error_rate)
+    }
     switch (args->tx_mode)
     {
     case TX_STREAM_MODE:
