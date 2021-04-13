@@ -87,7 +87,7 @@ Here's an example where we set the receiver to output received files in the `tes
 timeout after 10 seconds without receiving a packet, log everything, strictly order the packets and fill in missing packets with noise, and 
 only capture packets whose addressed to 11:22:33:44:55:66.
 ```
-sudo ./rx --dev mon0 -v 6 --ordered --add-noise --timeout 10 --extension raw --prefix test --filter 'wlan addr1 11:22:33:44:55:66` test/
+sudo ./rx --dev mon0 -v 6 --ordered --add-noise --timeout 10 --extension raw --prefix test --filter="wlan addr1 11:22:33:44:55:66" test/
 ```
 
 And for the transmitter we set it to transmit everything in the `dxwifi` directory matching the glob pattern `*.md` and listen for new files, timeout after 20 seconds
@@ -99,7 +99,7 @@ sudo ./tx --dev mon0 --blocksize 512 --redundancy 5 --delay 10 --file-delay 10 -
 **Note**: When doing multi-file transmission like the example above, it's critical to set the `--file-delay` and `--redundancy` parameters 
 to something reasonable for your channel. If these parameters are not set then file boundaries will not be clearly delimited to the receiver.
 
-## Tests
+## System Tests
 
 To run the system tests first you'll need to compile the project with `DXWIFI_TESTS` defined.
 The project Cmake file defines two build configurations with this macro enabled, `TestDebug` and `TestRel`.
@@ -108,4 +108,23 @@ packetized data from a `savefile`. With the correct binaries built, simply run t
 
 ```
 python -m unittest
+```
+
+## Cross Compilation
+
+Currently DxWiFi only supports cross-compilation for the `armv7l` architecture. To setup cross-compilation for `armv7l` you'll first
+need to setup your toolchain. 
+
+```bash
+sudo apt install gcc-arm-linux-gnueabihf g++-arm-linux-gnueabihf qemu-user-static debootstrap -y
+sudo qemu-debootstrap --arch armhf buster /mnt/data/armhf http://deb.debian.org/debian/
+sudo chroot /mnt/data/armhf
+apt-get install libpcap-dev
+```
+
+This will install the armhf version of `libpcap-dev` in `mnt/data/armhf/lib/arm-linux-gnueabihf`. Then you can generate the 
+correct build scripts with: 
+
+```
+cmake -S . -B build -DPLATFORM=armhf
 ```
