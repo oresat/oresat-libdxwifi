@@ -4,6 +4,15 @@ cmake_minimum_required(VERSION 3.10)
 set(CMAKE_C_FLAGS_TESTDEBUG "-Wall -Werror -g -DDXWIFI_TESTS")
 set(CMAKE_C_FLAGS_TESTREL   "-Wall -Werror -O3 -DNDEBUG -DDXWIFI_TESTS")
 
+# Cross-Compilation support, only supports armhf at the moment
+if(PLATFORM STREQUAL "armhf")
+    if(NOT LINUX_ARM_ENV_ROOT)
+        set(LINUX_ARM_ENV_ROOT /mnt/data/armhf)
+    endif()
+    set(CMAKE_LIBRARY_ARCHITECTURE arm-linux-gnueabihf)
+    set(CMAKE_TOOLCHAIN_FILE platform/arm-linux-gnueabihf-gcc.cmake)
+endif()
+
 # Project directive will detect toolchain if we did not specify a platform
 project(dxwifi)
 
@@ -38,8 +47,8 @@ add_compile_definitions(DXWIFI_VERSION="${DXWIFI_VERSION}")
 option(LIBDXWIFI_DISABLE_ASSERTS     "Disable Assert Functions"     OFF)
 option(LIBDXWIFI_DISABLE_LOGGING     "Disable Logging"              OFF)
 option(INSTALL_SYSLOG_CONFIG         "Include configuration files for rsyslog and logrotate" OFF)
-option(CMAKE_EXPORT_COMPILE_COMMANDS "Generate compile_commands.json file" ON)
 
+set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
 if(LIBDXWIFI_DISABLE_ASSERTS)
     add_compile_definitions(LIBDXWIFI_DISABLE_ASSERTS)
@@ -73,9 +82,15 @@ set(CPACK_DEBIAN_PACKAGE_DEPENDS "libpcap-dev (>= 1.8.1-6), iw")
 set(CPACK_DEB_COMPONENT_INSTALL ON)
 set(CPACK_DEBIAN_ENABLE_COMPONENT_DEPENDS ON)
 set(CPACK_DEBIAN_PACKAGE_HOMEPAGE "https://github.com/oresat/oresat-dxwifi-software")
-execute_process(COMMAND dpkg --print-architecture OUTPUT_VARIABLE CPACK_DEBIAN_PACKAGE_ARCHITECTURE OUTPUT_STRIP_TRAILING_WHITESPACE)
-if ("${CPACK_DEBIAN_PACKAGE_ARCHITECTURE}" STREQUAL "")
-    set(CPACK_DEBIAN_PACKAGE_ARCHITECTURE "i386")
+
+# Determine architecture
+if(PLATFORM STREQUAL "arm-linux") 
+    set(CPACK_DEBIAN_PACKAGE_ARCHITECTURE "armhf")
+else() # Else use host architecture
+    execute_process(COMMAND dpkg --print-architecture OUTPUT_VARIABLE CPACK_DEBIAN_PACKAGE_ARCHITECTURE OUTPUT_STRIP_TRAILING_WHITESPACE)
+    if ("${CPACK_DEBIAN_PACKAGE_ARCHITECTURE}" STREQUAL "")
+        set(CPACK_DEBIAN_PACKAGE_ARCHITECTURE "i386")
+    endif()
 endif()
 
 # RX component CPack config
