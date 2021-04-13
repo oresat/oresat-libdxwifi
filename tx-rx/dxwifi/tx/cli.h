@@ -44,6 +44,8 @@ typedef struct {
     unsigned            tx_delay;
     unsigned            file_delay;
     const char*         device;
+    float               packet_loss;
+    float               error_rate;
     dxwifi_transmitter  tx;
 } cli_args;
 
@@ -64,6 +66,8 @@ typedef struct {
         .tx_delay                   = 0,\
         .file_delay                 = 0,\
         .device                     = "mon0",\
+        .error_rate                 = 0,\
+        .packet_loss                 = 0,\
         .tx = DXWIFI_TRANSMITTER_DFLT_INITIALIZER\
     }\
 
