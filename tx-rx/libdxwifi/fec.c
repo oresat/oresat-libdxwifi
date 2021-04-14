@@ -225,9 +225,9 @@ size_t dxwifi_decode(void* encoded_msg, size_t msglen, void** out) {
 		log_fatal("No valid OTI headers found.  Aborting program.");
 		exit(1);
 	}
-    
-    //Now actually decode the LDPC blocks
-    dxwifi_oti* oti      = encoded_msg;
+
+	//Now actually decode the LDPC blocks
+	dxwifi_oti* oti      = encoded_msg;
     uint32_t esi         = ntohl(oti->esi);
     uint32_t n           = ntohl(oti->n);
     uint32_t k           = ntohl(oti->k);

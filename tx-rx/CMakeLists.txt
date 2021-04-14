@@ -90,6 +90,22 @@ set(CPACK_DEBIAN_TX_PACKAGE_CONTROL_EXTRA
     )
 set(CPACK_DEBIAN_TX_FILE_NAME "${CPACK_PACKAGE_NAME}-tx_${CPACK_PACKAGE_VERSION}_${CPACK_DEBIAN_PACKAGE_ARCHITECTURE}.deb")
 
+# Encode component CPack config
+set(CPACK_DEBIAN_ENCODE_PACKAGE_CONTROL_EXTRA 
+    "${CMAKE_SOURCE_DIR}/config/debian/encode/postinst" 
+    "${CMAKE_SOURCE_DIR}/config/debian/encode/postrm" 
+    "${CMAKE_SOURCE_DIR}/config/debian/encode/prerm"
+    )
+set(CPACK_DEBIAN_ENCODE_FILE_NAME "${CPACK_PACKAGE_NAME}-encode_${CPACK_PACKAGE_VERSION}_${CPACK_DEBIAN_PACKAGE_ARCHITECTURE}.deb")
+
+# Encode component CPack config
+set(CPACK_DEBIAN_DECODE_PACKAGE_CONTROL_EXTRA 
+    "${CMAKE_SOURCE_DIR}/config/debian/decode/postinst" 
+    "${CMAKE_SOURCE_DIR}/config/debian/decode/postrm" 
+    "${CMAKE_SOURCE_DIR}/config/debian/decode/prerm"
+    )
+set(CPACK_DEBIAN_DECODE_FILE_NAME "${CPACK_PACKAGE_NAME}-decode_${CPACK_PACKAGE_VERSION}_${CPACK_DEBIAN_PACKAGE_ARCHITECTURE}.deb")
+
 include(CPack)
 
 # Sub targets
