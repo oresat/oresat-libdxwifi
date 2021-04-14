@@ -9,7 +9,7 @@ Software to construct, transmit, and receive data packets via packet injection a
 - 2 linux capable devices (Raspberry PI, Beaglebone Black, Your laptop etc.)
 - 2 WiFi adapters capable of monitor mode (Only tested on Atheros AR9271 chipset)
 - [CMake](https://cmake.org/)
-- [`libpcap-dev`](https://www.tcpdump.org/), [`iw`](https://wireless.wiki.kernel.org/en/users/documentation/iw), [`ip`](https://linux.die.net/man/8/ip)
+- [`libpcap-dev`](https://www.tcpdump.org/), [`libgpiod-dev`](https://git.kernel.org/pub/scm/libs/libgpiod/libgpiod.git/), [`iw`](https://wireless.wiki.kernel.org/en/users/documentation/iw), [`ip`](https://linux.die.net/man/8/ip)
 
 ## Building tx-rx
 
