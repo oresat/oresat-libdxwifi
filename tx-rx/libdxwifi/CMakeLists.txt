@@ -4,4 +4,4 @@ add_library(dxwifi STATIC ${libdxwifi_sources})
 
 set_target_properties(dxwifi PROPERTIES COMPILE_FLAGS "-Wall -Wextra -Wno-unused-function")
 
-target_link_libraries(dxwifi ${PCAP_LIB})
+target_link_libraries(dxwifi ${LIB_PCAP} ${LIB_GPIOD})

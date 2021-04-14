@@ -171,6 +171,7 @@ typedef struct {
     int         transmit_timeout;   /* Number of seconds to wait for a read */
     int         redundant_ctrl_frames;
                                     /* Number of extra ctrl frames to send  */
+    bool        enable_pa;          /* Enable Power Amplifier               */
     uint8_t     address[IEEE80211_MAC_ADDR_LEN];
                                     /* Transmitters MAC address             */
     uint8_t     rtap_flags;         /* Radiotap flags                       */
@@ -190,7 +191,6 @@ typedef struct {
     const char*     savefile;       /* File to dump packet data to          */
     pcap_dumper_t*  dumper;         /* Handle to dump file                  */
 #endif
-
 } dxwifi_transmitter;
 
 
@@ -198,6 +198,7 @@ typedef struct {
     .blocksize              = 1024,\
     .transmit_timeout       = -1,\
     .redundant_ctrl_frames  = 0,\
+    .enable_pa              = false,\
     .rtap_flags             = IEEE80211_RADIOTAP_F_FCS,\
     .rtap_rate_mbps         = 1,\
     .rtap_tx_flags          = IEEE80211_RADIOTAP_F_TX_NOACK,\

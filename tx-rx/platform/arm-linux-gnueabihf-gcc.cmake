@@ -6,24 +6,7 @@
 #   sudo qemu-debootstrap --arch armhf buster /mnt/data/armhf http://deb.debian.org/debian/
 #   sudo chroot /mnt/data/armhf
 #   apt-get install libpcap-dev
-#   ```
-#   
-#   This will install the arm version of libpcap-dev in mnt/data/armhf/lib/arm-linux-gnueabihf
-#   Cmake should be able to find the .so but if it can't you may have to modify the find_library
-#   directive in the root cmake file
-#
-#   Alternatively you can build libpcap-dev from source and point cmake to it like this:
-#   
-#   ```
-#   cd /usr/arm-linux-gnueabihf/
-#   export PCAP_VERSION=1.9.1
-#   wget http://www.tcpdump.org/release/libpcap-$PCAP_VERSION.tar.gz
-#   tar xvf libpcap-$PCAP_VERSION.tar.gz
-#   cd libpcap_$PCAP_VERSION
-#   export CC=arm-linux-gnueabihf-gcc
-#   export CFLAGS='-Os'
-#   sudo ./configure --host=arm-linux-gnueabihf --with-pcap=linux
-#   make
+#   apt-get install libgpiod-dev
 #   ```
 
 set(CMAKE_SYSTEM_NAME       Linux)

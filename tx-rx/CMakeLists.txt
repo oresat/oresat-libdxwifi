@@ -67,9 +67,14 @@ set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${PROJECT_SOURCE_DIR}/bin/${CMAKE_BUILD_TYPE}
 
 
 # Deal with dependencies
-find_library(PCAP_LIB pcap)
-if(NOT PCAP_LIB)
+find_library(LIB_PCAP pcap)
+if(NOT LIB_PCAP)
     message(FATAL_ERROR "pcap not found. Please install libpcap-dev")
+endif()
+
+find_library(LIB_GPIOD gpiod)
+if(NOT LIB_GPIOD)
+    message(FATAL_ERROR "gpiod not found. Please install libgpiod-dev")
 endif()
 
 # Global CPack configuration
@@ -84,7 +89,7 @@ set(CPACK_DEBIAN_ENABLE_COMPONENT_DEPENDS ON)
 set(CPACK_DEBIAN_PACKAGE_HOMEPAGE "https://github.com/oresat/oresat-dxwifi-software")
 
 # Determine architecture
-if(PLATFORM STREQUAL "arm-linux") 
+if(PLATFORM STREQUAL "armhf") 
     set(CPACK_DEBIAN_PACKAGE_ARCHITECTURE "armhf")
 else() # Else use host architecture
     execute_process(COMMAND dpkg --print-architecture OUTPUT_VARIABLE CPACK_DEBIAN_PACKAGE_ARCHITECTURE OUTPUT_STRIP_TRAILING_WHITESPACE)
