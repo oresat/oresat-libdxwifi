@@ -24,8 +24,7 @@ jobs:
       - name: Build cross-compilation toolchain
         run: |
           sudo qemu-debootstrap --arch armhf buster /mnt/data/armhf http://deb.debian.org/debian/
-          sudo chroot /mnt/data/armhf /bin/bash -c "apt-get install libpcap-dev -y"
-          sudo chroot /mnt/data/armhf /bin/bash -c "apt-get install libgpiod-dev -y"
+          sudo chroot /mnt/data/armhf /bin/bash -c "apt-get install libpcap-dev libgpiod-dev gpiod -y"
 
       - name: Configure CMake
         working-directory: tx-rx
