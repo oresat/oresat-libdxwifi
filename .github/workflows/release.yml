@@ -9,7 +9,7 @@ on:
     - '**/.gitignore'
 
 jobs:
-  build-test:
+  release:
     runs-on: ubuntu-20.04
 
     steps:
@@ -24,8 +24,8 @@ jobs:
       - name: Build cross-compilation toolchain
         run: |
           sudo qemu-debootstrap --arch armhf buster /mnt/data/armhf http://deb.debian.org/debian/
-          sudo chroot /mnt/data/armhf /bin/bash -c "apt-get install libpcap-dev"
-          sudo chroot /mnt/data/armhf /bin/bash -c "apt-get install libgpiod-dev"
+          sudo chroot /mnt/data/armhf /bin/bash -c "apt-get install libpcap-dev -y"
+          sudo chroot /mnt/data/armhf /bin/bash -c "apt-get install libgpiod-dev -y"
 
       - name: Configure CMake
         working-directory: tx-rx
