@@ -39,8 +39,8 @@ dxwifi_transmitter* transmitter = NULL;
 
 
 // Forward declare
+void terminate(int signum);
 void transmit(cli_args* args, dxwifi_transmitter* tx);
-
 
 int main(int argc, char** argv) {
 
@@ -56,6 +56,7 @@ int main(int argc, char** argv) {
     }
     if(args.daemon) {
         daemon_run(args.pid_file, args.daemon);
+        signal(SIGTERM, terminate);
     }
 
     init_transmitter(transmitter, args.device);
@@ -69,6 +70,21 @@ int main(int argc, char** argv) {
     }
 
     exit(0);
+}
+
+/**
+ *  DESCRIPTION:    SIGTERM handler for daemonized process. Ensures transmitter
+ *                  is closed.
+ * 
+ *  ARGUMENTS: 
+ *      
+ *      signum:     Received signal  
+ * 
+ */
+void terminate(int signum) {
+    stop_transmission(transmitter);
+    close_transmitter(transmitter);
+    exit(signum);
 }
 
 
