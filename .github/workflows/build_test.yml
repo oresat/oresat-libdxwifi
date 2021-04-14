@@ -27,7 +27,7 @@ jobs:
           submodules: recursive
       
       - name: Get Developer Dependencies
-        run: sudo apt update && sudo apt install build-essential libpcap-dev iw cmake python3 valgrind -y
+        run: sudo apt update && sudo apt install build-essential libpcap-dev libgpiod-dev iw cmake python3 valgrind -y
 
       - name: Configure CMake
         working-directory: tx-rx
