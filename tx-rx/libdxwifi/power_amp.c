@@ -13,6 +13,8 @@
 
 #include <libdxwifi/power_amp.h>
 
+// PA_ENABLE is on MII1_TX_CLK which is mapped to GPIO3_9 (GPIO105)
+
 #ifndef DXWIFI_PA_GPIO_CHIP
 #define DXWIFI_PA_GPIO_CHIP 3
 #endif // DXWIFI_PA_GPIO_CHIP
