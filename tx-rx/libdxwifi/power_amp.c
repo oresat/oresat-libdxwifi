@@ -14,11 +14,11 @@
 #include <libdxwifi/power_amp.h>
 
 #ifndef DXWIFI_PA_GPIO_CHIP
-#define DXWIFI_PA_GPIO_CHIP 1
+#define DXWIFI_PA_GPIO_CHIP 3
 #endif // DXWIFI_PA_GPIO_CHIP
 
 #ifndef DXWIFI_PA_GPIO_LINE
-#define DXWIFI_PA_GPIO_LINE 28
+#define DXWIFI_PA_GPIO_LINE 9
 #endif //DXWIFI_PA_GPIO_LINE
 
 
