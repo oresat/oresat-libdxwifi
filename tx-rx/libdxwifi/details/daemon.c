@@ -128,7 +128,7 @@ int start_daemon(const char* pid_file) {
         exit(EXIT_FAILURE);
     }
 
-    log_info("Daemonizing process %d...", getpid());
+    log_info("Daemonizing process %d and exiting. . .", getpid());
 
     if(daemon(0, 0) < 0) { // Parent process exits on success
         log_fatal("Failed to daemonize process: %s", strerror(errno));
@@ -144,9 +144,6 @@ int start_daemon(const char* pid_file) {
         log_fatal("Failed to write to PID File %s", pid_file);
         exit(EXIT_FAILURE);
     }
-
-    // Use parents logger to notify calling process
-    log_info("Daemon successfully started! PID: %d PID File: %s", pid, pid_file);
 
     // Child process continues on
     set_logger(DXWIFI_LOG_ALL_MODULES, syslogger);
