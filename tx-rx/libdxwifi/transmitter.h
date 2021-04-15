@@ -86,14 +86,17 @@ compiler_assert(sizeof(dxwifi_tx_radiotap_hdr) == DXWIFI_TX_RADIOTAP_HDR_SIZE,
  * 
  */
 typedef struct __attribute__((packed)) { 
+    // Actual Data Frame
     dxwifi_tx_radiotap_hdr  radiotap_hdr;  /* frame metadata               */
     ieee80211_hdr           mac_hdr;       /* link-layer header            */
     uint8_t                 payload[DXWIFI_TX_PAYLOAD_SIZE_MAX + IEEE80211_FCS_SIZE];       
                                             /* packet data and FCS          */
+
+    // Control data about the payload, not transmitted with the data frame
     uint32_t                payload_size;   /* Size of the actual payload   */
 } dxwifi_tx_frame;
 
-compiler_assert(sizeof(dxwifi_tx_frame) == sizeof(dxwifi_tx_frame), 
+compiler_assert(sizeof(dxwifi_tx_frame) == (DXWIFI_TX_FRAME_SIZE_MAX + sizeof(uint32_t)), 
     "Mismatch in actual tx frame size and calculated size");
 
 
@@ -168,6 +171,7 @@ typedef struct {
     int         transmit_timeout;   /* Number of seconds to wait for a read */
     int         redundant_ctrl_frames;
                                     /* Number of extra ctrl frames to send  */
+    bool        enable_pa;          /* Enable Power Amplifier               */
     uint8_t     address[IEEE80211_MAC_ADDR_LEN];
                                     /* Transmitters MAC address             */
     uint8_t     rtap_flags;         /* Radiotap flags                       */
@@ -187,7 +191,6 @@ typedef struct {
     const char*     savefile;       /* File to dump packet data to          */
     pcap_dumper_t*  dumper;         /* Handle to dump file                  */
 #endif
-
 } dxwifi_transmitter;
 
 
@@ -195,6 +198,7 @@ typedef struct {
     .blocksize              = 1024,\
     .transmit_timeout       = -1,\
     .redundant_ctrl_frames  = 0,\
+    .enable_pa              = false,\
     .rtap_flags             = IEEE80211_RADIOTAP_F_FCS,\
     .rtap_rate_mbps         = 1,\
     .rtap_tx_flags          = IEEE80211_RADIOTAP_F_TX_NOACK,\

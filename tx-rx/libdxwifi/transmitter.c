@@ -12,6 +12,7 @@
 #include <stdbool.h>
 
 #include <poll.h>
+#include <gpiod.h>
 #include <errno.h>
 #include <unistd.h>
 #include <endian.h>
@@ -19,6 +20,7 @@
 #include <arpa/inet.h>
 
 #include <libdxwifi/dxwifi.h>
+#include <libdxwifi/power_amp.h>
 #include <libdxwifi/transmitter.h>
 #include <libdxwifi/details/utils.h>
 #include <libdxwifi/details/assert.h>
@@ -303,6 +305,7 @@ static void log_tx_configuration(const dxwifi_transmitter* tx, const char* devic
     log_info(
             "DxWifi Transmitter Settings\n"
             "\tDevice:              %s\n"
+            "\tPA Enabled:          %d\n"
             "\tBlock Size:          %ld\n"
             "\tTransmit Timeout:    %d\n"
             "\tRedundant Ctrl:      %d\n"
@@ -310,6 +313,7 @@ static void log_tx_configuration(const dxwifi_transmitter* tx, const char* devic
             "\tRTAP flags:          0x%x\n"
             "\tRTAP Tx flags:       0x%x\n",
             device_name,
+            tx->enable_pa,
             tx->blocksize,
             tx->transmit_timeout,
             tx->redundant_ctrl_frames,
@@ -351,10 +355,19 @@ void init_transmitter(dxwifi_transmitter* tx, const char* device_name) {
                         DXWIFI_DFLT_PACKET_BUFFER_TIMEOUT, 
                         err_buff
                     );
+
+    // WARNING: Only Enable PA if PCAP successfully initiailzed the WiFi device
+    if(tx->enable_pa && tx->__handle != NULL)  { 
+        pa_error_t status = enable_power_amplifier();
+        assert_M(status == PA_OKAY, "%s", pa_error_to_str(status));
+
+        log_info("Power Amplifier enabled!");
+    }
 #endif // DXWIFI_TESTS
 
     // Hard assert here because if pcap fails it's all FUBAR anyways
     assert_M(tx->__handle != NULL, err_buff);
+
 
     log_tx_configuration(tx, device_name);
 }
@@ -364,6 +377,16 @@ void close_transmitter(dxwifi_transmitter* tx) {
     debug_assert(tx && tx->__handle);
 
     pcap_close(tx->__handle);
+
+    if(tx->enable_pa) {
+        pa_error_t status = close_power_amplifier();
+        if(status != PA_OKAY) {
+            log_error("%s", pa_error_to_str(status));
+        }
+        else {
+            log_info("Power Amplifier disabled");
+        }
+    }
 
     log_info("DxWifi transmitter closed");
 
