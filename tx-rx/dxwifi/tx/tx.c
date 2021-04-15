@@ -169,9 +169,9 @@ void packet_loss_sim(dxwifi_tx_frame* frame, dxwifi_tx_stats stats, void* user) 
     float packet_loss_rate = *(float*) user;
     //generate random num withing range
     srand((unsigned) time(&t));
-    float probability = srand()%10 /
+    float random = (srand()%10) / 100.0;
     
-    if(packet_loss_rate <//here){ //might be a design problem here
+    if(packet_loss_rate < random){
         frame->payload_size = 0;
     }
     return;
