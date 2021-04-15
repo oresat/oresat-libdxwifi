@@ -189,7 +189,7 @@ void packet_loss_sim(dxwifi_tx_frame* frame, dxwifi_tx_stats stats, void* user) 
 void bit_error_rate_sim(dxwifi_tx_frame* frame, dxwifi_tx_stats stats, void* user) {
     float error_rate = *(float*) user;
     srand((unsigned) time(&t)); //init random number 
-    uint8_t bit_mask[8] = { //Maybe should be int
+    int bit_mask[8] = { //Maybe should be int
         0x01, //0000 0001
         0x02, //0000 0010
         0x04, //0000 0100
@@ -204,7 +204,7 @@ void bit_error_rate_sim(dxwifi_tx_frame* frame, dxwifi_tx_stats stats, void* use
     
     for(int i = 0; i < total_num_errors; ++i){
         uint8_t chosen_byte = rand()%frame_size;
-        uint8_t chosen_bit = rand()%8;
+        int chosen_bit = rand()%8;
         frame[chosen_byte] ^= bit_mask[chosen_bit];
     }
     return;
