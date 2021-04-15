@@ -186,7 +186,7 @@ void packet_loss_sim(dxwifi_tx_frame* frame, dxwifi_tx_stats stats, void* user) 
     //generate random num withing range
     time_t t;
     srand((unsigned) time(&t));
-    float random = (rand()%10) / 10.0;
+    float random = (rand()%100) / 100.0;
     
     if(packet_loss_rate < random){
         frame->payload_size = 0;
@@ -205,6 +205,7 @@ void packet_loss_sim(dxwifi_tx_frame* frame, dxwifi_tx_stats stats, void* user) 
  */
 void bit_error_rate_sim(dxwifi_tx_frame* frame, dxwifi_tx_stats stats, void* user) {
     float error_rate = *(float*) user;
+    time_t t;
     srand((unsigned) time(&t)); //init random number 
     int bit_mask[8] = { //Maybe should be int
         0x01, //0000 0001
@@ -217,7 +218,7 @@ void bit_error_rate_sim(dxwifi_tx_frame* frame, dxwifi_tx_stats stats, void* use
         0x80  //1000 0000
     };
     int frame_size = DXWIFI_TX_HEADER_SIZE + frame->payload_size + IEEE80211_FCS_SIZE;
-    int total_num_errors = frame_size * error_rate; //Get total number of errors
+    int total_num_errors = frame_size * 8 *error_rate; //Get total number of errors
     
     for(int i = 0; i < total_num_errors; ++i){
         uint8_t chosen_byte = rand()%frame_size;
