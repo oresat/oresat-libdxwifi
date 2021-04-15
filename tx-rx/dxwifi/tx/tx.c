@@ -184,6 +184,7 @@ void delay_transmission(dxwifi_tx_frame* frame, dxwifi_tx_stats stats, void* use
 void packet_loss_sim(dxwifi_tx_frame* frame, dxwifi_tx_stats stats, void* user) {
     float packet_loss_rate = *(float*) user;
     //generate random num withing range
+    time_t t;
     srand((unsigned) time(&t));
     float random = (srand()%10) / 100.0;
     
@@ -214,7 +215,7 @@ void bit_error_rate_sim(dxwifi_tx_frame* frame, dxwifi_tx_stats stats, void* use
         0x20, //0010 0000
         0x40, //0100 0000
         0x80  //1000 0000
-    }
+    };
     int frame_size = DXWIFI_TX_HEADER_SIZE + frame->payload_size + IEEE80211_FCS_SIZE;
     int total_num_errors = frame_size * error_rate; //Get total number of errors
     
