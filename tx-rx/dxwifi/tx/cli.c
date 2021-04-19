@@ -214,12 +214,12 @@ static error_t parse_opt(int key, char* arg, struct argp_state *state) {
     
     case 'p':
         args->packet_loss = atof(arg);
-        //bounds check
+        //TODO: bounds check
         break;
     
     case 'e':
         args->error_rate = atof(arg);
-        //bounds check
+        //TODO: bounds check
         break; 
 
     case 'E':

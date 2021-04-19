@@ -59,6 +59,8 @@ int main(int argc, char** argv) {
         signal(SIGTERM, terminate);
     }
 
+    srand(time(0)); // Seed random number generator
+
     init_transmitter(transmitter, args.device);
 
     transmit(&args, transmitter);
@@ -184,9 +186,9 @@ void delay_transmission(dxwifi_tx_frame* frame, dxwifi_tx_stats stats, void* use
 void packet_loss_sim(dxwifi_tx_frame* frame, dxwifi_tx_stats stats, void* user) {
     float packet_loss_rate = *(float*) user;
     //generate random num withing range
-    time_t t;
-    srand((unsigned) time(&t));
-    float random = (double)rand() / (double)RAND_MAX;
+    float random = (float)rand() / (float)RAND_MAX;
+
+    log_fatal("%f", random);
     
     if(packet_loss_rate < random){
         frame->payload_size = 0;
@@ -205,28 +207,26 @@ void packet_loss_sim(dxwifi_tx_frame* frame, dxwifi_tx_stats stats, void* user) 
  */
 void bit_error_rate_sim(dxwifi_tx_frame* frame, dxwifi_tx_stats stats, void* user) {
     float error_rate = *(float*) user;
-    time_t t;
-    srand((unsigned) time(&t)); //init random number 
     int frame_size = DXWIFI_TX_HEADER_SIZE + frame->payload_size + IEEE80211_FCS_SIZE;
     int total_num_errors = frame_size * 8 * error_rate; //Get total number of errors
-    int bit_array[frame_size * 8]; //Make an array of bits equal to the number in the frame
+    uint8_t bit_array[frame_size]; //Make an array of bits equal to the number in the frame
     
-    for(int i = 0; i < frame_size; ++i){ //initiallize every bit in the array to 0
-        bit_array[i] = 0;
-    }
+    // Initialize every bit to zero
+    memset(bit_array, 0, frame_size);
 
     for(int i = 0; i < total_num_errors; ++i){
-        uint8_t chosen_byte = rand()%frame_size;
-        int chosen_bit = rand()%8;
-        if(bit_array[chosen_byte * 8 + chosen_bit] == 0) { //Flip bit if unseen
-            ((uint8_t*)frame)[chosen_byte] ^= (1 << chosen_bit);
-            bit_array[chosen_byte * 8 + chosen_bit] = 1;
+        uint8_t chosen_byte = rand() % frame_size;
+        int chosen_bit = 1 << (rand() % 8);
+
+        if((bit_array[chosen_byte] & chosen_bit) == 0) { //Flip bit if unseen
+            ((uint8_t*)frame)[chosen_byte] ^= chosen_bit; // Toggle bit in frame
+            bit_array[chosen_byte] &= chosen_bit;   // Set bit in the set
         }
         else{ //Reroll for different bit
             --i;
         }
     }
-    syslog(LOG_INFO, "\nNumber of bit errors: %d", total_num_errors);
+    log_info("Number of bit errors for : %d", total_num_errors);
     return;
 }
 
