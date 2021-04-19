@@ -1,0 +1,8 @@
+#!/bin/sh
+
+# TODO SERVICE_FILE=oresat-live-txd.service
+# TODO systemctl stop $SERVICE_FILE
+
+echo "encode prerm"
+
+exit 0

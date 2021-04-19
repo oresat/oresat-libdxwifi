@@ -6,6 +6,11 @@ add_executable(tx ${tx_sources})
 
 target_link_libraries(tx dxwifi)
 
+set_target_properties( tx 
+    PROPERTIES
+    RUNTIME_OUTPUT_DIRECTORY ${DXWIFI_RUNTIME_OUTPUT_DIRECTORY}
+    )
+
 install(
     TARGETS tx 
     DESTINATION /usr/bin
