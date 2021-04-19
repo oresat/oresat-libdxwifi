@@ -226,7 +226,7 @@ void bit_error_rate_sim(dxwifi_tx_frame* frame, dxwifi_tx_stats stats, void* use
             --i;
         }
     }
-    syslog(LOG_INFO, "Number of bit errors: %d", total_num_errors);
+    syslog(LOG_INFO, "\nNumber of bit errors: %d", total_num_errors);
     return;
 }
 
