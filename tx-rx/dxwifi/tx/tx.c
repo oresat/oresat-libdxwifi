@@ -209,9 +209,9 @@ void bit_error_rate_sim(dxwifi_tx_frame* frame, dxwifi_tx_stats stats, void* use
     srand((unsigned) time(&t)); //init random number 
     int frame_size = DXWIFI_TX_HEADER_SIZE + frame->payload_size + IEEE80211_FCS_SIZE;
     int total_num_errors = frame_size * 8 * error_rate; //Get total number of errors
-    int bit_array = [frame_size * 8]; //Make an array of bits equal to the number in the frame
+    int bit_array[frame_size * 8]; //Make an array of bits equal to the number in the frame
     
-    for(int i = 0: i < frame_size; ++i){ //initiallize every bit in the array to 0
+    for(int i = 0; i < frame_size; ++i){ //initiallize every bit in the array to 0
         bit_array[i] = 0;
     }
 
