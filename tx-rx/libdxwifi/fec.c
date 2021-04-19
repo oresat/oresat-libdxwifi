@@ -2,7 +2,6 @@
  *  fec.c - See fec.h for description
  *
  *  https://github.com/oresat/oresat-dxwifi-software
- *  TODO: Hook Conditional Compilation (DEBUG_LOGGING) into cmake
  */
 
 #include <math.h>
@@ -148,10 +147,8 @@ size_t dxwifi_encode(void* message, size_t msglen, float coderate, void** out) {
 
             encode_data(message, RSCODE_MAX_MSG_LEN, codeword);
         }
-        #ifdef DEBUG_LOGGING
         log_ldpc_data_frame(ldpc_frame);
         log_rs_ldpc_data_frame(rs_ldpc_frame);
-        #endif
     }
 
     *out = rs_ldpc_frames;
@@ -203,21 +200,21 @@ size_t dxwifi_decode(void* encoded_msg, size_t msglen, void** out) {
     for(size_t oti_check = 0; oti_check < nframes; oti_check++) {
     	dxwifi_ldpc_frame* test_frame = &ldpc_frames[oti_check];
     	uint32_t crc = crc32(test_frame->symbol, DXWIFI_FEC_SYMBOL_SIZE); 
-    	#ifdef DEBUG_LOGGING
+
     	log_debug("Test Frame CRC: 0x%x ", ntohl(test_frame->oti.crc));
     	log_debug("Calculated CRC: 0x%x \n", crc);
-    	#endif
+
     	//Recompute the CRC value, and compare vs the one pulled from oti.crc
     	//if it's equal, log info that a valid one was found and return to standard execution.
     	if(crc == ntohl(test_frame->oti.crc)){
-    		#ifdef DEBUG_LOGGING
-    		log_debug("Valid OTI header found, returning to standard execution");
-    		#endif
+    		log_debug("Valid OTI header found");
     		foundvalue = (int)oti_check;
     		break;
     	}
     	//Otherwise, log a warning for a CRC mismatch and continue forwards.
-    	else { log_warning("CRC didn't match: Expected: 0x%x, Got: 0x%x", crc, ntohl(test_frame->oti.crc)); }
+    	else { 
+            log_warning("CRC for frame %d didn't match: Expected: 0x%x, Got: 0x%x", oti_check, crc, ntohl(test_frame->oti.crc)); 
+        }
 	} 
 	//If no valid OTI headers were found (foundvalue still == -1), then exit the program with an error
 	if(foundvalue == -1){
@@ -231,7 +228,6 @@ size_t dxwifi_decode(void* encoded_msg, size_t msglen, void** out) {
     uint32_t esi         = ntohl(oti->esi);
     uint32_t n           = ntohl(oti->n);
     uint32_t k           = ntohl(oti->k);
-    //uint32_t crc         = ntohl(oti->crc);
     log_info("esi=%d, n=%d, k=%d", esi, n, k);
 
 

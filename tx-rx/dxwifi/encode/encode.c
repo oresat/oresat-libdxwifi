@@ -78,14 +78,12 @@ void encode_file(cli_args *args) {
 
     // Teardown resources
     close(fd_in);
-    if (args->file_out)
-    {
+    if (args->file_out) {
         close(fd_out);
     }
     munmap(file_data, file_size);
 }
 
-void encode_stream(cli_args *args)
-{
+void encode_stream(cli_args *args) {
     assert_always("Unimplemented");
 }

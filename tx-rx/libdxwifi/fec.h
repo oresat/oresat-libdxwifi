@@ -1,5 +1,5 @@
 /**
- *  encoder.h - API to FEC encode data 
+ *  fec.h - API to FEC encode data 
  *
  *  https://github.com/oresat/oresat-dxwifi-software
  * 
