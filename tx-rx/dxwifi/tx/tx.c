@@ -218,9 +218,9 @@ void bit_error_rate_sim(dxwifi_tx_frame* frame, dxwifi_tx_stats stats, void* use
     for(int i = 0; i < total_num_errors; ++i){
         uint8_t chosen_byte = rand()%frame_size;
         int chosen_bit = rand()%8;
-        if(bit_array[chosen_byte * 8 + chosen_bit] == 0){ //Flip bit if unseen
-                   frame[chosen_byte] ^= (1 << chosen_bit);
-                   bit_array[chosen_byte * 8 + chosen_bit] = 1;
+        if(bit_array[chosen_byte * 8 + chosen_bit] == 0) { //Flip bit if unseen
+            ((uint8_t*)frame)[chosen_byte] ^= (1 << chosen_bit);
+            bit_array[chosen_byte * 8 + chosen_bit] = 1;
         }
         else{ //Reroll for different bit
             --i;
@@ -495,10 +495,10 @@ void transmit(cli_args* args, dxwifi_transmitter* tx) {
         attach_postinject_handler(transmitter, log_frame_stats, NULL);
     }
     if(args->packet_loss > 0){
-        attach_preinject_handler(transmitter, packet_loss_sim, &args->packet_loss)
+        attach_preinject_handler(transmitter, packet_loss_sim, &args->packet_loss);
     }
     if(args->error_rate > 0){
-        attach_preinject_handler(transmitter, bit_error_rate_sim, &args->error_rate)
+        attach_preinject_handler(transmitter, bit_error_rate_sim, &args->error_rate);
     }
     switch (args->tx_mode)
     {

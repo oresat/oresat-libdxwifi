@@ -63,8 +63,8 @@ static struct argp_option opts[] = {
     { "test",           'T',  0,                    0,  "Transmit a test sequence of bytes, use -c to retransmit it multiple times",     PRIMARY_GROUP },
     { "daemon",         'D',  "<start|stop>",       0,  "Run the tx program as a forked daemon process (Sets logger to syslog as well)", PRIMARY_GROUP },
     { "pid-file",       'P',  "<file-path>",        0,  "Location of the Daemon's PID File",                                             PRIMARY_GROUP },
-    { "packet-loss"     'p',  "<float>",            0,  "Numbers of packets dropped",                                                    PRIMARY_GROUP },
-    { "error-rate"      'e',  "<float>",            0,  "Numbers bits flipped",                                                          PRIMARY_GROUP },
+    { "packet-loss",    'p',  "<float>",            0,  "Numbers of packets dropped",                                                    PRIMARY_GROUP },
+    { "error-rate",     'e',  "<float>",            0,  "Numbers bits flipped",                                                          PRIMARY_GROUP },
     { "enable-pa",      'E',  0,                    0,  "Enable Power Amplifer (Only works on OreSat DxWiFi board)",                     PRIMARY_GROUP },
 
 
