@@ -73,7 +73,8 @@
 #define assert_always(msg, ...) assert_M(0, msg, ##__VA_ARGS__)
 
 
-static void __assert_M(bool exit, const char* expr, const char* file, int line, const char* msg, ...) {
+// This function may or may not be used in production. Add unused attribute to notify GCC to not produce errors
+__attribute__((unused)) static void __assert_M(bool exit, const char* expr, const char* file, int line, const char* msg, ...) {
 
     char* path  = strdup(file);
     char* bname = basename(path);
@@ -88,7 +89,7 @@ static void __assert_M(bool exit, const char* expr, const char* file, int line, 
     vsnprintf(fmt + chars, DXWIFI_ASSERT_MSG_MAX_LEN - chars, msg, args);
     va_end(args);
 
-    __dxwifi_log(DXWIFI_LOG_FATAL, file, "%s", fmt);
+    __dxwifi_log( exit ? DXWIFI_LOG_FATAL : DXWIFI_LOG_ERROR, file, "%s", fmt);
 
     free(path);
     if( exit ) {

@@ -19,6 +19,8 @@
 
 #include <pcap.h>
 
+#include <libdxwifi/dxwifi.h>
+#include <libdxwifi/details/assert.h>
 #include <libdxwifi/details/ieee80211.h>
 
 /************************
@@ -39,6 +41,8 @@
     | 0x1 << IEEE80211_RADIOTAP_TX_FLAGS)\
 
 #define DXWIFI_TX_FRAME_HANDLER_MAX 8
+
+#define DXWIFI_TX_RADIOTAP_HDR_SIZE 12
 
 /************************
  *  Data structures
@@ -62,6 +66,9 @@ typedef struct  __attribute__((packed)) {
     uint16_t                tx_flags; /* transmission flags       */
 } dxwifi_tx_radiotap_hdr;
 
+compiler_assert(sizeof(dxwifi_tx_radiotap_hdr) == DXWIFI_TX_RADIOTAP_HDR_SIZE, 
+    "Mismatch in actual radiotap header size and calculated size");
+
 
 /**
  *  The DxWifi frame structure looks like this:
@@ -72,23 +79,25 @@ typedef struct  __attribute__((packed)) {
  *    [             payload               ]   |
  *    [       frame check sequence        ] <--
  *   
- * 
- *  The fields in the dxwifi_tx_frame struct simply point to the correct area in
- *  __frame array. We fill in the correct data for each header and then 
- *  transmit the entire frame of data. Note, there isn't a struct field for the
- *  frame check sequence (FCS) since the driver will populate that field for us.
- *  Thus, you should not manipulate the __frame field unless you know what 
- *  you're doing. 
+ *  
+ *  Note, the FCS lives in the same memory block as the payload. The FCS should 
+ *  always be the last four bytes of the frame and should always start at the 
+ *  address `frame.payload[frame.payload_size]`.
  * 
  */
-typedef struct { 
-    dxwifi_tx_radiotap_hdr  *radiotap_hdr;  /* frame metadata               */
-    ieee80211_hdr           *mac_hdr;       /* link-layer header            */
-    uint8_t                 *payload;       /* packet data                  */
+typedef struct __attribute__((packed)) { 
+    // Actual Data Frame
+    dxwifi_tx_radiotap_hdr  radiotap_hdr;  /* frame metadata               */
+    ieee80211_hdr           mac_hdr;       /* link-layer header            */
+    uint8_t                 payload[DXWIFI_TX_PAYLOAD_SIZE_MAX + IEEE80211_FCS_SIZE];       
+                                            /* packet data and FCS          */
 
-    uint8_t                 __frame[DXWIFI_TX_FRAME_SIZE_MAX];       
-                                            /* The actual data frame        */
+    // Control data about the payload, not transmitted with the data frame
+    uint32_t                payload_size;   /* Size of the actual payload   */
 } dxwifi_tx_frame;
+
+compiler_assert(sizeof(dxwifi_tx_frame) == (DXWIFI_TX_FRAME_SIZE_MAX + sizeof(uint32_t)), 
+    "Mismatch in actual tx frame size and calculated size");
 
 
 typedef enum {
@@ -104,29 +113,31 @@ typedef enum {
  *  is transmitted as well as overall stats about the transmission
  */
 typedef struct {
-    uint32_t            frame_count;        /* number of frames sent        */
-    uint32_t            total_bytes_read;   /* total bytes read from source */
-    uint32_t            total_bytes_sent;   /* total of bytes sent via pcap */
-    uint32_t            prev_bytes_read;    /* Size of last read            */
-    uint32_t            prev_bytes_sent;    /* Size of last transmission    */
-    dxwifi_tx_state_t   tx_state;           /* State of last transmission   */
+    uint32_t                data_frame_count;   /* number of data frames sent   */
+    uint32_t                ctrl_frame_count;   /* number of ctrl frames sent   */
+    uint32_t                total_bytes_read;   /* total bytes read from source */
+    uint32_t                total_bytes_sent;   /* total of bytes sent via pcap */
+    uint32_t                prev_bytes_read;    /* Size of last read            */
+    uint32_t                prev_bytes_sent;    /* Size of last transmission    */
+    dxwifi_tx_state_t       tx_state;           /* State of last transmission   */
+    dxwifi_control_frame_t  frame_type;         /* Type of the last frame       */
 } dxwifi_tx_stats;
 
 
 /**
- *  The return value of the Tx frame callback is used to determine how many 
- *  payload bytes will be transmitted. Thus, if additional data is added to the 
- *  payload the NEW payload size must be returned. Conversely, to truncate the 
- *  data you can return a number less than the payload size. Lastly, modifying
- *  the radiotap/mac headers may result in transmission failure and should only
- *  be modified at your own risk.
+ *  Tx frame callbacks can modify how many payload bytes will be transmistted by 
+ *  modifying the frame->payload_size field. Thus, if additional data is added 
+ *  to the payload the NEW payload size must be attached to the frame->payload_size 
+ *  field. Conversely, to truncate the  data you can attach a number less than 
+ *  the payload size. If frame->payload_size is zero then the data frame WILL 
+ *  NOT be transmitted. Lastly, modifying the radiotap/mac headers may result in 
+ *  transmission failure and should only be modified at your own risk.
  * 
  *  Note: It is the user's responsiblity to handle scope and lifetime of user
  *  parameters
  */
-typedef size_t (*dxwifi_tx_frame_cb)( 
+typedef void (*dxwifi_tx_frame_cb)( 
         dxwifi_tx_frame* frame, /* Mutable reference to current data frame  */
-        size_t payload_size,    /* Size of the attached payload             */
         dxwifi_tx_stats stats,  /* Stats about the current transmission     */
         void* user              /* User supplied parameters                 */
         );
@@ -160,6 +171,7 @@ typedef struct {
     int         transmit_timeout;   /* Number of seconds to wait for a read */
     int         redundant_ctrl_frames;
                                     /* Number of extra ctrl frames to send  */
+    bool        enable_pa;          /* Enable Power Amplifier               */
     uint8_t     address[IEEE80211_MAC_ADDR_LEN];
                                     /* Transmitters MAC address             */
     uint8_t     rtap_flags;         /* Radiotap flags                       */
@@ -179,7 +191,6 @@ typedef struct {
     const char*     savefile;       /* File to dump packet data to          */
     pcap_dumper_t*  dumper;         /* Handle to dump file                  */
 #endif
-
 } dxwifi_transmitter;
 
 
@@ -187,6 +198,7 @@ typedef struct {
     .blocksize              = 1024,\
     .transmit_timeout       = -1,\
     .redundant_ctrl_frames  = 0,\
+    .enable_pa              = false,\
     .rtap_flags             = IEEE80211_RADIOTAP_F_FCS,\
     .rtap_rate_mbps         = 1,\
     .rtap_tx_flags          = IEEE80211_RADIOTAP_F_TX_NOACK,\

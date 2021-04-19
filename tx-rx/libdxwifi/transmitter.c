@@ -12,6 +12,7 @@
 #include <stdbool.h>
 
 #include <poll.h>
+#include <gpiod.h>
 #include <errno.h>
 #include <unistd.h>
 #include <endian.h>
@@ -19,29 +20,11 @@
 #include <arpa/inet.h>
 
 #include <libdxwifi/dxwifi.h>
+#include <libdxwifi/power_amp.h>
 #include <libdxwifi/transmitter.h>
 #include <libdxwifi/details/utils.h>
 #include <libdxwifi/details/assert.h>
 #include <libdxwifi/details/logging.h>
-
-
-/**
- *  DESCRIPTION:    Initializes transmission data frame
- * 
- *  ARGUMENTS:
- * 
- *     frame:       pointer to an allocated frame
- * 
- */
-static void setup_dxwifi_tx_frame(dxwifi_tx_frame* frame) {
-    debug_assert(frame);
-
-    memset(frame->__frame, 0x00, DXWIFI_TX_FRAME_SIZE_MAX);
-
-    frame->radiotap_hdr = (dxwifi_tx_radiotap_hdr*) frame->__frame;
-    frame->mac_hdr      = (ieee80211_hdr*) (frame->__frame + sizeof(dxwifi_tx_radiotap_hdr));
-    frame->payload      = frame->__frame + DXWIFI_TX_HEADER_SIZE;
-}
 
 
 /**
@@ -199,32 +182,24 @@ static bool remove_handler(dxwifi_tx_frame_handler* pipeline, int index) {
  * 
  *      tx_stats:   State of the current transmission
  * 
- *  RETURNS:
- *      
- *      size_t:     size of the new payload data in the tx frame
- * 
  */
-static size_t invoke_handlers(dxwifi_tx_frame_handler* pipeline, dxwifi_tx_frame* frame, dxwifi_tx_stats tx_stats) {
-    debug_assert(pipeline && frame);
+static void invoke_handlers(dxwifi_tx_frame_handler* pipeline, dxwifi_tx_frame* frame, dxwifi_tx_stats* tx_stats) {
+    debug_assert(pipeline && frame && tx_stats);
 
-    size_t sz = tx_stats.prev_bytes_read;
     for(int i = 0; i < DXWIFI_TX_FRAME_HANDLER_MAX; ++i) {
         if(pipeline[i].callback != NULL) {
-            sz = pipeline[i].callback(
+            pipeline[i].callback(
                 frame, 
-                sz, 
-                tx_stats, 
+                *tx_stats, 
                 pipeline[i].user_args
                 );
-
             assert_continue(
-                0 < sz && sz < DXWIFI_TX_PAYLOAD_SIZE_MAX, 
+                frame->payload_size < DXWIFI_TX_PAYLOAD_SIZE_MAX, 
                 "Payload size: %d, exceeds defined bounds", 
-                sz
+                frame->payload_size
                 );
         }
     }
-    return sz;
 }
 
 
@@ -244,18 +219,26 @@ static size_t invoke_handlers(dxwifi_tx_frame_handler* pipeline, dxwifi_tx_frame
  *      If runninng a test build this function will dump the frame to a savefile
  *      instead of using pcap_inject
  * 
+ *      If the payload size is 0 this function just returns 0
+ * 
  */
-static int inject_packet(dxwifi_transmitter* tx, dxwifi_tx_frame* frame, size_t payload_size) {
+static int inject_packet(dxwifi_transmitter* tx, dxwifi_tx_frame* frame) {
+    int status = 0;
+    if(frame->payload_size > 0) {
 #if defined(DXWIFI_TESTS)
-    struct pcap_pkthdr pcap_hdr;
-    gettimeofday(&pcap_hdr.ts, NULL);
-    pcap_hdr.caplen = DXWIFI_TX_HEADER_SIZE + payload_size + IEEE80211_FCS_SIZE;
-    pcap_hdr.len = pcap_hdr.caplen;
-    pcap_dump((uint8_t*)tx->dumper, &pcap_hdr, frame->__frame);
-    return pcap_hdr.caplen;
+        struct pcap_pkthdr pcap_hdr;
+        gettimeofday(&pcap_hdr.ts, NULL);
+        pcap_hdr.caplen = DXWIFI_TX_HEADER_SIZE + frame->payload_size + IEEE80211_FCS_SIZE;
+        pcap_hdr.len = pcap_hdr.caplen;
+        pcap_dump((uint8_t*)tx->dumper, &pcap_hdr, (void*)frame);
+        status = pcap_hdr.caplen;
 #else
-    return pcap_inject(tx->__handle, frame->__frame, DXWIFI_TX_HEADER_SIZE + payload_size + IEEE80211_FCS_SIZE);
+        status = pcap_inject(tx->__handle, frame, DXWIFI_TX_HEADER_SIZE + frame->payload_size + IEEE80211_FCS_SIZE);
 #endif
+    }
+    assert_continue(status != PCAP_ERROR, "Injection failure: %s", pcap_statustostr(status));
+
+    return status;
 }
 
 
@@ -278,8 +261,12 @@ static int inject_packet(dxwifi_transmitter* tx, dxwifi_tx_frame* frame, size_t 
  *      and sent over the wire X times for redundancy.
  * 
  */
-static void send_control_frame(dxwifi_transmitter* tx, dxwifi_tx_frame* frame, dxwifi_control_frame_t type) {
-    debug_assert(tx && tx->__handle && frame && frame->__frame);
+static void send_control_frame(dxwifi_transmitter* tx, dxwifi_tx_frame* frame, dxwifi_control_frame_t type, dxwifi_tx_stats* stats) {
+    debug_assert(tx && tx->__handle && frame);
+
+    dxwifi_control_frame_t prev_type = stats->frame_type;
+
+    stats->frame_type = type;
 
     uint8_t control_data[DXWIFI_FRAME_CONTROL_DATA_SIZE];
 
@@ -287,11 +274,20 @@ static void send_control_frame(dxwifi_transmitter* tx, dxwifi_tx_frame* frame, d
 
     memcpy(frame->payload, control_data, DXWIFI_FRAME_CONTROL_DATA_SIZE);
 
+    frame->payload_size = DXWIFI_FRAME_CONTROL_DATA_SIZE;
+
     for (int i = 0; i < tx->redundant_ctrl_frames + 1; ++i) {
-        int status = inject_packet(tx, frame, sizeof(control_data));
-        log_debug("%s Frame Sent: %d", control_frame_type_to_str(type), status);
-        log_hexdump(frame->__frame, DXWIFI_TX_HEADER_SIZE + sizeof(control_data) + IEEE80211_FCS_SIZE);
+
+        invoke_handlers(tx->__preinjection, frame, stats);
+
+        stats->prev_bytes_sent = inject_packet(tx, frame);
+
+        stats->ctrl_frame_count += 1;
+        stats->total_bytes_sent += stats->prev_bytes_sent;
+
+        invoke_handlers(tx->__postinjection, frame, stats);
     }
+    stats->frame_type = prev_type;
 }
 
 
@@ -309,6 +305,7 @@ static void log_tx_configuration(const dxwifi_transmitter* tx, const char* devic
     log_info(
             "DxWifi Transmitter Settings\n"
             "\tDevice:              %s\n"
+            "\tPA Enabled:          %d\n"
             "\tBlock Size:          %ld\n"
             "\tTransmit Timeout:    %d\n"
             "\tRedundant Ctrl:      %d\n"
@@ -316,6 +313,7 @@ static void log_tx_configuration(const dxwifi_transmitter* tx, const char* devic
             "\tRTAP flags:          0x%x\n"
             "\tRTAP Tx flags:       0x%x\n",
             device_name,
+            tx->enable_pa,
             tx->blocksize,
             tx->transmit_timeout,
             tx->redundant_ctrl_frames,
@@ -357,10 +355,19 @@ void init_transmitter(dxwifi_transmitter* tx, const char* device_name) {
                         DXWIFI_DFLT_PACKET_BUFFER_TIMEOUT, 
                         err_buff
                     );
+
+    // WARNING: Only Enable PA if PCAP successfully initiailzed the WiFi device
+    if(tx->enable_pa && tx->__handle != NULL)  { 
+        pa_error_t status = enable_power_amplifier();
+        assert_M(status == PA_OKAY, "%s", pa_error_to_str(status));
+
+        log_info("Power Amplifier enabled!");
+    }
 #endif // DXWIFI_TESTS
 
     // Hard assert here because if pcap fails it's all FUBAR anyways
     assert_M(tx->__handle != NULL, err_buff);
+
 
     log_tx_configuration(tx, device_name);
 }
@@ -370,6 +377,16 @@ void close_transmitter(dxwifi_transmitter* tx) {
     debug_assert(tx && tx->__handle);
 
     pcap_close(tx->__handle);
+
+    if(tx->enable_pa) {
+        pa_error_t status = close_power_amplifier();
+        if(status != PA_OKAY) {
+            log_error("%s", pa_error_to_str(status));
+        }
+        else {
+            log_info("Power Amplifier disabled");
+        }
+    }
 
     log_info("DxWifi transmitter closed");
 
@@ -419,27 +436,27 @@ void start_transmission(dxwifi_transmitter* tx, int fd, dxwifi_tx_stats* out) {
     };
 
     dxwifi_tx_stats stats = {
-        .frame_count        = 0,
+        .data_frame_count   = 0,
+        .ctrl_frame_count   = 0,
         .total_bytes_read   = 0,
         .total_bytes_sent   = 0,
         .prev_bytes_read    = 0,
         .prev_bytes_sent    = 0,
-        .tx_state           = DXWIFI_TX_NORMAL
+        .tx_state           = DXWIFI_TX_NORMAL,
+        .frame_type         = DXWIFI_CONTROL_FRAME_NONE
     };
 
     dxwifi_tx_frame data_frame;
 
-    setup_dxwifi_tx_frame(&data_frame);
+    construct_radiotap_header(&data_frame.radiotap_hdr, tx->rtap_flags, tx->rtap_rate_mbps, tx->rtap_tx_flags);
 
-    construct_radiotap_header(data_frame.radiotap_hdr, tx->rtap_flags, tx->rtap_rate_mbps, tx->rtap_tx_flags);
-
-    construct_ieee80211_header(data_frame.mac_hdr, tx->fctl, 0xffff, tx->address);
+    construct_ieee80211_header(&data_frame.mac_hdr, tx->fctl, 0xffff, tx->address); // TODO magic number
 
     log_info("Starting DxWiFi Transmission...");
 
     tx->__activated = true;
 
-    send_control_frame(tx, &data_frame, DXWIFI_CONTROL_FRAME_PREAMBLE);
+    send_control_frame(tx, &data_frame, DXWIFI_CONTROL_FRAME_PREAMBLE, &stats);
 
     do {
         status = poll(&request, 1, tx->transmit_timeout * 1000);
@@ -462,29 +479,28 @@ void start_transmission(dxwifi_transmitter* tx, int fd, dxwifi_tx_stats* out) {
             stats.prev_bytes_read = read(fd, data_frame.payload, tx->blocksize);
             if(stats.prev_bytes_read > 0) {
 
-                size_t payload_size = invoke_handlers(tx->__preinjection, &data_frame, stats);
+                data_frame.payload_size = stats.prev_bytes_read;
 
-                status = inject_packet(tx, &data_frame, payload_size);
+                invoke_handlers(tx->__preinjection, &data_frame, &stats);
 
-                assert_continue(status > 0, "Injection failure: %s", pcap_statustostr(status));
+                stats.prev_bytes_sent = inject_packet(tx, &data_frame);
 
-                stats.prev_bytes_sent   = status;
                 stats.total_bytes_read += stats.prev_bytes_read;
                 stats.total_bytes_sent += stats.prev_bytes_sent;
-                stats.frame_count      += 1;
+                stats.data_frame_count += 1;
 
-                invoke_handlers(tx->__postinjection, &data_frame, stats);
+                invoke_handlers(tx->__postinjection, &data_frame, &stats);
             }
         }
     } while(tx->__activated && stats.prev_bytes_read > 0);
 
+    log_info("DxWiFI Transmission stopped");
+
+    send_control_frame(tx, &data_frame, DXWIFI_CONTROL_FRAME_EOT, &stats);
+
 #if defined(DXWIFI_TESTS)
     pcap_dump_flush(tx->dumper);
 #endif 
-
-    log_info("DxWiFI Transmission stopped");
-
-    send_control_frame(tx, &data_frame, DXWIFI_CONTROL_FRAME_EOT);
 
     if(stats.tx_state == DXWIFI_TX_NORMAL && !tx->__activated) {
         stats.tx_state = DXWIFI_TX_DEACTIVATED;
@@ -500,7 +516,8 @@ void transmit_bytes(dxwifi_transmitter* tx, const void* data, size_t nbytes, dxw
     debug_assert(tx && tx->__handle && data);
 
     dxwifi_tx_stats stats = {
-        .frame_count        = 0,
+        .data_frame_count   = 0,
+        .ctrl_frame_count   = 0,
         .total_bytes_read   = 0,
         .total_bytes_sent   = 0,
         .prev_bytes_read    = 0,
@@ -510,43 +527,40 @@ void transmit_bytes(dxwifi_transmitter* tx, const void* data, size_t nbytes, dxw
 
     dxwifi_tx_frame data_frame;
 
-    setup_dxwifi_tx_frame(&data_frame);
+    construct_radiotap_header(&data_frame.radiotap_hdr, tx->rtap_flags, tx->rtap_rate_mbps, tx->rtap_tx_flags);
 
-    construct_radiotap_header(data_frame.radiotap_hdr, tx->rtap_flags, tx->rtap_rate_mbps, tx->rtap_tx_flags);
-
-    construct_ieee80211_header(data_frame.mac_hdr, tx->fctl, 0xffff, tx->address);
+    construct_ieee80211_header(&data_frame.mac_hdr, tx->fctl, 0xffff, tx->address);
 
     log_debug("Starting DxWiFi Transmission...");
 
-    send_control_frame(tx, &data_frame, DXWIFI_CONTROL_FRAME_PREAMBLE);
+    send_control_frame(tx, &data_frame, DXWIFI_CONTROL_FRAME_PREAMBLE, &stats);
 
     while (nbytes > 0)
     {
         // Copy blocksize bytes or remainder into the payload
         stats.prev_bytes_read = (tx->blocksize < nbytes ? tx->blocksize : nbytes);
+
         memcpy(data_frame.payload, data + stats.total_bytes_read, stats.prev_bytes_read);
 
-        size_t payload_size = invoke_handlers(tx->__preinjection, &data_frame, stats);
+        data_frame.payload_size = stats.prev_bytes_read;
 
-        int status = inject_packet(tx, &data_frame, payload_size);
-        
-        assert_continue(status > 0, "Injection failure: %s", pcap_statustostr(status));
+        invoke_handlers(tx->__preinjection, &data_frame, &stats);
 
-        stats.prev_bytes_sent   = status;
-        stats.frame_count      += 1;
+        stats.prev_bytes_sent = inject_packet(tx, &data_frame);
+
+        stats.data_frame_count += 1;
         stats.total_bytes_read += stats.prev_bytes_read;
         stats.total_bytes_sent += stats.prev_bytes_sent;
         nbytes                 -= stats.prev_bytes_read;
 
-        invoke_handlers(tx->__postinjection, &data_frame, stats);
+        invoke_handlers(tx->__postinjection, &data_frame, &stats);
     }
+
+    send_control_frame(tx, &data_frame, DXWIFI_CONTROL_FRAME_EOT, &stats);
 
 #if defined(DXWIFI_TESTS)
     pcap_dump_flush(tx->dumper);
 #endif
-
-    send_control_frame(tx, &data_frame, DXWIFI_CONTROL_FRAME_EOT);
-
     log_debug("DxWiFI Transmission stopped");
 
     if(out) {

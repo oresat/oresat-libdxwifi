@@ -63,6 +63,8 @@ static struct argp_option opts[] = {
     { "test",           'T',  0,                    0,  "Transmit a test sequence of bytes, use -c to retransmit it multiple times",     PRIMARY_GROUP },
     { "daemon",         'D',  "<start|stop>",       0,  "Run the tx program as a forked daemon process (Sets logger to syslog as well)", PRIMARY_GROUP },
     { "pid-file",       'P',  "<file-path>",        0,  "Location of the Daemon's PID File",                                             PRIMARY_GROUP },
+    { "enable-pa",      'E',  0,                    0,  "Enable Power Amplifer (Only works on OreSat DxWiFi board)",                     PRIMARY_GROUP },
+    
 
     { 0, 0, 0, OPTION_DOC, "The following settings are only applicable when reading from a directory", DIRECTORY_MODE_GROUP },
     { "filter",         GET_KEY(FILE_FILTER,        DIRECTORY_MODE_GROUP),  "<glob>",       OPTION_NO_USAGE,  "Only transmit files whose filename matches the filter",      DIRECTORY_MODE_GROUP },
@@ -206,6 +208,10 @@ static error_t parse_opt(int key, char* arg, struct argp_state *state) {
 
     case 'P':
         args->pid_file = arg;
+        break;
+
+    case 'E':
+        args->tx.enable_pa = true;
         break;
 
     case GET_KEY(FILE_FILTER, DIRECTORY_MODE_GROUP):

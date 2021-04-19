@@ -41,11 +41,11 @@ typedef enum {
     DXWIFI_LOG_TX           = 2,
     DXWIFI_LOG_RECEIVER     = 3,
     DXWIFI_LOG_RX           = 4,
-    DXWIFI_DIRWATCH         = 5,
-    DXWIFI_DAEMON           = 6,
-    DXWIFI_FEC              = 7,
-    DXWIFI_ENCODE           = 8,
-    DXWIFI_DECODE           = 9,
+    DXWIFI_LOG_DIRWATCH     = 5,
+    DXWIFI_LOG_DAEMON       = 6,
+    DXWIFI_LOG_FEC          = 7,
+    DXWIFI_LOG_ENCODE       = 8,
+    DXWIFI_LOG_DECODE       = 9,
 
     // Add new modules here
 
@@ -199,7 +199,7 @@ bool set_log_level(dxwifi_log_module_t module, dxwifi_log_level_t level);
   #define log_hexdump(data, size) __DXWIFI_UTILS_UNUSED(data, size)
 #else
   #define log_trace(fmt, ...) __dxwifi_log(DXWIFI_LOG_TRACE, __FILE__, fmt, ##__VA_ARGS__)
-  #define log_hexdump(data, size) __dxwifi_log_hexdump(__FILE__, data, size);
+  #define log_hexdump(data, size) __dxwifi_log_hexdump(__FILE__, (uint8_t*)data, size);
 #endif
 
 

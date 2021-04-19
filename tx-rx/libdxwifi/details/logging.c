@@ -23,16 +23,16 @@ typedef struct {
 
 
 static dxwifi_log_handler handlers[] = {
-    { default_logger, DXWIFI_LOG_FATAL },
-    { default_logger, DXWIFI_LOG_FATAL },
-    { default_logger, DXWIFI_LOG_FATAL },
-    { default_logger, DXWIFI_LOG_FATAL },
-    { default_logger, DXWIFI_LOG_FATAL },
-    { default_logger, DXWIFI_LOG_FATAL },
-    { default_logger, DXWIFI_LOG_FATAL },
-    { default_logger, DXWIFI_LOG_FATAL },
-    { default_logger, DXWIFI_LOG_FATAL },
-    { default_logger, DXWIFI_LOG_FATAL },
+    [DXWIFI_LOG_GENERIC]        = { default_logger, DXWIFI_LOG_FATAL },
+    [DXWIFI_LOG_TRANSMITTER]    = { default_logger, DXWIFI_LOG_FATAL },
+    [DXWIFI_LOG_TX]             = { default_logger, DXWIFI_LOG_FATAL },
+    [DXWIFI_LOG_RECEIVER]       = { default_logger, DXWIFI_LOG_FATAL },
+    [DXWIFI_LOG_RX]             = { default_logger, DXWIFI_LOG_FATAL },
+    [DXWIFI_LOG_DIRWATCH]       = { default_logger, DXWIFI_LOG_FATAL },
+    [DXWIFI_LOG_DAEMON]         = { default_logger, DXWIFI_LOG_FATAL },
+    [DXWIFI_LOG_FEC]            = { default_logger, DXWIFI_LOG_FATAL },
+    [DXWIFI_LOG_ENCODE]         = { default_logger, DXWIFI_LOG_FATAL },
+    [DXWIFI_LOG_DECODE]         = { default_logger, DXWIFI_LOG_FATAL },
 
     // New modules should follow the same format
 
@@ -42,16 +42,16 @@ compiler_assert(NELEMS(handlers) == DXWIFI_LOG_MODULE_COUNT, "Handler count must
 
 // table entry must match the name of the file and index of the enumeration
 static const char* file_lookup_tbl[DXWIFI_LOG_MODULE_COUNT] = {
-    "generic",
-    "transmitter",
-    "tx",
-    "receiver",
-    "rx",
-    "dirwatch",
-    "daemon",
-    "fec",
-    "encode",
-    "decode",
+    [DXWIFI_LOG_GENERIC]        = "generic",
+    [DXWIFI_LOG_TRANSMITTER]    = "transmitter",
+    [DXWIFI_LOG_TX]             = "tx",
+    [DXWIFI_LOG_RECEIVER]       = "receiver",
+    [DXWIFI_LOG_RX]             = "rx",
+    [DXWIFI_LOG_DIRWATCH]       = "dirwatch",
+    [DXWIFI_LOG_DAEMON]         = "daemon",
+    [DXWIFI_LOG_FEC]             = "fec",
+    [DXWIFI_LOG_ENCODE]       = "encode",
+    [DXWIFI_LOG_DECODE]         = "decode",
 
     // Add new modules here
 
@@ -106,6 +106,7 @@ dxwifi_log_module_t file_to_log_module(const char* file_name) {
         char* extension = index(bname, '.'); // Drop the file extension
         for(dxwifi_log_module_t module = DXWIFI_LOG_GENERIC; module < DXWIFI_LOG_MODULE_COUNT; ++module) {
             if(strncmp(bname, file_lookup_tbl[module], extension - bname) == 0) {
+                free(path);
                 return module;
             }
         }
