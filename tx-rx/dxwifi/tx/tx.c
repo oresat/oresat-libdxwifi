@@ -495,10 +495,10 @@ void transmit(cli_args* args, dxwifi_transmitter* tx) {
         attach_postinject_handler(transmitter, log_frame_stats, NULL);
     }
     if(args->packet_loss > 0){
-        attach_preinject_handler(transmitter, packet_loss_sim, &args->packet_loss)
+        attach_preinject_handler(transmitter, packet_loss_sim, &args->packet_loss);
     }
     if(args->error_rate > 0){
-        attach_preinject_handler(transmitter, bit_error_rate_sim, &args->error_rate)
+        attach_preinject_handler(transmitter, bit_error_rate_sim, &args->error_rate);
     }
     switch (args->tx_mode)
     {
