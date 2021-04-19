@@ -11,11 +11,18 @@ Software to construct, transmit, and receive data packets via packet injection a
 - [CMake](https://cmake.org/)
 - [`libpcap-dev`](https://www.tcpdump.org/), [`libgpiod-dev`](https://git.kernel.org/pub/scm/libs/libgpiod/libgpiod.git/), [`iw`](https://wireless.wiki.kernel.org/en/users/documentation/iw), [`ip`](https://linux.die.net/man/8/ip)
 
-## Building tx-rx
+## Building
 
-The tx-rx programs uses [cmake](https://cmake.org/) to generate the correct build files. If 
+These programs uses [cmake](https://cmake.org/) to generate the correct build files. If 
 you need to generate a build for a specific platform then I suggest checking out the docs. 
 For basic GNU Makefiles the following should get you going:
+
+First, make sure the submodules are updated:
+```
+git submodule update --init --recursive
+```
+
+Then generate build scripts and make the executables
 
 ```bash
 mkdir build

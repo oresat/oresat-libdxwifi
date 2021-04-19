@@ -1,0 +1,5 @@
+#!/bin/sh
+
+echo "decode postrm"
+
+exit 0
