@@ -186,7 +186,7 @@ void packet_loss_sim(dxwifi_tx_frame* frame, dxwifi_tx_stats stats, void* user) 
     //generate random num withing range
     time_t t;
     srand((unsigned) time(&t));
-    float random = (rand()%100) / 100.0;
+    float random = (double)rand() / (double)RAND_MAX;
     
     if(packet_loss_rate < random){
         frame->payload_size = 0;
@@ -220,7 +220,7 @@ void bit_error_rate_sim(dxwifi_tx_frame* frame, dxwifi_tx_stats stats, void* use
         int chosen_bit = rand()%8;
         if(bit_array[chosen_byte * 8 + chosen_bit] == 0){ //Flip bit if unseen
                    frame[chosen_byte] ^= (1 << chosen_bit);
-                   bit_array[chosen_byte * 8 + chosen_bit] == 1;
+                   bit_array[chosen_byte * 8 + chosen_bit] = 1;
         }
         else{ //Reroll for different bit
             --i;
