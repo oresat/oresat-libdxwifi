@@ -207,23 +207,24 @@ void bit_error_rate_sim(dxwifi_tx_frame* frame, dxwifi_tx_stats stats, void* use
     float error_rate = *(float*) user;
     time_t t;
     srand((unsigned) time(&t)); //init random number 
-    int bit_mask[8] = { //Maybe should be int
-        0x01, //0000 0001
-        0x02, //0000 0010
-        0x04, //0000 0100
-        0x08, //0000 1000
-        0x10, //0001 0000
-        0x20, //0010 0000
-        0x40, //0100 0000
-        0x80  //1000 0000
-    };
     int frame_size = DXWIFI_TX_HEADER_SIZE + frame->payload_size + IEEE80211_FCS_SIZE;
-    int total_num_errors = frame_size * 8 *error_rate; //Get total number of errors
+    int total_num_errors = frame_size * 8 * error_rate; //Get total number of errors
+    int bit_array = [frame_size * 8]; //Make an array of bits equal to the number in the frame
     
+    for(int i = 0: i < frame_size; ++i){ //initiallize every bit in the array to 0
+        bit_array[i] = 0;
+    }
+
     for(int i = 0; i < total_num_errors; ++i){
         uint8_t chosen_byte = rand()%frame_size;
         int chosen_bit = rand()%8;
-        frame[chosen_byte] ^= bit_mask[chosen_bit];
+        if(bit_array[chosen_byte * 8 + chosen_bit] == 0){ //Flip bit if unseen
+                   frame[chosen_byte] ^= (1 << chosen_bit);
+                   bit_array[chosen_byte * 8 + chosen_bit] == 1;
+        }
+        else{ //Reroll for different bit
+            --i;
+        }
     }
     return;
 }
