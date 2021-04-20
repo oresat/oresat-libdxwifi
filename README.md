@@ -1,8 +1,8 @@
 [![Build/Test](https://github.com/oresat/oresat-dxwifi-software/actions/workflows/build_test.yml/badge.svg)](https://github.com/oresat/oresat-dxwifi-software/actions/workflows/build_test.yml)
 
-## tx-rx
+## DxWiFi
 
-Software to construct, transmit, and receive data packets via packet injection and monitor mode using the AR9271 chip.
+Software to construct, transmit, and receive FEC encoded data packets via packet injection and monitor mode using the AR9271 chip.
 
 ## Prerequisites
 
@@ -13,7 +13,7 @@ Software to construct, transmit, and receive data packets via packet injection a
 
 ## Building
 
-These programs uses [cmake](https://cmake.org/) to generate the correct build files. If 
+These programs use [cmake](https://cmake.org/) to generate the correct build files. If 
 you need to generate a build for a specific platform then I suggest checking out the docs. 
 For basic GNU Makefiles the following should get you going:
 
@@ -56,7 +56,7 @@ With the project built and cmake files present in the `build` directory you do t
 make install
 ```
 
-This will install the `rx`, `tx`, and `startmonitor` programs into `/usr/bin` as well as define the `oresat-dxwifi-txd.service`
+This will install the `rx`, `tx`, `encode`, `decode` and `startmonitor` programs into `/usr/bin` as well as define the `oresat-dxwifi-txd.service`
 daemon that you can start with `systemctl start oresat-dxwifi-txd.service`.
 
 To build debian packages to install you can run the following in the `build` directory:
@@ -105,6 +105,8 @@ sudo ./tx --dev mon0 --blocksize 512 --redundancy 5 --delay 10 --file-delay 10 -
 
 **Note**: When doing multi-file transmission like the example above, it's critical to set the `--file-delay` and `--redundancy` parameters 
 to something reasonable for your channel. If these parameters are not set then file boundaries will not be clearly delimited to the receiver.
+
+**TODO**: Add usage instructions for `encode`, `decode`, and the `error-simulator`.
 
 ## System Tests
 
