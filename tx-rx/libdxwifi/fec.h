@@ -96,6 +96,16 @@ typedef struct __attribute__((packed)) {
 compiler_assert(sizeof(dxwifi_rs_ldpc_frame) == DXWIFI_RS_LDPC_FRAME_SIZE, "Mismatch in actual RS-LDPC Frame size and calculated size");
 
 
+/**
+ *  FEC error status codes
+ */
+typedef enum {
+    FEC_ERROR_EXCEEDED_MAX_SYMBOLS  = -1,
+    FEC_ERROR_BELOW_N1_MIN          = -2,
+    FEC_ERROR_NO_OTI_FOUND          = -3,
+    FEC_ERROR_DECODE_NOT_POSSIBLE   = -4,
+} dxwifi_fec_error_t;
+
 /************************
  *  Functions
  ***********************/
@@ -117,7 +127,7 @@ compiler_assert(sizeof(dxwifi_rs_ldpc_frame) == DXWIFI_RS_LDPC_FRAME_SIZE, "Mism
  * 
  *  RETURNS:
  * 
- *      size_t:         Size of the encoded message in bytes
+ *      ssize_t:         Size of the encoded message in bytes or dxwifi_fec_error
  * 
  * 
  *  NOTES:
@@ -126,13 +136,20 @@ compiler_assert(sizeof(dxwifi_rs_ldpc_frame) == DXWIFI_RS_LDPC_FRAME_SIZE, "Mism
  *      the out parameter.
  * 
  */
-size_t dxwifi_encode(void *message, size_t msglen, float coderate, void **out);
+ssize_t dxwifi_encode(void *message, size_t msglen, float coderate, void **out);
 
 
 /**
  *  DESCRIPTION:  TODO
  * 
  */
-size_t dxwifi_decode(void* encoded_message, size_t msglen, void** out);
+ssize_t dxwifi_decode(void* encoded_message, size_t msglen, void** out);
+
+
+/**
+ *  DESCRIPTION:  TODO
+ * 
+ */
+const char* dxwifi_fec_error_to_str(dxwifi_fec_error_t err);
 
 #endif // LIBDXWIFI_FEC_H

@@ -66,7 +66,7 @@ void encode_file(cli_args *args) {
     void *encoded_message = NULL;
     size_t msg_size = dxwifi_encode(file_data, file_size, args->coderate, &encoded_message);
 
-    if (encoded_message) { // FEC encode success, write out encoded message
+    if (msg_size > 0) { // FEC encode success, write out encoded message
 
         log_info("Successfully encoded %s. Encoded file size: %d", args->file_in, msg_size);
 
@@ -74,6 +74,9 @@ void encode_file(cli_args *args) {
         assert_M(nbytes == msg_size, "Partial write occured: %d/%d - %s", nbytes, msg_size, strerror(errno));
 
         free(encoded_message);
+    }
+    else {
+        log_error("Encode failed - %s", dxwifi_fec_error_to_str(msg_size));
     }
 
     // Teardown resources

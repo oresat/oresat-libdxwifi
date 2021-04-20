@@ -59,7 +59,11 @@ if(LIBDXWIFI_DISABLE_LOGGING)
 endif()
 
 # Include and output directories
-include_directories(${PROJECT_SOURCE_DIR} ${PROJECT_SOURCE_DIR}/openfec/src/lib_common)
+include_directories(
+    ${PROJECT_SOURCE_DIR} 
+    ${PROJECT_SOURCE_DIR}/openfec/src/lib_common
+    ${PROJECT_SOURCE_DIR}/openfec/src/lib_stable
+    )
 
 set(DXWIFI_RUNTIME_OUTPUT_DIRECTORY ${PROJECT_SOURCE_DIR}/bin/${CMAKE_BUILD_TYPE})
 set(DXWIFI_ARCHIVE_OUTPUT_DIRECTORY ${PROJECT_SOURCE_DIR}/lib/${CMAKE_BUILD_TYPE})

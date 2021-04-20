@@ -67,13 +67,16 @@ void decode_file(cli_args* args) {
     void* decoded_msg = NULL;
     size_t msglen = dxwifi_decode(file_data, file_size, &decoded_msg);
 
-    if(decoded_msg) {
+    if(msglen > 0) {
 
         log_info("Successfully decoded %s. Decoded file size: %d", args->file_in, msglen);
 
         int nbytes = write(fd_out, decoded_msg, msglen);
         assert_M(nbytes == msglen, "Partial write occured: %d/%d - %s", nbytes, msglen, strerror(errno));
         free(decoded_msg);
+    }
+    else {
+        log_error("Decode failed - %s", dxwifi_fec_error_to_str(msglen));
     }
 
     // Teardown resources

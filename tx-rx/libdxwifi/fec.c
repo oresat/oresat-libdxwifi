@@ -10,6 +10,7 @@
 
 #include <rscode/ecc.h>
 #include <of_openfec_api.h>
+#include <ldpc_staircase/of_codec_profile.h>
 
 #include <libdxwifi/fec.h>
 #include <libdxwifi/details/utils.h>
@@ -17,8 +18,10 @@
 #include <libdxwifi/details/assert.h>
 #include <libdxwifi/details/logging.h>
 
-//Max number of symbols that OpenFEC can handle
-#define OFEC_MAX_SYMBOLS 50000
+// Max number of symbols that OpenFEC can handle, 50000
+#define OFEC_MAX_SYMBOLS OF_LDPC_STAIRCASE_MAX_NB_ENCODING_SYMBOLS_DEFAULT
+
+// TODO Add function comments
 
 static void log_codec_params(const of_ldpc_parameters_t* params) {
     log_info(
@@ -61,20 +64,45 @@ static of_session_t* init_openfec(uint32_t n, uint32_t k) {
         .N1                     = (n-k) > DXWIFI_LDPC_N1_MAX ? DXWIFI_LDPC_N1_MAX : (n-k) 
     };
     log_codec_params(&codec_params);
-    assert_M(codec_params.N1 >= DXWIFI_LDPC_N1_MIN, "N - K must be >= %d", DXWIFI_LDPC_N1_MIN);
 
-    status = of_create_codec_instance(&openfec_session, OF_CODEC_LDPC_STAIRCASE_STABLE, OF_ENCODER, 2); // TODO magic number
-    assert_M(status == OF_STATUS_OK, "Failed to initialize OpenFEC session");
+    if(codec_params.N1 >= DXWIFI_LDPC_N1_MIN) {
+        status = of_create_codec_instance(&openfec_session, OF_CODEC_LDPC_STAIRCASE_STABLE, OF_ENCODER, 2); // TODO magic number
+        assert_M(status == OF_STATUS_OK, "Failed to initialize OpenFEC session");
 
-    status = of_set_fec_parameters(openfec_session, (of_parameters_t*) &codec_params);
-    assert_M(status == OF_STATUS_OK, "Failed to set codec parameters");
-
+        status = of_set_fec_parameters(openfec_session, (of_parameters_t*) &codec_params);
+        assert_M(status == OF_STATUS_OK, "Failed to set codec parameters");
+    }
     return openfec_session;
 }
 
 
-// FEC encode the message
-size_t dxwifi_encode(void* message, size_t msglen, float coderate, void** out) {
+//
+// See fec.h for non-static function descriptions
+//
+
+const char* dxwifi_fec_error_to_str(dxwifi_fec_error_t err) {
+    switch (err)
+    {
+    case FEC_ERROR_EXCEEDED_MAX_SYMBOLS:
+        return "N exceeds maximum number of symbols. Possible solution, decrease the coderate";
+
+    case FEC_ERROR_BELOW_N1_MIN:
+        return "N - K is below the N1 minimum. Possible solution, increase the coderate";
+
+    case FEC_ERROR_NO_OTI_FOUND:
+        return "No OTI Header found in the encoded message.";
+
+    case FEC_ERROR_DECODE_NOT_POSSIBLE:
+        return "Decode failed, not enough repair symbols";
+    
+    default:
+        return "Unknown error";
+    }
+}
+
+// TODO refactor the individual algorithms of the encode routine into seperate 
+// functions
+ssize_t dxwifi_encode(void* message, size_t msglen, float coderate, void** out) {
     debug_assert(message && out);
     debug_assert(0.0 < coderate && coderate <= 1.0);
 
@@ -83,16 +111,14 @@ size_t dxwifi_encode(void* message, size_t msglen, float coderate, void** out) {
 
     //check if N > Max Symbols
     if(n > OFEC_MAX_SYMBOLS) {
-        log_fatal("Failed to Encode Data.");
-        log_fatal("The operation exceeded the number of symbols that OpenFEC can handle");
-        log_fatal("The max number of symbols that OFEC can handle is 50,000");
-        log_fatal("If you still wish to encode this data, try increasing the coderate");
-        log_fatal("For example, if the -c flag was .25 and this was tripped, try using a larger value such as .50, or .75");
-        log_fatal("Now Terminating Program...");
-        exit(1);
+        return FEC_ERROR_EXCEEDED_MAX_SYMBOLS;
     }
     
     of_session_t* openfec_session = init_openfec(n, k);
+
+    if(!openfec_session) {
+        return FEC_ERROR_BELOW_N1_MIN;
+    }
 
     dxwifi_ldpc_frame* ldpc_frames = calloc(n, sizeof(dxwifi_ldpc_frame));
     assert_M(ldpc_frames, "Failed to allocate memory for LDPC Frames");
@@ -159,9 +185,11 @@ size_t dxwifi_encode(void* message, size_t msglen, float coderate, void** out) {
     return n * DXWIFI_RS_LDPC_FRAME_SIZE;
 }
 
-
-size_t dxwifi_decode(void* encoded_msg, size_t msglen, void** out) {
+// TODO Refactor the individual algorithms of the decode routine into seperate
+// functions. 
+ssize_t dxwifi_decode(void* encoded_msg, size_t msglen, void** out) {
     debug_assert(encoded_msg && out);
+
     //foundvalue used for crc checking, defaults to -1
     int foundvalue = -1;
 
@@ -195,8 +223,7 @@ size_t dxwifi_decode(void* encoded_msg, size_t msglen, void** out) {
         log_rs_ldpc_data_frame(rs_ldpc_frame);
     }
 
-    //search for first valid OTI header 
-    // Start at Zero, End at total symbols (nframes), increment by 1.
+    // Search for first valid OTI header 
     for(size_t oti_check = 0; oti_check < nframes; oti_check++) {
     	dxwifi_ldpc_frame* test_frame = &ldpc_frames[oti_check];
     	uint32_t crc = crc32(test_frame->symbol, DXWIFI_FEC_SYMBOL_SIZE); 
@@ -216,11 +243,9 @@ size_t dxwifi_decode(void* encoded_msg, size_t msglen, void** out) {
             log_warning("CRC for frame %d didn't match: Expected: 0x%x, Got: 0x%x", oti_check, crc, ntohl(test_frame->oti.crc)); 
         }
 	} 
-	//If no valid OTI headers were found (foundvalue still == -1), then exit the program with an error
 	if(foundvalue == -1){
-		//Log Fault and exit with error flag.
-		log_fatal("No valid OTI headers found.  Aborting program.");
-		exit(1);
+        free(ldpc_frames);
+        return FEC_ERROR_NO_OTI_FOUND;
 	}
 
 	//Now actually decode the LDPC blocks
@@ -257,19 +282,13 @@ size_t dxwifi_decode(void* encoded_msg, size_t msglen, void** out) {
     if(!of_is_decoding_complete(openfec_session)) {
         status = of_finish_decoding(openfec_session);
         if(status != OF_STATUS_OK) {
-            log_fatal("Couldn't finish decoding");
-            log_fatal("Now Terminating Program...");
-            exit(1);
+            free(ldpc_frames);
+            return FEC_ERROR_DECODE_NOT_POSSIBLE;
         }
     }
 
     void* symbol_table[n];
-    status = of_get_source_symbols_tab(openfec_session, symbol_table);
-    if(status != OF_STATUS_OK) {
-        log_fatal("Failed to get src symbols");
-        log_fatal("Now Terminating Program...");
-        exit(1);
-    }
+    of_get_source_symbols_tab(openfec_session, symbol_table);
 
     // TODO if the original file size is not evenly divisible by DXWIFI_FEC_SYMBOL_SIZE then the Kth 
     // Symbol will have extra zeroes to pad it until it is of size DXWIFI_FEC_SYMBOL_SIZE. We will need 
