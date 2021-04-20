@@ -16,7 +16,6 @@
 #include <fnmatch.h>
 
 #include <linux/limits.h>
-
 #include <libdxwifi/details/assert.h>
 #include <libdxwifi/details/logging.h>
 #include <libdxwifi/details/dirwatch.h>

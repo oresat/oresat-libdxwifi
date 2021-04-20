@@ -180,9 +180,9 @@ static inline void* offset(void* base, size_t count, size_t sz)   { return ((uin
 // Gets rid of `unused-parameter` warnings in release builds. Should only be 
 // used in situations where the parameter being ignored is used in concert with 
 // a conditionally compiled function.
-static inline void __unused(const int dummy, ...) { (void)dummy; }
+static inline void __dxwifi_unused(const int dummy, ...) { (void)dummy; }
 #define __DXWIFI_UTILS_UNUSED(...)\
-  do { if(0) __unused(0, ##__VA_ARGS__); } while(0)
+  do { if(0) __dxwifi_unused(0, ##__VA_ARGS__); } while(0)
 
 
 // Only use for array types NOT pointers
