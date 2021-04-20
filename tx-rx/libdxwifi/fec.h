@@ -43,25 +43,40 @@
  *  Data structures
  ***********************/
 
-// TODO add comment
+/** 
+ *  The OTI header (Object Transmission Info) stores important parameters 
+ *  regarding how the message was encoded. Since these parameters are critical
+ *  for decoding an OTI header is attached to the front of every single LDPC
+ *  encoded frame
+ */
 typedef struct __attribute__((packed)) {
-    uint32_t esi;
-    uint32_t n;
-    uint32_t k;
-    uint32_t crc;
+    uint32_t esi;   /* Encoding Symbol ID           */
+    uint32_t n;     /* Total number of symbols      */
+    uint32_t k;     /* Number of source symbols     */
+    uint32_t crc;   /* Computed CRC of the symbol   */
 } dxwifi_oti; 
 compiler_assert(sizeof(dxwifi_oti) == 16, "Mismatch in actual OTI size and calculated size");
 
 
-// TODO add comment
+/**
+ *  The LDPC (Low Density Parity Check) frame is an LDPC encoded block of size 
+ *  `DXWIFI_FEC_SYMBOL_SIZE` of the original raw message. LDPC Frame can be 
+ *  either a source symbol or a repair symbol. If `oti.esi` is greater than 
+ *  `oti.k` then it is a repair symbol. 
+ */
 typedef struct __attribute__((packed)) {
-    dxwifi_oti oti;
-    uint8_t symbol[DXWIFI_FEC_SYMBOL_SIZE];
+    dxwifi_oti oti;     /* Object Transmission Info */
+    uint8_t symbol[DXWIFI_FEC_SYMBOL_SIZE]; 
+                        /* Actual symbol data       */
 } dxwifi_ldpc_frame;
 compiler_assert(sizeof(dxwifi_ldpc_frame) == DXWIFI_LDPC_FRAME_SIZE, "Mismatch in actual LDPC Frame size and calculated size");
 
 
-// TODO add comment
+/**
+ *  The RS_LDPC is the LDPC encoded symbol that has been fragmented into 5 
+ *  chunks of size `RSCODE_MAX_MSG_LEN` and then Reed Solomon encoded with 
+ *  `RSCODE_NPAR` parity bits.
+ */
 typedef struct __attribute__((packed)) {
     uint8_t ldpc_frag0[RSCODE_MAX_MSG_LEN];
     uint8_t rs_block0[RSCODE_NPAR];
