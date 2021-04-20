@@ -19,6 +19,7 @@
 
 #include <pcap.h>
 
+#include <libdxwifi/fec.h>
 #include <libdxwifi/dxwifi.h>
 #include <libdxwifi/details/assert.h>
 #include <libdxwifi/details/ieee80211.h>
@@ -195,7 +196,7 @@ typedef struct {
 
 
 #define DXWIFI_TRANSMITTER_DFLT_INITIALIZER {\
-    .blocksize              = 1024,\
+    .blocksize              = DXWIFI_RS_LDPC_FRAME_SIZE,\
     .transmit_timeout       = -1,\
     .redundant_ctrl_frames  = 0,\
     .enable_pa              = false,\
