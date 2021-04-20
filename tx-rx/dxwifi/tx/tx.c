@@ -33,10 +33,10 @@
 #include <libdxwifi/details/syslogger.h>
 
 
-typedef struct{
+typedef struct {
     float packet_loss_rate;
     unsigned count;
-}packet_loss_stats;
+} packet_loss_stats;
 
 dirwatch* dirwatch_handle = NULL;
 dxwifi_transmitter* transmitter = NULL;
@@ -492,6 +492,7 @@ void transmit(cli_args* args, dxwifi_transmitter* tx) {
         .packet_loss_rate = args->packet_loss,
         .count = 0
     };
+
     if(args->tx_delay > 0 ) {
         attach_preinject_handler(transmitter, delay_transmission, &args->tx_delay);
     }
@@ -529,6 +530,6 @@ void transmit(cli_args* args, dxwifi_transmitter* tx) {
         break;
     }
     if(plstats.count > 0){
-        log_info("Number of packets dropped %d: ",plstats.count);
+        log_info("Number of packets dropped: %d", plstats.count);
     }
 }

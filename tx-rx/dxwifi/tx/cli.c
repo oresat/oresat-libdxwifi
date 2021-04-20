@@ -64,11 +64,7 @@ static struct argp_option opts[] = {
     { "daemon",         'D',  "<start|stop>",       0,  "Run the tx program as a forked daemon process (Sets logger to syslog as well)", PRIMARY_GROUP },
     { "pid-file",       'P',  "<file-path>",        0,  "Location of the Daemon's PID File",                                             PRIMARY_GROUP },
     { "packet-loss",    'p',  "<float>",            0,  "Numbers of packets dropped",                                                    PRIMARY_GROUP },
-<<<<<<< HEAD
     { "error-rate" ,    'e',  "<float>",            0,  "Numbers bits flipped",                                                          PRIMARY_GROUP },
-=======
-    { "error-rate",     'e',  "<float>",            0,  "Numbers bits flipped",                                                          PRIMARY_GROUP },
->>>>>>> 63999d3e6284d1d4d1dee978f047faa35febfd4b
     { "enable-pa",      'E',  0,                    0,  "Enable Power Amplifer (Only works on OreSat DxWiFi board)",                     PRIMARY_GROUP },
 
 
