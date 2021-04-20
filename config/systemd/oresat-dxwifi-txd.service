@@ -1,0 +1,17 @@
+# OreSat 0 Daemon, transmits the test sequence continously on device mon0
+# This file will need to be changed for the final OreSat Live product
+
+[Unit]
+Description=OreSat Live Transmission service
+
+[Service]
+Type=forking
+PIDFile=/run/oresat-dxwifi-txd.pid
+ExecStartPre=/usr/bin/startmonitor mon0
+ExecStart=/usr/bin/tx --dev mon0 -r -1 --test --retransmit -1 --enable-pa --daemon start
+ExecStop=/usr/bin/tx --daemon stop
+User=root
+Group=root
+
+[Install]
+WantedBy=multi-user.target

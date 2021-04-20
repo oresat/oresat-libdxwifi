@@ -1,0 +1,54 @@
+name: Build/Test
+
+on: 
+  push:
+    paths-ignore:
+    - 'archive/**'
+    - '**/README.md'
+    - '**/LICENSE'
+    - '**/.gitignore'
+
+jobs:
+  build-test:
+    # TODO: Should run this workflow on the correct oresat-generic-image. 
+    # We should do one of the following:
+    #   - Publish a docker image of the oresat-generic-image pull it down and run from it
+    #   - Make the FlatSat's dxwifi board a self-hosted runner
+    #   - Something else? 
+    runs-on: ubuntu-20.04
+    strategy:
+      matrix:
+        build_type: [Debug, Release, MinSizeRel, TestDebug, TestRel]
+
+    steps:
+      - name: Checkout DxWiFi Repository
+        uses: actions/checkout@v2
+        with: 
+          submodules: recursive
+      
+      - name: Get Dependencies
+        run: sudo apt update && sudo apt install build-essential libpcap-dev libgpiod-dev cmake python3 valgrind -y
+
+      - name: Configure CMake
+        shell: bash
+        run: cmake -S . -B build -DCMAKE_BUILD_TYPE=${{ matrix.build_type }} -DCMAKE_VERBOSE_MAKEFILE:BOOL=ON -DCMAKE_EXPORT_COMPILE_COMMANDS=ON
+
+      - name: Build
+        shell: bash
+        run: cmake --build build --parallel 6
+
+      - name: Run System Tests - TestDebug
+        if: ${{ matrix.build_type == 'TestDebug' }}
+        env: 
+          DXWIFI_INSTALL_DIR: bin/TestDebug
+          DXWIFI_MEMORY_CHECK: true
+        shell: bash
+        run: python -m unittest
+
+      - name: Run System Tests - TestRel
+        if: ${{ matrix.build_type == 'TestRel' }}
+        env: 
+          DXWIFI_INSTALL_DIR: bin/TestRel
+          DXWIFI_MEMORY_CHECK: true
+        shell: bash
+        run: python -m unittest
