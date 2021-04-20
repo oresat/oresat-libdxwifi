@@ -33,6 +33,10 @@
 #include <libdxwifi/details/syslogger.h>
 
 
+typedef struct{
+    float packet_loss_rate;
+    unsigned count;
+}packet_loss_stats;
 
 dirwatch* dirwatch_handle = NULL;
 dxwifi_transmitter* transmitter = NULL;
@@ -58,6 +62,8 @@ int main(int argc, char** argv) {
         daemon_run(args.pid_file, args.daemon);
         signal(SIGTERM, terminate);
     }
+
+    srand(time(0)); // Seed random number generator
 
     init_transmitter(transmitter, args.device);
 
@@ -182,14 +188,13 @@ void delay_transmission(dxwifi_tx_frame* frame, dxwifi_tx_stats stats, void* use
  * 
  */
 void packet_loss_sim(dxwifi_tx_frame* frame, dxwifi_tx_stats stats, void* user) {
-    float packet_loss_rate = *(float*) user;
+    packet_loss_stats * plstats = (packet_loss_stats*) user;
     //generate random num withing range
-    time_t t;
-    srand((unsigned) time(&t));
-    float random = (double)rand() / (double)RAND_MAX;
+    float random = (float)rand() / (float)RAND_MAX;
     
-    if(packet_loss_rate < random){
+    if(plstats->packet_loss_rate < random){
         frame->payload_size = 0;
+        plstats->count++;
     }
     return;
 }
@@ -205,28 +210,26 @@ void packet_loss_sim(dxwifi_tx_frame* frame, dxwifi_tx_stats stats, void* user) 
  */
 void bit_error_rate_sim(dxwifi_tx_frame* frame, dxwifi_tx_stats stats, void* user) {
     float error_rate = *(float*) user;
-    time_t t;
-    srand((unsigned) time(&t)); //init random number 
     int frame_size = DXWIFI_TX_HEADER_SIZE + frame->payload_size + IEEE80211_FCS_SIZE;
     int total_num_errors = frame_size * 8 * error_rate; //Get total number of errors
-    int bit_array[frame_size * 8]; //Make an array of bits equal to the number in the frame
+    uint8_t bit_array[frame_size]; //Make an array of bits equal to the number in the frame
     
-    for(int i = 0; i < frame_size; ++i){ //initiallize every bit in the array to 0
-        bit_array[i] = 0;
-    }
+    // Initialize every bit to zero
+    memset(bit_array, 0, frame_size);
 
     for(int i = 0; i < total_num_errors; ++i){
-        uint8_t chosen_byte = rand()%frame_size;
-        int chosen_bit = rand()%8;
-        if(bit_array[chosen_byte * 8 + chosen_bit] == 0){ //Flip bit if unseen
-                   frame[chosen_byte] ^= (1 << chosen_bit);
-                   bit_array[chosen_byte * 8 + chosen_bit] = 1;
+        uint8_t chosen_byte = rand() % frame_size;
+        int chosen_bit = 1 << (rand() % 8);
+
+        if((bit_array[chosen_byte] & chosen_bit) == 0) { //Flip bit if unseen
+            ((uint8_t*)frame)[chosen_byte] ^= chosen_bit; // Toggle bit in frame
+            bit_array[chosen_byte] &= chosen_bit;   // Set bit in the set
         }
         else{ //Reroll for different bit
             --i;
         }
     }
-    syslog(LOG_INFO, "\nNumber of bit errors: %d", total_num_errors);
+    log_info("Number of bit errors for : %d", total_num_errors);
     return;
 }
 
@@ -485,6 +488,10 @@ void transmit_test_sequence(dxwifi_transmitter* tx, int retransmit) {
  */
 void transmit(cli_args* args, dxwifi_transmitter* tx) {
 
+    packet_loss_stats plstats = {
+        .packet_loss_rate = args->packet_loss,
+        .count = 0
+    };
     if(args->tx_delay > 0 ) {
         attach_preinject_handler(transmitter, delay_transmission, &args->tx_delay);
     }
@@ -495,7 +502,7 @@ void transmit(cli_args* args, dxwifi_transmitter* tx) {
         attach_postinject_handler(transmitter, log_frame_stats, NULL);
     }
     if(args->packet_loss > 0){
-        attach_preinject_handler(transmitter, packet_loss_sim, &args->packet_loss);
+        attach_preinject_handler(transmitter, packet_loss_sim, &plstats);
     }
     if(args->error_rate > 0){
         attach_preinject_handler(transmitter, bit_error_rate_sim, &args->error_rate);
@@ -520,5 +527,8 @@ void transmit(cli_args* args, dxwifi_transmitter* tx) {
     
     default:
         break;
+    }
+    if(plstats.count > 0){
+        log_info("Number of packets dropped %d: ",plstats.count);
     }
 }
