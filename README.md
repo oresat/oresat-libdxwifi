@@ -113,23 +113,20 @@ Encodes a file with FEC at the code rate specified.
 ```
 ./encode <input filename> -o <output filename> -c <code rate>
 ```
-Flags:
 
 ```-o <output filename>``` Writes to file specified.  
-**Note**:	If flag is not given, will write directly to standard out, *avoid this*.
+**Note**:	If flag is not given, will write directly to standard out.
 
 ```-c <number>``` Set code rate to a number between 0.0 and 1.0.
 	
   The code rate is the rate that repair symbols will be added to the source data.
   
   **NOTE**: This will spit out an error if the code rate is too low for the data being encoded.
-  To fix this, increase the code rate (for example, if the initial code rate was .50, change the code rate to .75).
+  OpenFEC can only handle a maximum of 50,000 repair symbols before it will internally throw an error.
+  
+  **Workaround**: increase the code rate (for example, if the initial code rate was .50, change the code rate to .75).
+  If more than 50,000 repair symbols are needed, ```OF_LDPC_STAIRCASE_MAX_NB_ENCODING_SYMBOLS_DEFAULT``` must be modified in ```openfec/src/lib_stable/ldpc_staircase/of_codec_profile.h``` 
     
-```-q``` Quiet mode: Suppress all output.  **Avoid using**.
-
-```-v``` **Do not use this flag**.
-
-```-V``` Version: **print version**.
 
 # Decode
 Automatically decodes a FEC-Encoded file back into its decoded form.
@@ -141,16 +138,8 @@ Automatically decodes a FEC-Encoded file back into its decoded form.
 
 **NOTE**: If input file was not FEC-encoded at all, decode will throw an error stating that the input file must be a regular file.
 
-Flags: 
-
 ```-o <output filename>``` Writes to file specified.  
-	If flag is not given, will write directly to standard out, *avoid this*.
-
-```-q``` Quiet mode: Suppress all output.  **Avoid using**.
-
-```-v``` **Do not use this flag**.
-
-```-V``` Version: **print version**.
+	If flag is not given, will write directly to standard out.
 
 **TODO**: Add usage instructions for `error-simulator`.
 
