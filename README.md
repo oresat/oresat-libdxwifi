@@ -72,7 +72,9 @@ installs the `rx` program. The **TX** package installs `tx`, `startmonitor` and 
 
 ## Usage
 
-On the receiver
+### _Transmit / Receive_
+
+On the receiver run
 ```
 sudo ./startMonitor.sh mon0
 sudo ./rx --dev mon0 copy.md
@@ -106,10 +108,10 @@ sudo ./tx --dev mon0 --blocksize 512 --redundancy 5 --delay 10 --file-delay 10 -
 **Note**: When doing multi-file transmission like the example above, it's critical to set the `--file-delay` and `--redundancy` parameters 
 to something reasonable for your channel. If these parameters are not set then file boundaries will not be clearly delimited to the receiver.
 
-## Encode / Decode Usage
-# Encode
-Encodes a file with FEC at the code rate specified.
-*Note: Run only on the satellite.*
+### *Encode / Decode*
+
+To FEC encode a file at a specific code rate: 
+
 ```
 ./encode <input filename> -o <output filename> -c <code rate>
 ```
@@ -121,27 +123,45 @@ Encodes a file with FEC at the code rate specified.
 	
   The code rate is the rate that repair symbols will be added to the source data.
   
-  **NOTE**: This will spit out an error if the code rate is too low for the data being encoded.
+  **Note**: This will spit out an error if the code rate is too low for the data being encoded.
   OpenFEC can only handle a maximum of 50,000 repair symbols before it will internally throw an error.
   
   **Workaround**: increase the code rate (for example, if the initial code rate was .50, change the code rate to .75).
   If more than 50,000 repair symbols are needed, ```OF_LDPC_STAIRCASE_MAX_NB_ENCODING_SYMBOLS_DEFAULT``` must be modified in ```openfec/src/lib_stable/ldpc_staircase/of_codec_profile.h``` 
     
-
-# Decode
-Automatically decodes a FEC-Encoded file back into its decoded form.
-*NOTE: Run only on the ground stations.*
+To decode an FEC encoded file and apply the erasure and error correcting codes:
 ```
 ./decode <input filename> -o <output filename>
 ```
-**NOTE**: If input file was not correctly FEC-encoded, Decode will throw an error trying to map file to memory.
-
-**NOTE**: If input file was not FEC-encoded at all, decode will throw an error stating that the input file must be a regular file.
+**Note**: If input file was not correctly FEC-encoded, Decode will throw an error trying to map file to memory.
 
 ```-o <output filename>``` Writes to file specified.  
 	If flag is not given, will write directly to standard out.
 
 **TODO**: Add usage instructions for `error-simulator`.
+
+## What's in this Repo?
+
+```
+.
+├── archive     <-- Previous DxWiFi capstone work
+├── config      <-- Configuration files for rsyslog, debian installer, etc.
+├── dxwifi      <-- Source code for DxWifi suite of programs
+│   ├── decode
+│   ├── encode
+│   ├── rx
+│   └── tx
+├── libdxwifi   <-- Shared library code for the DxWiFi suite
+├── LICENSE
+├── openfec     <-- http://openfec.org/, used in DxWiFi's error correction
+├── patches     <-- Firmware patches for the Atheros AR9271
+├── platform    <-- Cross compilation scripts
+├── README.md   
+├── rscode      <-- Reed Solomon codec submodule
+├── startmonitor.sh <-- Script to enable a WiFi card into monitor mode
+└── test        <-- DxWiFi system tests and test data
+    └── data
+```
 
 ## System Tests
 
