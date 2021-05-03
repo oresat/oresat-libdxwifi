@@ -106,7 +106,60 @@ sudo ./tx --dev mon0 --blocksize 512 --redundancy 5 --delay 10 --file-delay 10 -
 **Note**: When doing multi-file transmission like the example above, it's critical to set the `--file-delay` and `--redundancy` parameters 
 to something reasonable for your channel. If these parameters are not set then file boundaries will not be clearly delimited to the receiver.
 
-**TODO**: Add usage instructions for `encode`, `decode`, and the `error-simulator`.
+## Encode
+Encodes a file with FEC at the code rate specified.
+```
+./encode <input filename> -o <output filename> -c <code rate>
+```
+Flags:
+
+```-o <output filename>``` Writes to file specified.  
+**Note**:	If flag is not given, will write directly to standard out, *avoid this*.
+
+```-c <number>``` Set code rate to a number between 0.0 and 1.0.
+	
+  The code rate is the rate that repair symbols will be added to the source data.
+  
+  **NOTE**: This will spit out an error if the code rate is too low for the data being encoded.
+  To fix this, increase the code rate (for example, if the initial code rate was .50, change the code rate to .75).
+    
+```-q``` Quiet mode
+
+Suppress all output.  **Avoid using**.
+
+```-v```
+	**Do not use this flag**.
+
+```-V``` Version
+
+**print version**.
+
+## Decode
+Automatically decodes a FEC-Encoded file back into its decoded form.
+```
+./decode <input filename> -o <output filename>
+```
+**NOTE**: If input file was not correctly FEC-encoded, Decode will throw an error trying to map file to memory.
+
+**NOTE**: If input file was not FEC-encoded at all, decode will throw an error stating that the input file must be a regular file.
+
+Flags: 
+
+```-o <output filename>``` Writes to file specified.  
+	If flag is not given, will write directly to standard out, *avoid this*.
+
+```-q``` Quiet mode
+
+Suppress all output.  **Avoid using**.
+
+```-v```
+	**Do not use this flag**.
+
+```-V``` Version
+
+**print version**.
+
+**TODO**: Add usage instructions for `error-simulator`.
 
 ## System Tests
 
