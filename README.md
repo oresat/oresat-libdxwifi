@@ -106,8 +106,10 @@ sudo ./tx --dev mon0 --blocksize 512 --redundancy 5 --delay 10 --file-delay 10 -
 **Note**: When doing multi-file transmission like the example above, it's critical to set the `--file-delay` and `--redundancy` parameters 
 to something reasonable for your channel. If these parameters are not set then file boundaries will not be clearly delimited to the receiver.
 
-## Encode
+## Encode / Decode Usage
+# Encode
 Encodes a file with FEC at the code rate specified.
+*Note: Run only on the satellite.*
 ```
 ./encode <input filename> -o <output filename> -c <code rate>
 ```
@@ -123,19 +125,15 @@ Flags:
   **NOTE**: This will spit out an error if the code rate is too low for the data being encoded.
   To fix this, increase the code rate (for example, if the initial code rate was .50, change the code rate to .75).
     
-```-q``` Quiet mode
+```-q``` Quiet mode: Suppress all output.  **Avoid using**.
 
-Suppress all output.  **Avoid using**.
+```-v``` **Do not use this flag**.
 
-```-v```
-	**Do not use this flag**.
+```-V``` Version: **print version**.
 
-```-V``` Version
-
-**print version**.
-
-## Decode
+# Decode
 Automatically decodes a FEC-Encoded file back into its decoded form.
+*NOTE: Run only on the ground stations.*
 ```
 ./decode <input filename> -o <output filename>
 ```
@@ -148,16 +146,11 @@ Flags:
 ```-o <output filename>``` Writes to file specified.  
 	If flag is not given, will write directly to standard out, *avoid this*.
 
-```-q``` Quiet mode
+```-q``` Quiet mode: Suppress all output.  **Avoid using**.
 
-Suppress all output.  **Avoid using**.
+```-v``` **Do not use this flag**.
 
-```-v```
-	**Do not use this flag**.
-
-```-V``` Version
-
-**print version**.
+```-V``` Version: **print version**.
 
 **TODO**: Add usage instructions for `error-simulator`.
 
