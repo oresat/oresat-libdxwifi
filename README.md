@@ -4,6 +4,32 @@
 
 Software to construct, transmit, and receive FEC encoded data packets via packet injection and monitor mode using the AR9271 chip.
 
+<details open="open">
+  <summary>Table of Contents</summary>
+  <ol>
+    <li>
+      <a href="#prerequisites">Prerequisites</a>
+    </li>
+    <li>
+      <a href="#building">Building</a>
+    </li>
+    <li>
+      <a href="#installation-and-packaging">Installation and Packaging</a>
+    </li>
+    <li>
+      <a href="#usage">Usage</a>
+      <ul>
+        <li><a href="#transmit--receive">Transmit / Receive</a></li>
+        <li><a href="#encode--decode">Encode / Decode</a></li>
+      </ul>
+    </li>
+    <li><a href="#whats-in-this-repo">What's in this Repo?</a></li>
+    <li><a href="#system-tests">System Tests</a></li>
+    <li><a href="#cross-compilation">Cross Compilation</a></li>
+  </ol>
+</details>
+
+
 ## Prerequisites
 
 - 2 linux capable devices (Raspberry PI, Beaglebone Black, Your laptop etc.)
