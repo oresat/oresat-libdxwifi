@@ -48,9 +48,10 @@ parser.add_argument("--output", "-o", required = True, help = "output directory 
 args = parser.parse_args()
 
 # Generate sweep lists
-code_rates = inclusive_arange(*args.code_rate)
-error_rates = inclusive_arange(*args.error_rate)
-packet_losses = inclusive_arange(*args.packet_loss)
+fix_fp = lambda x: np.round(x, 2)
+code_rates = fix_fp(inclusive_arange(*args.code_rate))
+error_rates = fix_fp(inclusive_arange(*args.error_rate))
+packet_losses = fix_fp(inclusive_arange(*args.packet_loss))
 
 # Make (or overwrite) the output directory
 if os.path.exists(args.output):
@@ -61,7 +62,7 @@ os.mkdir(args.output)
 for cr in code_rates:
 
     # Make a directory for this code rate
-    cr_dir = os.path.join(args.output, f"CodeRate{cr}")
+    cr_dir = os.path.join(args.output, f"CodeRate{cr:.2f}")
     os.mkdir(cr_dir)
 
     # Perform encoding
@@ -77,7 +78,7 @@ for cr in code_rates:
         for pl in packet_losses:
 
             # Make a directory for this combination
-            er_pl_dir = os.path.join(cr_dir, f"ErrorRate{er}_PacketLoss{pl}")
+            er_pl_dir = os.path.join(cr_dir, f"ErrorRate{er:.2f}_PacketLoss{pl:.2f}")
             os.mkdir(er_pl_dir)
 
             # Perform "transmission"
@@ -99,4 +100,4 @@ for cr in code_rates:
                 subprocess.run(decode_command.split(), stdout = f, stderr = f)
 
             # Notify user
-            print(f"Finished packet loss rate {pl} for error rate {er} with code rate {cr}.")
+            print(f"Finished packet loss rate {pl:.2f} for error rate {er:.2f} with code rate {cr:.2f}.")
