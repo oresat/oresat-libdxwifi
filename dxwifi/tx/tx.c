@@ -1,10 +1,10 @@
 /**
  *  tx.c
- * 
+ *
  *  DESCRIPTION: DxWiFi Transmission program
- * 
+ *
  *  https://github.com/oresat/oresat-dxwifi-software
- * 
+ *
  */
 
 #include <stdio.h>
@@ -52,7 +52,7 @@ int main(int argc, char** argv) {
     transmitter = &args.tx;
 
     parse_args(argc, argv, &args);
-    
+
     set_log_level(DXWIFI_LOG_ALL_MODULES, args.verbosity);
 
     if(args.use_syslog) {
@@ -81,11 +81,11 @@ int main(int argc, char** argv) {
 /**
  *  DESCRIPTION:    SIGTERM handler for daemonized process. Ensures transmitter
  *                  is closed.
- * 
- *  ARGUMENTS: 
- *      
- *      signum:     Received signal  
- * 
+ *
+ *  ARGUMENTS:
+ *
+ *      signum:     Received signal
+ *
  */
 void terminate(int signum) {
     stop_transmission(transmitter);
@@ -96,11 +96,11 @@ void terminate(int signum) {
 
 /**
  *  DESCRIPTION:    Signals to the transmitter to stop transmission
- * 
- *  ARGUMENTS: 
- *      
- *      signum:     Received signal  
- * 
+ *
+ *  ARGUMENTS:
+ *
+ *      signum:     Received signal
+ *
  */
 void tx_sigint_handler(int signum) {
     stop_transmission(transmitter);
@@ -109,11 +109,11 @@ void tx_sigint_handler(int signum) {
 
 /**
  *  DESCRIPTION:    Signals to the watch loop to close out
- * 
- *  ARGUMENTS: 
- *      
- *      signum:     Received signal  
- * 
+ *
+ *  ARGUMENTS:
+ *
+ *      signum:     Received signal
+ *
  */
 void watchdir_sigint_handler(int signum) {
     dirwatch_stop(dirwatch_handle);
@@ -122,11 +122,11 @@ void watchdir_sigint_handler(int signum) {
 
 /**
  *  DESCRIPTION:    Log info about the transmitted file
- * 
- *  ARGUMENTS: 
- *      
+ *
+ *  ARGUMENTS:
+ *
  *      stats:      Accumulated statistics about the transmission
- * 
+ *
  */
 void log_tx_stats(dxwifi_tx_stats stats) {
     log_debug(
@@ -144,13 +144,13 @@ void log_tx_stats(dxwifi_tx_stats stats) {
 
 
 /**
- *  DESCRIPTION:    Called everytime a frame is injected, logs stats about the 
+ *  DESCRIPTION:    Called everytime a frame is injected, logs stats about the
  *                  transmitted frame.
- * 
- *  ARGUMENTS: 
- * 
+ *
+ *  ARGUMENTS:
+ *
  *      See definition of dxwifi_tx_frame_cb in transmitter.h
- * 
+ *
  */
 void log_frame_stats(dxwifi_tx_frame* frame, dxwifi_tx_stats stats, void* user) {
     if(stats.frame_type == DXWIFI_CONTROL_FRAME_NONE) {
@@ -164,13 +164,13 @@ void log_frame_stats(dxwifi_tx_frame* frame, dxwifi_tx_stats stats, void* user) 
 
 
 /**
- *  DESCRIPTION:    Called before every frame is injected, adds millisecond 
+ *  DESCRIPTION:    Called before every frame is injected, adds millisecond
  *                  delay to transmission
- * 
- *  ARGUMENTS: 
- * 
+ *
+ *  ARGUMENTS:
+ *
  *      See definition of dxwifi_tx_frame_cb in transmitter.h
- * 
+ *
  */
 void delay_transmission(dxwifi_tx_frame* frame, dxwifi_tx_stats stats, void* user) {
     unsigned delay_ms = *(unsigned*) user;
@@ -179,20 +179,20 @@ void delay_transmission(dxwifi_tx_frame* frame, dxwifi_tx_stats stats, void* use
 }
 
 /**
- *  DESCRIPTION:    Called before every frame is injected, will intentionally 
+ *  DESCRIPTION:    Called before every frame is injected, will intentionally
  *                  drop packets according to packet loss rate
- * 
- *  ARGUMENTS: 
- * 
- *      packet_loss_rate:        Float percentage of packets lost   
- * 
+ *
+ *  ARGUMENTS:
+ *
+ *      packet_loss_rate:        Float percentage of packets lost
+ *
  */
 void packet_loss_sim(dxwifi_tx_frame* frame, dxwifi_tx_stats stats, void* user) {
     packet_loss_stats * plstats = (packet_loss_stats*) user;
     //generate random num withing range
     float random = (float)rand() / (float)RAND_MAX;
-    
-    if(plstats->packet_loss_rate < random){
+
+    if(plstats->packet_loss_rate > random){
         frame->payload_size = 0;
         plstats->count++;
     }
@@ -200,20 +200,20 @@ void packet_loss_sim(dxwifi_tx_frame* frame, dxwifi_tx_stats stats, void* user) 
 }
 
 /**
- *  DESCRIPTION:    Called before every frame is injected, will intentionally 
+ *  DESCRIPTION:    Called before every frame is injected, will intentionally
  *                  flip bits in according to error rate
- * 
- *  ARGUMENTS: 
- * 
+ *
+ *  ARGUMENTS:
+ *
  *     error_rate:      Float percentage of bits flipped
- * 
+ *
  */
 void bit_error_rate_sim(dxwifi_tx_frame* frame, dxwifi_tx_stats stats, void* user) {
     float error_rate = *(float*) user;
     int frame_size = DXWIFI_TX_HEADER_SIZE + frame->payload_size + IEEE80211_FCS_SIZE;
     int total_num_errors = frame_size * 8 * error_rate; //Get total number of errors
     uint8_t bit_array[frame_size]; //Make an array of bits equal to the number in the frame
-    
+
     // Initialize every bit to zero
     memset(bit_array, 0, frame_size);
 
@@ -234,14 +234,14 @@ void bit_error_rate_sim(dxwifi_tx_frame* frame, dxwifi_tx_stats stats, void* use
 }
 
 /**
- *  DESCRIPTION:    Called before every frame is injected, packs the current 
- *                  frame count into the last four bytes of the MAC headers 
+ *  DESCRIPTION:    Called before every frame is injected, packs the current
+ *                  frame count into the last four bytes of the MAC headers
  *                  addr1 field
- * 
- *  ARGUMENTS: 
- * 
+ *
+ *  ARGUMENTS:
+ *
  *      See definition of dxwifi_tx_frame_cb in transmitter.h
- * 
+ *
  */
 void attach_frame_number(dxwifi_tx_frame* frame, dxwifi_tx_stats stats, void* user) {
     uint32_t frame_no = htonl(stats.data_frame_count);
@@ -252,13 +252,13 @@ void attach_frame_number(dxwifi_tx_frame* frame, dxwifi_tx_stats stats, void* us
 
 /**
  *  DESCRIPTION:    Setups and tearsdown SIGINT handlers to control transmission
- * 
- *  ARGUMENTS: 
- *      
+ *
+ *  ARGUMENTS:
+ *
  *      tx:         Initialized transmitter
- * 
+ *
  *      fd:         Opened file descriptor of the file to be transmitted
- * 
+ *
  */
 dxwifi_tx_state_t setup_handlers_and_transmit(dxwifi_transmitter* tx, int fd) {
     dxwifi_tx_stats stats;
@@ -279,26 +279,26 @@ dxwifi_tx_state_t setup_handlers_and_transmit(dxwifi_transmitter* tx, int fd) {
 
 
 /**
- *  DESCRIPTION:    Iterates through a list of file names, opens them, and 
+ *  DESCRIPTION:    Iterates through a list of file names, opens them, and
  *                  transmits them
- * 
- *  ARGUMENTS: 
- *      
+ *
+ *  ARGUMENTS:
+ *
  *      tx:         Initialized transmitter
- * 
+ *
  *      files:      List of files to transmit
- * 
- *      delay:      Millisecond delay to add between file transmission. 
- * 
+ *
+ *      delay:      Millisecond delay to add between file transmission.
+ *
  *      retransmit_count:
  *                  Number of times to retransmit the file. If the count is -1
- *                  then the file will be retransmitted forever or until the 
+ *                  then the file will be retransmitted forever or until the
  *                  transmitter reports a timeout or error
- * 
+ *
  *  RETURNS:
- *      
+ *
  *      dxwifi_tx_state_t: The last reported state of the transmitter
- * 
+ *
  */
 dxwifi_tx_state_t transmit_files(dxwifi_transmitter* tx, char** files, size_t num_files, unsigned delay, int retransmit_count) {
     int fd = 0;
@@ -335,17 +335,17 @@ dxwifi_tx_state_t transmit_files(dxwifi_transmitter* tx, char** files, size_t nu
 
 /**
  *  DESCRIPTION:    Transmit all files in a directory that matches a filter
- * 
- *  ARGUMENTS: 
- *      
+ *
+ *  ARGUMENTS:
+ *
  *      tx:         Initialized transmitter
- * 
+ *
  *      filter:     Glob pattern to filter which files should be transmitted
- * 
+ *
  *      dirname:    Name of target directory
- * 
+ *
  *      delay:      Inter-file transmission delay in milliseconds
- * 
+ *
  */
 void transmit_directory_contents(dxwifi_transmitter* tx, const char* filter, const char* dirname, unsigned delay, int retransmit_count) {
     DIR* dir;
@@ -373,13 +373,13 @@ void transmit_directory_contents(dxwifi_transmitter* tx, const char* filter, con
 
 /**
  *  DESCRIPTION:    Dirwatch callback, transmits newly created file
- * 
- *  ARGUMENTS: 
- *      
+ *
+ *  ARGUMENTS:
+ *
  *      event:      Creation and close event
- * 
+ *
  *      user:       Command line arguments
- * 
+ *
  */
 static void transmit_new_file(const dirwatch_event* event, void* user) {
     cli_args* args = (cli_args*) user;
@@ -397,13 +397,13 @@ static void transmit_new_file(const dirwatch_event* event, void* user) {
 /**
  *  DESCRIPTION:    Transmits current directory contents and listens for newly
  *                  created files to transmit
- * 
- *  ARGUMENTS: 
- *      
+ *
+ *  ARGUMENTS:
+ *
  *      args:       Parsed command line arguments
- * 
+ *
  *      tx:         Initialized transmitter
- * 
+ *
  */
 void transmit_directory(cli_args* args, dxwifi_transmitter* tx) {
 
@@ -436,16 +436,16 @@ void transmit_directory(cli_args* args, dxwifi_transmitter* tx) {
 
 
 /**
- *  DESCRIPTION:    Transmit a test sequence of bytes. The test sequence is a 
- *                  10Kb block of data with the transmission count encoded in 
+ *  DESCRIPTION:    Transmit a test sequence of bytes. The test sequence is a
+ *                  10Kb block of data with the transmission count encoded in
  *                  every four bytes as the payload
- * 
- *  ARGUMENTS: 
- *      
+ *
+ *  ARGUMENTS:
+ *
  *      tx:         Initialized transmitter
- * 
+ *
  *      retransmit: Number of times to transmit test sequence
- * 
+ *
  */
 void transmit_test_sequence(dxwifi_transmitter* tx, int retransmit) {
 
@@ -478,13 +478,13 @@ void transmit_test_sequence(dxwifi_transmitter* tx, int retransmit) {
 
 /**
  *  DESCRIPTION:    Determine the transmission mode and transmit files
- * 
- *  ARGUMENTS: 
- *      
+ *
+ *  ARGUMENTS:
+ *
  *      args:       Parsed command line arguments
- * 
+ *
  *      tx:         Initialized transmitter
- * 
+ *
  */
 void transmit(cli_args* args, dxwifi_transmitter* tx) {
 
@@ -525,7 +525,7 @@ void transmit(cli_args* args, dxwifi_transmitter* tx) {
     case TX_TEST_MODE:
         transmit_test_sequence(tx, args->retransmit_count);
         break;
-    
+
     default:
         break;
     }
