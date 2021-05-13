@@ -189,7 +189,9 @@ To decode an FEC encoded file and apply the erasure and error correcting codes:
     └── data
 ```
 
-## System Tests
+## Testing
+
+**Note:** these test scripts require Python 3.6 or higher.
 
 To run the system tests first you'll need to compile the project with `DXWIFI_TESTS` defined.
 The project Cmake file defines two build configurations with this macro enabled, `TestDebug` and `TestRel`.
@@ -199,6 +201,18 @@ packetized data from a `savefile`. With the correct binaries built, simply run t
 ```
 python -m unittest
 ```
+
+There is also a script `sweep.py` to automatically iterate through code rate, error rate, and packet loss rate parameters. To use (from the repository root):
+
+```
+python test/sweep.py  --code-rate   | -c [min] [max] [step]
+                      --error-rate  | -e [min] [max] [step]
+                      --packet-loss | -p [min] [max] [step]
+                      --source      | -s [source file path]
+                      --output      | -o [output directory path]
+```
+
+This will perform all combinations of code rates, error rates, and packet loss rates (offline) and save the outputs in subdirectories in the specified output directory.
 
 ## Cross Compilation
 
