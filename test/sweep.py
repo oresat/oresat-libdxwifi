@@ -16,11 +16,13 @@ import sys
 import shutil
 import argparse
 import subprocess
-import numpy as np
 
-# Generate inclusive arange list from given parameters
-def inclusive_arange(start, stop, step):
-    return np.arange(start, stop + step / 10, step, dtype = np.float64)
+# Generate inclusive float range list from given parameters
+def make_range(start, stop, step):
+    shift = int(1 / step)
+    int_params = [int(i * shift) for i in (start, stop, step)]
+    int_params[1] += 1
+    return [i / shift for i in range(*int_params)]
 
 # Get binary paths
 INSTALL_DIR = os.environ.get('DXWIFI_INSTALL_DIR', default='bin/TestDebug')
@@ -48,10 +50,9 @@ parser.add_argument("--output", "-o", required = True, help = "output directory 
 args = parser.parse_args()
 
 # Generate sweep lists
-fix_fp = lambda x: np.round(x, 2)
-code_rates = fix_fp(inclusive_arange(*args.code_rate))
-error_rates = fix_fp(inclusive_arange(*args.error_rate))
-packet_losses = fix_fp(inclusive_arange(*args.packet_loss))
+code_rates = make_range(*args.code_rate)
+error_rates = make_range(*args.error_rate)
+packet_losses = make_range(*args.packet_loss)
 
 # Make (or overwrite) the output directory
 if os.path.exists(args.output):
