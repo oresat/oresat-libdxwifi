@@ -47,6 +47,7 @@ typedef struct {
     float               packet_loss;
     float               error_rate;
     dxwifi_transmitter  tx;
+    float               coderate;
 } cli_args;
 
 
@@ -67,8 +68,9 @@ typedef struct {
         .file_delay                 = 0,\
         .device                     = "mon0",\
         .error_rate                 = 0,\
-        .packet_loss                 = 0,\
-        .tx = DXWIFI_TRANSMITTER_DFLT_INITIALIZER\
+        .packet_loss                = 0,\
+        .tx                         = DXWIFI_TRANSMITTER_DFLT_INITIALIZER,\
+        .coderate                   = 0.5\
     }\
 
 
