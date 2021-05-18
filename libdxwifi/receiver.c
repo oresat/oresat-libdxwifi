@@ -244,16 +244,15 @@ static dxwifi_control_frame_t check_frame_control(const uint8_t* frame, const st
                 break;
             }
         } 
-        if((eot / payload_size) > check_threshold) {
+        if(((float)eot / payload_size) > check_threshold) {
             type = DXWIFI_CONTROL_FRAME_EOT;
         }
-        else if ((preamble / payload_size) > check_threshold) {
+        else if (((float)preamble / payload_size) > check_threshold) {
             type = DXWIFI_CONTROL_FRAME_PREAMBLE;
         }
     }
     return type;
 }
-
 
 
 /**
@@ -271,7 +270,7 @@ static dxwifi_control_frame_t check_frame_control(const uint8_t* frame, const st
 static void handle_frame_control(frame_controller* fc, dxwifi_control_frame_t type) {
     debug_assert(fc);
 
-    switch (type)
+    switch (type) 
     {
     // TODO if the dispatch count is greater than 1 then the reciever will 
     // continue to process packets until number of packets processed is greater
@@ -351,6 +350,53 @@ static void dump_packet_buffer(frame_controller* fc) {
 
 
 /**
+ *  DESCRIPTION:    Checks the IEEE header address fields to verify that the 
+ *                  packet orignated from OreSat
+ * 
+ *  ARGUMENTS:
+ * 
+ *      frame:      Captured data frame
+ * 
+ *      expected_address:  MAC address field that was stuffed by the transmitter
+ * 
+ *  RETURNS:
+ *  
+ *      bool:       True if any address is under the maximum hamming distance 
+ *                  threshold
+ * 
+ */
+static bool verify_sender(const uint8_t* frame, const uint8_t* expected_address, uint32_t threshold) {
+    debug_assert(frame && expected_address);
+
+    const ieee80211_radiotap_hdr* rtap = (const ieee80211_radiotap_hdr*)frame;
+    const ieee80211_hdr* mac_hdr = (ieee80211_hdr*)(frame + rtap->it_len);
+
+    uint32_t addr1_top      = *(uint32_t*)mac_hdr->addr1;
+    uint16_t addr1_bottom   = *((uint16_t*)(mac_hdr->addr1 + sizeof(uint32_t)));
+
+    uint32_t addr2_top      = *(uint32_t*)mac_hdr->addr2;
+    uint16_t addr2_bottom   = *((uint16_t*)(mac_hdr->addr2 + sizeof(uint32_t)));
+
+    uint32_t addr3_top      = *(uint32_t*)mac_hdr->addr3;
+    uint16_t addr3_bottom   = *((uint16_t*)(mac_hdr->addr3 + sizeof(uint32_t)));
+
+    uint32_t expected_top    = *(uint32_t*)expected_address;
+    uint16_t expected_bottom = *((uint16_t*)(expected_address + sizeof(uint32_t)));
+
+    uint32_t addr1_dist = hamming_dist32(addr1_top, expected_top) 
+                        + hamming_dist32(addr1_bottom, expected_bottom);
+
+    uint32_t addr2_dist = hamming_dist32(addr2_top, expected_top) 
+                        + hamming_dist32(addr2_bottom, expected_bottom);
+
+    uint32_t addr3_dist = hamming_dist32(addr3_top, expected_top) 
+                        + hamming_dist32(addr3_bottom, expected_bottom);
+
+    return addr1_dist < threshold || addr2_dist < threshold || addr3_dist < threshold;
+}
+
+
+/**
  *  DESCRIPTION:    Callback for PCAP dispatch. Called each time a frame is
  *                  matching the BPF expression is captured
  * 
@@ -367,50 +413,54 @@ static void dump_packet_buffer(frame_controller* fc) {
 static void process_frame(uint8_t* args, const struct pcap_pkthdr* pkt_stats, const uint8_t* frame) { 
     frame_controller* fc = (frame_controller*) args;
 
-    dxwifi_control_frame_t ctrl_frame = check_frame_control(frame, pkt_stats, DXWIFI_FRAME_CONTROL_CHECK_THRESHOLD);
+    if(verify_sender(frame, fc->rx->sender_addr, fc->rx->max_hamming_dist)) {
 
-    if(ctrl_frame != DXWIFI_CONTROL_FRAME_NONE) {
-        handle_frame_control(fc, ctrl_frame);
-    }
-    else {
-        // Buffer is full, write it out first
-        if( fc->index + pkt_stats->caplen >= fc->pb_size ) {
-            dump_packet_buffer(fc);
+        dxwifi_control_frame_t ctrl_frame = check_frame_control(frame, pkt_stats, DXWIFI_FRAME_CONTROL_CHECK_THRESHOLD);
+
+        if(ctrl_frame != DXWIFI_CONTROL_FRAME_NONE) {
+            handle_frame_control(fc, ctrl_frame);
+        }
+        else {
+            // Buffer is full, write it out first
+            if( fc->index + pkt_stats->caplen >= fc->pb_size ) {
+                dump_packet_buffer(fc);
+            }
+
+            // Next available slot in the packet buffer
+            uint8_t* buffer_slot = fc->packet_buffer + fc->index;
+
+            // Copy the entire frame into the packet buffer
+            memcpy(buffer_slot, frame, pkt_stats->caplen);
+
+            dxwifi_rx_frame rx_frame = parse_rx_frame_fields(pkt_stats, buffer_slot);
+
+            // TODO parse radiotap header data and store provided info
+
+            ssize_t payload_size = rx_frame.fcs - rx_frame.payload;
+
+            int32_t frame_number = (fc->rx->ordered 
+                ? extract_frame_number(rx_frame.mac_hdr) 
+                : fc->rx_stats.num_packets_processed);
+
+            // Heap node only points to the payload data
+            packet_heap_node node = {
+                .frame_number   = frame_number,
+                .data           = rx_frame.payload,
+                .size           = payload_size,
+                .crc_valid      = false // TODO verify CRC
+            };
+            heap_push(&fc->packet_heap, &node);
+
+            // Update next write position and stats
+            fc->index                           += pkt_stats->caplen; 
+            fc->rx_stats.total_caplen           += pkt_stats->caplen;
+            fc->rx_stats.total_payload_size     += payload_size;
+            fc->rx_stats.num_packets_processed  += 1;
+            memcpy(&fc->rx_stats.pkt_stats, pkt_stats, sizeof(struct pcap_pkthdr));
+
+            log_frame_stats(&rx_frame, frame_number, &fc->rx_stats);
         }
 
-        // Next available slot in the packet buffer
-        uint8_t* buffer_slot = fc->packet_buffer + fc->index;
-
-        // Copy the entire frame into the packet buffer
-        memcpy(buffer_slot, frame, pkt_stats->caplen);
-
-        dxwifi_rx_frame rx_frame = parse_rx_frame_fields(pkt_stats, buffer_slot);
-
-        // TODO parse radiotap header data and store provided info
-
-        ssize_t payload_size = rx_frame.fcs - rx_frame.payload;
-
-        int32_t frame_number = (fc->rx->ordered 
-            ? extract_frame_number(rx_frame.mac_hdr) 
-            : fc->rx_stats.num_packets_processed);
-
-        // Heap node only points to the payload data
-        packet_heap_node node = {
-            .frame_number   = frame_number,
-            .data           = rx_frame.payload,
-            .size           = payload_size,
-            .crc_valid      = false // TODO verify CRC
-        };
-        heap_push(&fc->packet_heap, &node);
-
-        // Update next write position and stats
-        fc->index                           += pkt_stats->caplen; 
-        fc->rx_stats.total_caplen           += pkt_stats->caplen;
-        fc->rx_stats.total_payload_size     += payload_size;
-        fc->rx_stats.num_packets_processed  += 1;
-        memcpy(&fc->rx_stats.pkt_stats, pkt_stats, sizeof(struct pcap_pkthdr));
-
-        log_frame_stats(&rx_frame, frame_number, &fc->rx_stats);
     }
 }
 
@@ -449,10 +499,9 @@ static void log_rx_configuration(const dxwifi_receiver* rx, const char* dev_name
 
 
 void init_receiver(dxwifi_receiver* rx, const char* device_name) {
-    debug_assert(rx && rx->filter);
+    debug_assert(rx);
 
     int status = 0;
-    struct bpf_program filter;
     char err_buff[PCAP_ERRBUF_SIZE];
 
     rx->__activated = false;
@@ -481,13 +530,16 @@ void init_receiver(dxwifi_receiver* rx, const char* device_name) {
     status = pcap_set_datalink(rx->__handle, DLT_IEEE802_11_RADIO);
     assert_M(status != PCAP_ERROR, "Failed to set datalink: %s", pcap_statustostr(status));
 
-    status = pcap_compile(rx->__handle, &filter, rx->filter, rx->optimize, PCAP_NETMASK_UNKNOWN);
-    assert_M(status != PCAP_ERROR, "Failed to compile filter %s: %s", rx->filter, pcap_statustostr(status));
+    if(rx->filter != NULL) {
+        struct bpf_program filter;
+        status = pcap_compile(rx->__handle, &filter, rx->filter, rx->optimize, PCAP_NETMASK_UNKNOWN);
+        assert_M(status != PCAP_ERROR, "Failed to compile filter %s: %s", rx->filter, pcap_statustostr(status));
 
-    status = pcap_setfilter(rx->__handle, &filter);
-    assert_M(status != PCAP_ERROR, "Failed to set filter: %s", pcap_statustostr(status));
+        status = pcap_setfilter(rx->__handle, &filter);
+        assert_M(status != PCAP_ERROR, "Failed to set filter: %s", pcap_statustostr(status));
 
-    pcap_freecode(&filter);
+        pcap_freecode(&filter);
+    }
 
     log_rx_configuration(rx, device_name);
 }

@@ -232,7 +232,7 @@ void bit_error_rate_sim(dxwifi_tx_frame* frame, dxwifi_tx_stats stats, void* use
             --i;
         }
     }
-    log_debug("Size of frame in bits: %d, Number of bits flipped: %d", frame_size * 8, total_num_errors);
+    log_debug("Bits in frame: %d, bits flipped: %d", frame_size * 8, total_num_errors);
     return;
 }
 

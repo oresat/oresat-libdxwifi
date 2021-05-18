@@ -99,6 +99,9 @@ typedef struct {
     bool        ordered;            /* Packets have packed sequence data      */
     bool        add_noise;          /* Add noise for missing packets          */
     uint8_t     noise_value;        /* Value to use for noise                 */
+    uint8_t     sender_addr[IEEE80211_MAC_ADDR_LEN];
+                                    /* Transmitters MAC address               */
+    uint32_t    max_hamming_dist;   /* Max number of bit errors in address    */
 
     // https://www.tcpdump.org/manpages/pcap.3pcap.html
     const char *filter;             /* BPF Program string                     */
@@ -123,7 +126,9 @@ typedef struct {
     .ordered            = false,\
     .add_noise          = false,\
     .noise_value        = 0xff,\
-    .filter             = "wlan addr2 aa:aa:aa:aa:aa:aa",\
+    .sender_addr        = {0xAA, 0xAA ,0xAA, 0xAA, 0xAA, 0xAA },\
+    .max_hamming_dist   = 20,\
+    .filter             = NULL,\
     .optimize           = true,\
     .snaplen            = DXWIFI_SNAPLEN_MAX,\
     .pb_timeout         = DXWIFI_DFLT_PACKET_BUFFER_TIMEOUT\

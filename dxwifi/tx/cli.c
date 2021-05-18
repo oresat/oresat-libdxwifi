@@ -102,11 +102,6 @@ static struct argp_option opts[] = {
 };
 
 
-static bool parse_mac_address(const char* arg, uint8_t* mac) {
-    return sscanf(arg, "%hhx:%hhx:%hhx:%hhx:%hhx:%hhx", mac, mac + 1, mac + 2, mac + 3, mac + 4, mac + 5) == 6;
-}
-
-
 // TODO all these atois() need error handling
 static error_t parse_opt(int key, char* arg, struct argp_state *state) {
 
@@ -243,8 +238,7 @@ static error_t parse_opt(int key, char* arg, struct argp_state *state) {
         break;
 
     case GET_KEY(1, MAC_HEADER_GROUP):
-        if( !parse_mac_address(arg, args->tx.address) )
-        {
+        if(!parse_mac_address(arg, args->tx.address)) {
             argp_error(state, "Mac address must be 6 octets in hexadecimal format delimited by a ':'");
             argp_usage(state);
         }
