@@ -25,7 +25,7 @@
 
 static void log_codec_params(const of_ldpc_parameters_t* params) {
     log_info(
-        "DxWiFi Encoder\n"
+        "DxWiFi Codec\n"
         "\tK:           %d\n"
         "\tN-K:         %d\n"
         "\tN1:          %d\n"
@@ -190,24 +190,21 @@ ssize_t dxwifi_encode(void* message, size_t msglen, float coderate, void** out) 
 ssize_t dxwifi_decode(void* encoded_msg, size_t msglen, void** out) {
     debug_assert(encoded_msg && out);
 
-    //foundvalue used for crc checking, defaults to -1
-    int foundvalue = -1;
-
     size_t nframes = msglen / DXWIFI_RS_LDPC_FRAME_SIZE;
 
     dxwifi_ldpc_frame* ldpc_frames = calloc(nframes, sizeof(dxwifi_ldpc_frame));
 
     if( msglen % DXWIFI_RS_LDPC_FRAME_SIZE != 0) {
-        log_warning("Ideally, Message Length should be divisible by the size of a RS-LDPC Data frame...");
+        log_warning("Misaligned, msglen (%u) is not divisible by RS-LDPC frame size");
     }
 
-    // Cast encoded message as an array of RS-LDPC Frames
     dxwifi_rs_ldpc_frame* rs_ldpc_frames = encoded_msg;
 
     // Decode outer RS shell and populate the LDPC Frames
-    for(size_t frame_no= 0; frame_no < nframes; ++frame_no) {
-        dxwifi_rs_ldpc_frame* rs_ldpc_frame = &rs_ldpc_frames[frame_no];
-        dxwifi_ldpc_frame* ldpc_frame = &ldpc_frames[frame_no];
+    for(size_t i = 0; i < nframes; ++i) {
+
+        dxwifi_rs_ldpc_frame* rs_ldpc_frame = &rs_ldpc_frames[i];
+        dxwifi_ldpc_frame* ldpc_frame = &ldpc_frames[i];
 
         for(size_t i = 0; i < DXWIFI_RSCODE_BLOCKS_PER_FRAME; ++i) {
             void* message  = offset(ldpc_frame, i, RSCODE_MAX_MSG_LEN);
@@ -224,37 +221,29 @@ ssize_t dxwifi_decode(void* encoded_msg, size_t msglen, void** out) {
     }
 
     // Search for first valid OTI header 
-    for(size_t oti_check = 0; oti_check < nframes; oti_check++) {
-    	dxwifi_ldpc_frame* test_frame = &ldpc_frames[oti_check];
-    	uint32_t crc = crc32(test_frame->symbol, DXWIFI_FEC_SYMBOL_SIZE); 
+    size_t idx = 0;
+    for(; idx < nframes; ++idx) {
+    	dxwifi_ldpc_frame* frame = &ldpc_frames[idx];
 
-    	log_debug("Test Frame CRC: 0x%x ", ntohl(test_frame->oti.crc));
-    	log_debug("Calculated CRC: 0x%x \n", crc);
+    	uint32_t crc = crc32(frame->symbol, DXWIFI_FEC_SYMBOL_SIZE); 
 
-    	//Recompute the CRC value, and compare vs the one pulled from oti.crc
-    	//if it's equal, log info that a valid one was found and return to standard execution.
-    	if(crc == ntohl(test_frame->oti.crc)){
-    		log_debug("Valid OTI header found");
-    		foundvalue = (int)oti_check;
-    		break;
+    	if(crc == ntohl(frame->oti.crc)){
+            break;
     	}
-    	//Otherwise, log a warning for a CRC mismatch and continue forwards.
     	else { 
-            log_warning("CRC for frame %d didn't match: Expected: 0x%x, Got: 0x%x", oti_check, crc, ntohl(test_frame->oti.crc)); 
+            log_warning("Frame %d CRC mistmatch, actual: 0x%x expected: 0x%x", idx, crc, ntohl(frame->oti.crc)); 
         }
 	} 
-	if(foundvalue == -1){
+    if(idx >= nframes){
         free(ldpc_frames);
         return FEC_ERROR_NO_OTI_FOUND;
 	}
 
-	//Now actually decode the LDPC blocks
-	dxwifi_oti* oti      = encoded_msg;
-    uint32_t esi         = ntohl(oti->esi);
-    uint32_t n           = ntohl(oti->n);
-    uint32_t k           = ntohl(oti->k);
-    log_info("esi=%d, n=%d, k=%d", esi, n, k);
-
+	dxwifi_oti* oti = &ldpc_frames[idx].oti;
+    uint32_t esi    = ntohl(oti->esi);
+    uint32_t n      = ntohl(oti->n);
+    uint32_t k      = ntohl(oti->k);
+    log_info("OTI Found: esi=%d, n=%d, k=%d", esi, n, k);
 
     of_ldpc_parameters_t codec_params = {
         .nb_source_symbols      = k,
@@ -265,8 +254,7 @@ ssize_t dxwifi_decode(void* encoded_msg, size_t msglen, void** out) {
     };
     of_session_t* openfec_session = NULL;
     of_status_t status = OF_STATUS_OK;
-
-    log_info("N1=%d, PRNG Seed=%d", codec_params.N1, codec_params.prng_seed);
+    log_codec_params(&codec_params);
 
     status = of_create_codec_instance(&openfec_session, OF_CODEC_LDPC_STAIRCASE_STABLE, OF_DECODER, 2);
     assert_M(status == OF_STATUS_OK, "Failed to initialize OpenFEC session");
@@ -277,7 +265,13 @@ ssize_t dxwifi_decode(void* encoded_msg, size_t msglen, void** out) {
     // Decode LDPC Frames
     for (size_t i = 0; i < nframes; ++i) {
         dxwifi_ldpc_frame* frame = &ldpc_frames[i];
-        of_decode_with_new_symbol(openfec_session, frame->symbol, ntohl(frame->oti.esi));
+
+        uint32_t esi = ntohl(frame->oti.esi);
+        if(esi > n) {
+            log_debug("Invalid ESI: %u, N: %u", esi, n);
+        } else {
+            of_decode_with_new_symbol(openfec_session, frame->symbol, ntohl(frame->oti.esi));
+        }
     }
     if(!of_is_decoding_complete(openfec_session)) {
         status = of_finish_decoding(openfec_session);
