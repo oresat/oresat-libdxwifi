@@ -70,6 +70,7 @@ void log_rx_stats(dxwifi_rx_stats stats) {
         "\tTotal Noise Added:           %d\n"
         "\tPackets Processed:           %d\n"
         "\tPackets Received:            %d\n"
+        "\tPackets Dropped (receiver):  %d\n"
         "\tPackets Dropped (Kernel):    %d\n"
         "\tPackets Dropped (NIC):       %d\n"
         "\tNote: Packet drop data is platform dependent.\n"
@@ -81,6 +82,7 @@ void log_rx_stats(dxwifi_rx_stats stats) {
         stats.total_noise_added,
         stats.num_packets_processed,
         stats.pcap_stats.ps_recv,
+        stats.packets_dropped,
         stats.pcap_stats.ps_drop,
         stats.pcap_stats.ps_ifdrop
     );

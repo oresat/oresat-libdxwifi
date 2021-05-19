@@ -54,7 +54,6 @@ static char doc[] =
 // Available command line options 
 static struct argp_option opts[] = {
     { "dev",            'd', "<network-device>",    0,  "Monitor mode enabled network interface",                                        PRIMARY_GROUP },
-    { "blocksize",      'b', "<blocksize>",         0,  "Size in bytes of each block read from file",                                    PRIMARY_GROUP },
     { "timeout",        't', "<seconds>",           0,  "Number of seconds to wait for an available read",                               PRIMARY_GROUP },
     { "delay",          'u', "<mseconds>",          0,  "Length of time, in milliseconds, to delay between transmission blocks",         PRIMARY_GROUP },
     { "file-delay",     'f', "<mseconds>",          0,  "Length of time in milliseconds to delay between file transmissions",            PRIMARY_GROUP },
@@ -150,14 +149,6 @@ static error_t parse_opt(int key, char* arg, struct argp_state *state) {
 
     case 'd':
         args->device = arg;
-        break;
-
-    case 'b':
-        args->tx.blocksize = atoi(arg);
-        if(args->tx.blocksize < DXWIFI_BLOCK_SIZE_MIN || args->tx.blocksize > DXWIFI_BLOCK_SIZE_MAX) {
-            argp_error(state, "Blocksize must be in the range(%d, %d)", DXWIFI_BLOCK_SIZE_MIN, DXWIFI_BLOCK_SIZE_MAX);
-            argp_usage(state);
-        }
         break;
 
     case 't':
