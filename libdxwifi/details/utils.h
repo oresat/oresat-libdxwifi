@@ -13,6 +13,7 @@
 
 #include <time.h>
 #include <errno.h>
+#include <stdio.h>
 #include <stdint.h>
 #include <stddef.h>
 #include <stdbool.h>
@@ -175,6 +176,64 @@ void combine_path(char* buffer, size_t n, const char* path, const char* filename
  * 
  */
 static inline void* offset(void* base, size_t count, size_t sz)   { return ((uint8_t*) base) + (count * sz); }
+
+
+/**
+ *  DESCRIPTION:    Calculates the hamming distance between a and b 
+ * 
+ *  ARGUMENTS: 
+ *      
+ *      a:          binary string
+ * 
+ *      b:          binary string
+ * 
+ *  RETURNS: 
+ *    
+ *      uint32_t:   The number of bit positions at which a and b are different
+ */
+static inline uint32_t hamming_dist32(uint32_t a, uint32_t b) {
+  return __builtin_popcount(a ^ b);
+}
+
+
+/**
+ *  DESCRIPTION:    Calculates the hamming distance between a and b 
+ * 
+ *  ARGUMENTS: 
+ *      
+ *      a:          binary string
+ * 
+ *      b:          binary string
+ * 
+ *  RETURNS: 
+ *    
+ *      uint64_t:   The number of bit positions at which a and b are different
+ */
+static inline uint64_t hamming_dist64(uint64_t a, uint64_t b) {
+  return __builtin_popcountll(a ^ b);
+}
+
+
+/**
+ *  DESCRIPTION:  Parses a MAC address string and stores the value into an array
+ * 
+ *  ARGUMENTS: 
+ *      
+ *      arg:      MAC address string
+ * 
+ *      mac:      Mutable reference to user owned memory of size IEEE80211_MAC_ADDR_LEN
+ * 
+ *  RETURNS: 
+ *    
+ *      bool:     True if the operation was successful.
+ * 
+ *  NOTES: Even if this operation fails the provided array could still be 
+ *    mutated with a partial result. 
+ * 
+ */
+static inline bool parse_mac_address(const char* arg, uint8_t* mac) {
+    return sscanf(arg, "%hhx:%hhx:%hhx:%hhx:%hhx:%hhx", mac, mac + 1, mac + 2, mac + 3, mac + 4, mac + 5) == 6;
+}
 
 
 // Gets rid of `unused-parameter` warnings in release builds. Should only be 
