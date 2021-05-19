@@ -472,6 +472,7 @@ static void log_rx_configuration(const dxwifi_receiver* rx, const char* dev_name
             "\tDevice:                   %s\n"
             "\tCapture Timeout:          %ds\n"
             "\tPacket Buffer Size:       %ld\n"
+            "\tMax Hamming Distance:     %d\n"
             "\tOrdered:                  %d\n"
             "\tAdd-noise:                %d\n"
             "\tFilter:                   %s\n"
@@ -483,6 +484,7 @@ static void log_rx_configuration(const dxwifi_receiver* rx, const char* dev_name
             dev_name,
             rx->capture_timeout,
             rx->packet_buffer_size,
+            rx->max_hamming_dist,
             rx->ordered,
             rx->add_noise,
             rx->filter,
