@@ -18,18 +18,18 @@
 
 #include <libdxwifi/dxwifi.h>
 #include <libdxwifi/receiver.h>
+#include <libdxwifi/transmitter.h>
 #include <libdxwifi/details/heap.h>
 #include <libdxwifi/details/assert.h>
 #include <libdxwifi/details/logging.h>
 
 
-#define DXWIFI_RX_PACKET_HEAP_CAPACITY ((DXWIFI_RX_PACKET_BUFFER_SIZE_MAX / DXWIFI_BLOCK_SIZE_MIN) + 1)
+#define DXWIFI_RX_PACKET_HEAP_CAPACITY ((DXWIFI_RX_PACKET_BUFFER_SIZE_MAX / DXWIFI_TX_BLOCKSIZE) + 1)
 
 
 typedef struct {
     int32_t     frame_number;   /* Number of the frame was sent with          */
     uint8_t*    data;           /* pointer to data inside the packet buffer   */
-    ssize_t     size;           /* Size of the data frame                     */
     bool        crc_valid;      /* Was the attached crc correct?              */
 } packet_heap_node;
 
@@ -217,39 +217,35 @@ static void log_frame_stats(dxwifi_rx_frame* frame, int32_t frame_no, dxwifi_rx_
  *      dxwifi_control_frame_t: The type of the control frame
  *  
  */
-static dxwifi_control_frame_t check_frame_control(const uint8_t* frame, const struct pcap_pkthdr* pkt_stats, float check_threshold) {
+static dxwifi_control_frame_t check_frame_control(const uint8_t* frame, float check_threshold) {
     // Get info we need from the raw data frame
     const ieee80211_radiotap_hdr* rtap = (const ieee80211_radiotap_hdr*)frame;
     const uint8_t* payload = frame + rtap->it_len + sizeof(ieee80211_hdr);
-    size_t payload_size = pkt_stats->caplen - rtap->it_len - sizeof(ieee80211_hdr) - IEEE80211_FCS_SIZE;
 
     unsigned eot                = 0;
     unsigned preamble           = 0;
     dxwifi_control_frame_t type = DXWIFI_CONTROL_FRAME_NONE;
 
-    // Determine if the frame is indeed a control frame
-    if(payload_size == DXWIFI_FRAME_CONTROL_DATA_SIZE) {
-        for(size_t i = 0; i < payload_size; ++i) {
-            switch (payload[i])
-            {
-            case DXWIFI_CONTROL_FRAME_PREAMBLE:
-                ++preamble;
-                break;
-            
-            case DXWIFI_CONTROL_FRAME_EOT:
-                ++eot;
-                break;
+    for(size_t i = 0; i < DXWIFI_TX_PAYLOAD_SIZE; ++i) {
+        switch (payload[i])
+        {
+        case DXWIFI_CONTROL_FRAME_PREAMBLE:
+            ++preamble;
+            break;
+        
+        case DXWIFI_CONTROL_FRAME_EOT:
+            ++eot;
+            break;
 
-            default:
-                break;
-            }
-        } 
-        if(((float)eot / payload_size) > check_threshold) {
-            type = DXWIFI_CONTROL_FRAME_EOT;
+        default:
+            break;
         }
-        else if (((float)preamble / payload_size) > check_threshold) {
-            type = DXWIFI_CONTROL_FRAME_PREAMBLE;
-        }
+    } 
+    if(((float)eot / DXWIFI_TX_PAYLOAD_SIZE) > check_threshold) {
+        type = DXWIFI_CONTROL_FRAME_EOT;
+    }
+    else if (((float)preamble / DXWIFI_TX_PAYLOAD_SIZE) > check_threshold) {
+        type = DXWIFI_CONTROL_FRAME_PREAMBLE;
     }
     return type;
 }
@@ -327,7 +323,7 @@ static void dump_packet_buffer(frame_controller* fc) {
             int missing_blocks = (node.frame_number - expected_frame);
 
             if(fc->rx->add_noise) {
-                uint8_t noise[node.size];
+                uint8_t noise[DXWIFI_TX_PAYLOAD_SIZE];
 
                 memset(noise, fc->rx->noise_value, sizeof(noise));
 
@@ -339,8 +335,8 @@ static void dump_packet_buffer(frame_controller* fc) {
             fc->rx_stats.total_blocks_lost += missing_blocks;
         }
 
-        nbytes = write(fc->fd, node.data, node.size);
-        debug_assert_continue(nbytes == node.size, "Partial write: %d - %s", nbytes, strerror(errno));
+        nbytes = write(fc->fd, node.data, DXWIFI_TX_PAYLOAD_SIZE);
+        debug_assert_continue(nbytes == DXWIFI_TX_PAYLOAD_SIZE, "Partial write: %d - %s", nbytes, strerror(errno));
 
         fc->rx_stats.total_writelen += nbytes;
         expected_frame = node.frame_number + 1;
@@ -415,7 +411,7 @@ static void process_frame(uint8_t* args, const struct pcap_pkthdr* pkt_stats, co
 
     if(verify_sender(frame, fc->rx->sender_addr, fc->rx->max_hamming_dist)) {
 
-        dxwifi_control_frame_t ctrl_frame = check_frame_control(frame, pkt_stats, DXWIFI_FRAME_CONTROL_CHECK_THRESHOLD);
+        dxwifi_control_frame_t ctrl_frame = check_frame_control(frame, 0.66);
 
         if(ctrl_frame != DXWIFI_CONTROL_FRAME_NONE) {
             handle_frame_control(fc, ctrl_frame);
@@ -446,7 +442,6 @@ static void process_frame(uint8_t* args, const struct pcap_pkthdr* pkt_stats, co
             packet_heap_node node = {
                 .frame_number   = frame_number,
                 .data           = rx_frame.payload,
-                .size           = payload_size,
                 .crc_valid      = false // TODO verify CRC
             };
             heap_push(&fc->packet_heap, &node);
@@ -460,7 +455,9 @@ static void process_frame(uint8_t* args, const struct pcap_pkthdr* pkt_stats, co
 
             log_frame_stats(&rx_frame, frame_number, &fc->rx_stats);
         }
-
+    }
+    else {
+        ++fc->rx_stats.packets_dropped;
     }
 }
 

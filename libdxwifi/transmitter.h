@@ -31,10 +31,12 @@
 #define DXWIFI_TX_HEADER_SIZE \
     (sizeof(dxwifi_tx_radiotap_hdr) + sizeof(ieee80211_hdr))
 
-#define DXWIFI_TX_FRAME_SIZE_MAX IEEE80211_MTU_MAX_LEN
+#define DXWIFI_TX_PAYLOAD_SIZE DXWIFI_RS_LDPC_FRAME_SIZE
 
-#define DXWIFI_TX_PAYLOAD_SIZE_MAX \
-    (DXWIFI_TX_FRAME_SIZE_MAX - DXWIFI_TX_HEADER_SIZE - IEEE80211_FCS_SIZE)
+#define DXWIFI_TX_BLOCKSIZE DXWIFI_TX_PAYLOAD_SIZE
+
+#define DXWIFI_TX_FRAME_SIZE \
+    (DXWIFI_TX_HEADER_SIZE + DXWIFI_TX_PAYLOAD_SIZE + IEEE80211_FCS_SIZE)
 
 #define DXWIFI_TX_RADIOTAP_PRESENCE_BIT_FIELD \
     ( 0x1 << IEEE80211_RADIOTAP_FLAGS    \
@@ -90,14 +92,10 @@ typedef struct __attribute__((packed)) {
     // Actual Data Frame
     dxwifi_tx_radiotap_hdr  radiotap_hdr;  /* frame metadata               */
     ieee80211_hdr           mac_hdr;       /* link-layer header            */
-    uint8_t                 payload[DXWIFI_TX_PAYLOAD_SIZE_MAX + IEEE80211_FCS_SIZE];       
+    uint8_t                 payload[DXWIFI_TX_PAYLOAD_SIZE + IEEE80211_FCS_SIZE];       
                                             /* packet data and FCS          */
-
-    // Control data about the payload, not transmitted with the data frame
-    uint32_t                payload_size;   /* Size of the actual payload   */
 } dxwifi_tx_frame;
-
-compiler_assert(sizeof(dxwifi_tx_frame) == (DXWIFI_TX_FRAME_SIZE_MAX + sizeof(uint32_t)), 
+compiler_assert(sizeof(dxwifi_tx_frame) == DXWIFI_TX_FRAME_SIZE, 
     "Mismatch in actual tx frame size and calculated size");
 
 
@@ -126,18 +124,15 @@ typedef struct {
 
 
 /**
- *  Tx frame callbacks can modify how many payload bytes will be transmistted by 
- *  modifying the frame->payload_size field. Thus, if additional data is added 
- *  to the payload the NEW payload size must be attached to the frame->payload_size 
- *  field. Conversely, to truncate the  data you can attach a number less than 
- *  the payload size. If frame->payload_size is zero then the data frame WILL 
- *  NOT be transmitted. Lastly, modifying the radiotap/mac headers may result in 
- *  transmission failure and should only be modified at your own risk.
+ * 
+ *  Tx frame callbacks can modify the data frame or perform different actions 
+ *  before flight. If the user desires to drop the packet then they can return
+ *  false from the callback and the transmitter will not transmit it
  * 
  *  Note: It is the user's responsiblity to handle scope and lifetime of user
  *  parameters
  */
-typedef void (*dxwifi_tx_frame_cb)( 
+typedef bool (*dxwifi_tx_frame_cb)( 
         dxwifi_tx_frame* frame, /* Mutable reference to current data frame  */
         dxwifi_tx_stats stats,  /* Stats about the current transmission     */
         void* user              /* User supplied parameters                 */
@@ -168,7 +163,6 @@ typedef struct {
  *  their transmission.
  */
 typedef struct {
-    size_t      blocksize;          /* Size in bytes to read at a time      */
     int         transmit_timeout;   /* Number of seconds to wait for a read */
     int         redundant_ctrl_frames;
                                     /* Number of extra ctrl frames to send  */
@@ -196,7 +190,6 @@ typedef struct {
 
 
 #define DXWIFI_TRANSMITTER_DFLT_INITIALIZER {\
-    .blocksize              = DXWIFI_RS_LDPC_FRAME_SIZE,\
     .transmit_timeout       = -1,\
     .redundant_ctrl_frames  = 0,\
     .enable_pa              = false,\
