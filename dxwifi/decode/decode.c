@@ -65,7 +65,7 @@ void decode_file(cli_args* args) {
 
     // Decode file
     void* decoded_msg = NULL;
-    size_t msglen = dxwifi_decode(file_data, file_size, &decoded_msg);
+    ssize_t msglen = dxwifi_decode(file_data, file_size, &decoded_msg);
 
     if(msglen > 0) {
 

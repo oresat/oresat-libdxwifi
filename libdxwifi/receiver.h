@@ -75,6 +75,7 @@ typedef struct {
     uint32_t                total_blocks_lost;      /* Number of data blocks lost       */
     uint32_t                total_noise_added;      /* Number of bytes of noise added   */
     uint32_t                num_packets_processed;  /* Number of packets processed      */
+    uint32_t                packets_dropped;        /* Packets dropped because by rx    */
     dxwifi_rx_state_t       capture_state;          /* State of last capture            */
     struct pcap_pkthdr      pkt_stats;              /* Stats for the current capture    */
     struct pcap_stat        pcap_stats;             /* Pcap statistics                  */
@@ -99,6 +100,9 @@ typedef struct {
     bool        ordered;            /* Packets have packed sequence data      */
     bool        add_noise;          /* Add noise for missing packets          */
     uint8_t     noise_value;        /* Value to use for noise                 */
+    uint8_t     sender_addr[IEEE80211_MAC_ADDR_LEN];
+                                    /* Transmitters MAC address               */
+    uint32_t    max_hamming_dist;   /* Max number of bit errors in address    */
 
     // https://www.tcpdump.org/manpages/pcap.3pcap.html
     const char *filter;             /* BPF Program string                     */
@@ -123,7 +127,9 @@ typedef struct {
     .ordered            = false,\
     .add_noise          = false,\
     .noise_value        = 0xff,\
-    .filter             = "wlan addr2 aa:aa:aa:aa:aa:aa",\
+    .sender_addr        = {0xAA, 0xAA ,0xAA, 0xAA, 0xAA, 0xAA },\
+    .max_hamming_dist   = 20,\
+    .filter             = NULL,\
     .optimize           = true,\
     .snaplen            = DXWIFI_SNAPLEN_MAX,\
     .pb_timeout         = DXWIFI_DFLT_PACKET_BUFFER_TIMEOUT\

@@ -30,6 +30,8 @@ typedef enum {
     BUFFER_TIMEOUT,
     FILTER,
     NO_OPTIMIZE,
+    SENDER_ADDR,
+    MAX_DISTANCE,
 } pcap_settings_t;
 
 
@@ -61,6 +63,8 @@ static struct argp_option opts[] = {
     { "buffer-timeout", GET_KEY(BUFFER_TIMEOUT, PCAP_SETTINGS_GROUP),    "<ms>",         OPTION_NO_USAGE,    "Packet buffer timeout",                PCAP_SETTINGS_GROUP },
     { "filter",         GET_KEY(FILTER,         PCAP_SETTINGS_GROUP),    "<string>",     OPTION_NO_USAGE,    "Berkely Packet Filter expression",     PCAP_SETTINGS_GROUP },
     { "no-optimize",    GET_KEY(NO_OPTIMIZE,    PCAP_SETTINGS_GROUP),    0,              OPTION_NO_USAGE,    "Do not optimize the BPF expression",   PCAP_SETTINGS_GROUP },
+    { "sender-address", GET_KEY(SENDER_ADDR,    PCAP_SETTINGS_GROUP),    "<macaddr>",    OPTION_NO_USAGE,    "Transmitters MAC address",             PCAP_SETTINGS_GROUP },
+    { "max-distance",   GET_KEY(MAX_DISTANCE,   PCAP_SETTINGS_GROUP),    "<number>",     OPTION_NO_USAGE,    "Maximum hamming distance for the address", PCAP_SETTINGS_GROUP},
 
     { 0, 0, 0, 0, "Help options", HELP_GROUP },
     { "verbose", 'v', 0, 0, "Verbosity level",              HELP_GROUP },
@@ -183,6 +187,17 @@ static error_t parse_opt(int key, char* arg, struct argp_state *state) {
 
     case GET_KEY(NO_OPTIMIZE, PCAP_SETTINGS_GROUP):
         args->rx.optimize = false;
+        break;
+
+    case GET_KEY(SENDER_ADDR, PCAP_SETTINGS_GROUP):
+        if(!parse_mac_address(arg, args->rx.sender_addr)) {
+            argp_error(state, "Mac address must be 6 octets in hexadecimal format delimited by a ':'");
+            argp_usage(state);
+        }
+        break;
+
+    case GET_KEY(MAX_DISTANCE, PCAP_SETTINGS_GROUP):
+        args->rx.max_hamming_dist = atoi(arg);
         break;
 
 #if defined(DXWIFI_TESTS)

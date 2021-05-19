@@ -12,7 +12,7 @@ def genbytes(filename, numpackets, blocksize):
     with open(filename, 'wb') as f:
         for i in range(numpackets):
             for j in range(blocksize):
-                f.write(str.encode(f'{i}'))
+                f.write(str.encode(f'{i % 10}'))
 
 
 if __name__ == '__main__':

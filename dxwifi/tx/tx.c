@@ -155,14 +155,15 @@ void log_tx_stats(dxwifi_tx_stats stats) {
  *      See definition of dxwifi_tx_frame_cb in transmitter.h
  *
  */
-void log_frame_stats(dxwifi_tx_frame* frame, dxwifi_tx_stats stats, void* user) {
+bool log_frame_stats(dxwifi_tx_frame* frame, dxwifi_tx_stats stats, void* user) {
     if(stats.frame_type == DXWIFI_CONTROL_FRAME_NONE) {
         log_debug("Frame: %d - (Read: %ld, Sent: %ld)", stats.data_frame_count, stats.prev_bytes_read, stats.prev_bytes_sent);
     }
     else {
         log_debug("%s Frame Sent: %d", control_frame_type_to_str(stats.frame_type), stats.prev_bytes_sent);
     }
-    log_hexdump(frame, DXWIFI_TX_HEADER_SIZE + frame->payload_size + IEEE80211_FCS_SIZE);
+    log_hexdump(frame, DXWIFI_TX_FRAME_SIZE);
+    return true;
 }
 
 
@@ -175,10 +176,11 @@ void log_frame_stats(dxwifi_tx_frame* frame, dxwifi_tx_stats stats, void* user) 
  *      See definition of dxwifi_tx_frame_cb in transmitter.h
  *
  */
-void delay_transmission(dxwifi_tx_frame* frame, dxwifi_tx_stats stats, void* user) {
+bool delay_transmission(dxwifi_tx_frame* frame, dxwifi_tx_stats stats, void* user) {
     unsigned delay_ms = *(unsigned*) user;
 
     msleep(delay_ms, false);
+    return true;
 }
 
 /**
@@ -190,16 +192,16 @@ void delay_transmission(dxwifi_tx_frame* frame, dxwifi_tx_stats stats, void* use
  *      packet_loss_rate:        Float percentage of packets lost
  *
  */
-void packet_loss_sim(dxwifi_tx_frame* frame, dxwifi_tx_stats stats, void* user) {
+bool packet_loss_sim(dxwifi_tx_frame* frame, dxwifi_tx_stats stats, void* user) {
     packet_loss_stats * plstats = (packet_loss_stats*) user;
     //generate random num withing range
     float random = (float)rand() / (float)RAND_MAX;
 
     if(plstats->packet_loss_rate > random){
-        frame->payload_size = 0;
         plstats->count++;
+        return false;
     }
-    return;
+    return true;
 }
 
 /**
@@ -211,10 +213,11 @@ void packet_loss_sim(dxwifi_tx_frame* frame, dxwifi_tx_stats stats, void* user) 
  *     error_rate:      Float percentage of bits flipped
  *
  */
-void bit_error_rate_sim(dxwifi_tx_frame* frame, dxwifi_tx_stats stats, void* user) {
+bool bit_error_rate_sim(dxwifi_tx_frame* frame, dxwifi_tx_stats stats, void* user) {
     float error_rate = *(float*) user;
-    int frame_size = sizeof(ieee80211_hdr) + frame->payload_size + IEEE80211_FCS_SIZE;
-    int total_num_errors = frame_size * 8 * error_rate; //Get total number of errors
+
+    int frame_size = DXWIFI_TX_FRAME_SIZE - DXWIFI_TX_RADIOTAP_HDR_SIZE;
+    int total_num_errors = DXWIFI_TX_FRAME_SIZE * 8 * error_rate; //Get total number of errors
     uint8_t bit_array[frame_size]; //Make an array of bits equal to the number in the frame
 
     // Initialize every bit to zero
@@ -224,7 +227,7 @@ void bit_error_rate_sim(dxwifi_tx_frame* frame, dxwifi_tx_stats stats, void* use
     uint8_t* buffer = ((uint8_t*)frame) + DXWIFI_TX_RADIOTAP_HDR_SIZE;
 
     for(int i = 0; i < total_num_errors; ++i){
-        uint8_t chosen_byte = rand() % frame_size;
+        uint32_t chosen_byte = rand() % frame_size;
         int chosen_bit = 1 << (rand() % 8);
 
         if((bit_array[chosen_byte] & chosen_bit) == 0) { //Flip bit if unseen
@@ -235,8 +238,8 @@ void bit_error_rate_sim(dxwifi_tx_frame* frame, dxwifi_tx_stats stats, void* use
             --i;
         }
     }
-    log_debug("Size of frame in bits: %d, Number of bits flipped: %d", frame_size * 8, total_num_errors);
-    return;
+    log_debug("Bits in frame: %d, bits flipped: %d", frame_size * 8, total_num_errors);
+    return true;
 }
 
 /**
@@ -249,10 +252,12 @@ void bit_error_rate_sim(dxwifi_tx_frame* frame, dxwifi_tx_stats stats, void* use
  *      See definition of dxwifi_tx_frame_cb in transmitter.h
  *
  */
-void attach_frame_number(dxwifi_tx_frame* frame, dxwifi_tx_stats stats, void* user) {
+bool attach_frame_number(dxwifi_tx_frame* frame, dxwifi_tx_stats stats, void* user) {
     uint32_t frame_no = htonl(stats.data_frame_count);
 
     memcpy(frame->mac_hdr.addr1 + 2, &frame_no, sizeof(uint32_t));
+
+    return true;
 }
 
 
@@ -555,6 +560,7 @@ void transmit(cli_args* args, dxwifi_transmitter* tx) {
     default:
         break;
     }
+
     if(plstats.count > 0){
         log_info("Number of packets dropped: %d", plstats.count);
     }
