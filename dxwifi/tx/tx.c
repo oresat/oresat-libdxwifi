@@ -224,7 +224,7 @@ bool bit_error_rate_sim(dxwifi_tx_frame* frame, dxwifi_tx_stats stats, void* use
     uint8_t* buffer = ((uint8_t*)frame) + DXWIFI_TX_RADIOTAP_HDR_SIZE;
 
     for(int i = 0; i < total_num_errors; ++i){
-        uint8_t chosen_byte = rand() % frame_size;
+        uint32_t chosen_byte = rand() % frame_size;
         int chosen_bit = 1 << (rand() % 8);
 
         if((bit_array[chosen_byte] & chosen_bit) == 0) { //Flip bit if unseen
