@@ -213,17 +213,18 @@ bool packet_loss_sim(dxwifi_tx_frame* frame, dxwifi_tx_stats stats, void* user) 
 bool bit_error_rate_sim(dxwifi_tx_frame* frame, dxwifi_tx_stats stats, void* user) {
     float error_rate = *(float*) user;
 
+    int frame_size = DXWIFI_TX_FRAME_SIZE - DXWIFI_TX_RADIOTAP_HDR_SIZE;
     int total_num_errors = DXWIFI_TX_FRAME_SIZE * 8 * error_rate; //Get total number of errors
-    uint8_t bit_array[DXWIFI_TX_FRAME_SIZE]; //Make an array of bits equal to the number in the frame
+    uint8_t bit_array[frame_size]; //Make an array of bits equal to the number in the frame
 
     // Initialize every bit to zero
-    memset(bit_array, 0, DXWIFI_TX_FRAME_SIZE);
+    memset(bit_array, 0, frame_size);
 
     // Skip the bits in the radiotap header since this is discarded pre-flight anyways
     uint8_t* buffer = ((uint8_t*)frame) + DXWIFI_TX_RADIOTAP_HDR_SIZE;
 
     for(int i = 0; i < total_num_errors; ++i){
-        uint8_t chosen_byte = rand() % DXWIFI_TX_FRAME_SIZE;
+        uint8_t chosen_byte = rand() % frame_size;
         int chosen_bit = 1 << (rand() % 8);
 
         if((bit_array[chosen_byte] & chosen_bit) == 0) { //Flip bit if unseen
@@ -234,7 +235,7 @@ bool bit_error_rate_sim(dxwifi_tx_frame* frame, dxwifi_tx_stats stats, void* use
             --i;
         }
     }
-    log_debug("Bits in frame: %d, bits flipped: %d", DXWIFI_TX_FRAME_SIZE * 8, total_num_errors);
+    log_debug("Bits in frame: %d, bits flipped: %d", frame_size * 8, total_num_errors);
     return true;
 }
 
