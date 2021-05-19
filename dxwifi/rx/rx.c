@@ -20,8 +20,12 @@
 
 #include <libdxwifi/dxwifi.h>
 #include <libdxwifi/receiver.h>
+#include <libdxwifi/details/assert.h>
 #include <libdxwifi/details/logging.h>
 #include <libdxwifi/details/syslogger.h>
+
+//Syscalls for Memory Mapping
+#include <sys/mman.h>
 
 
 dxwifi_receiver* receiver = NULL;
@@ -146,17 +150,51 @@ dxwifi_rx_state_t setup_handlers_and_capture(dxwifi_receiver* rx, int fd) {
  * 
  */
 dxwifi_rx_state_t open_file_and_capture(const char* path, dxwifi_receiver* rx, bool append) {
-    int fd          = 0;
+    int fd          = 0; //output file descriptor
+    int temp_fd     = 0; //temp file descriptor
     int open_flags  = O_WRONLY | O_CREAT | (append ? O_APPEND : 0);
     mode_t mode     = S_IRUSR  | S_IWUSR | S_IROTH | S_IWOTH; 
 
     dxwifi_rx_state_t state = DXWIFI_RX_ERROR;
-    if((fd = open(path, open_flags, mode)) < 0) {
-        log_error("Failed to open file: %s", path);
+    //Open temp file, with RW + Create
+    //Error if unable to open
+    if((temp_fd = open("/var/tmp/EncodedFile", O_RDWR | O_CREAT, mode)) < 0) {
+        log_error("Failed to open file: /var/tmp/EncodedFile");
     }
+    //Otherwise, begin capture and decoding.
     else {
-        state = setup_handlers_and_capture(rx, fd);
-        close(fd);
+        state = setup_handlers_and_capture(rx, temp_fd);
+
+        off_t file_size = get_file_size("/var/tmp/EncodedFile");
+        
+        //Map the encoded file to memory
+        void* encoded_data = mmap(NULL, file_size, PROT_READ, MAP_SHARED, temp_fd, 0);
+        assert_M(encoded_data != MAP_FAILED, "Failed to map file to memory - %s", strerror(errno));
+
+        //If the file was transferred correctly and mapped to memory without errors...
+        if(state = DXWIFI_RX_NORMAL) {
+            //Open final file
+            //Error if file failed to open
+            if((fd = open(path, open_flags, mode)) < 0) {
+                log_error("Failed to open file: %s", path);
+            }
+            //Otherwise run FEC decoding.
+            else {
+                void *decoded_message = NULL;
+                size_t decoded_size = dxwifi_decode(encoded_data, file_size, &decoded_message);
+                //write to output file and close
+                write(fd, decoded_message, decoded_size);
+                close(fd);
+                //now free and unmap memory assigned
+                free(decoded_message);
+                munmap(decoded_message, decoded_size);
+            }
+        }
+        //now close and remove temp file
+        close(temp_fd);
+        remove("/var/tmp/EncodedFile");
+        //Unmap memory assigned to the encoded temp file.
+        munmap(encoded_data, file_size);
     }
     return state;
 }

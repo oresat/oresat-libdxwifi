@@ -26,6 +26,8 @@ import subprocess
 from time import sleep
 from test.genbytes import genbytes
 
+# Constant: Size of ESI Symbol Size, in bytes.
+FEC_ESI = 1224
 
 INSTALL_DIR = os.environ.get('DXWIFI_INSTALL_DIR', default='bin/TestDebug')
 TEMP_DIR    = '__temp'
@@ -115,7 +117,7 @@ class TestTxRx(unittest.TestCase):
         # Store return codes
 
         # Create a single test file
-        genbytes(test_file, 10, 1275) # Create test file
+        genbytes(test_file, 10, FEC_ESI) # Create test file
 
         # Transmit the test file
         subprocess.run(tx_command.split()).check_returncode()
@@ -135,7 +137,7 @@ class TestTxRx(unittest.TestCase):
         # Create a bunch of test files
         test_files = [f'{TEMP_DIR}/test_{x}.raw' for x in range(10)]
         for file in test_files:
-            genbytes(file, 10, 1275)
+            genbytes(file, 10, FEC_ESI)
 
 
         tx_out     = f'{TEMP_DIR}/tx.raw'
@@ -161,7 +163,7 @@ class TestTxRx(unittest.TestCase):
         # Create a bunch of files in a directory
         test_files = [f'{TEMP_DIR}/test_{x}.raw' for x in range(10)]
         for file in test_files:
-            genbytes(file, 10, 1275)
+            genbytes(file, 10, FEC_ESI)
 
         tx_out     = f'{TEMP_DIR}/tx.raw'
         rx_out     = [f'{TEMP_DIR}/rx_{x}.raw' for x in range(10)]
@@ -197,7 +199,7 @@ class TestTxRx(unittest.TestCase):
         # Create a bunch of test files in the directory, causing them to be transmitted
         test_files = [f'{TEMP_DIR}/test_{x}.raw' for x in range(10)]
         for file in test_files:
-            genbytes(file, 10, 1275)
+            genbytes(file, 10, FEC_ESI)
 
         # Wait for tx to timeout and close
         proc.wait()

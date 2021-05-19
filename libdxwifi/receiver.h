@@ -19,6 +19,7 @@
 
 #include <pcap.h>
 
+#include <libdxwifi/fec.h>
 #include <libdxwifi/details/ieee80211.h>
 
 /************************
