@@ -165,10 +165,10 @@ dxwifi_rx_state_t open_file_and_capture(const char* path, dxwifi_receiver* rx, b
     else {
         state = setup_handlers_and_capture(rx, temp_fd);
 
-        off_t file_size = get_file_size("/var/tmp/EncodedFile");
+        off_t temp_file_size = get_file_size("/var/tmp/EncodedFile");
         
         //Map the encoded file to memory
-        void* encoded_data = mmap(NULL, file_size, PROT_READ, MAP_SHARED, temp_fd, 0);
+        void* encoded_data = mmap(NULL, temp_file_size, PROT_READ, MAP_SHARED, temp_fd, 0);
         assert_M(encoded_data != MAP_FAILED, "Failed to map file to memory - %s", strerror(errno));
 
         //If the file was transferred correctly and mapped to memory without errors...
@@ -181,9 +181,11 @@ dxwifi_rx_state_t open_file_and_capture(const char* path, dxwifi_receiver* rx, b
             //Otherwise run FEC decoding.
             else {
                 void *decoded_message = NULL;
-                size_t decoded_size = dxwifi_decode(encoded_data, file_size, &decoded_message);
+                size_t decoded_size = dxwifi_decode(encoded_data, temp_file_size, &decoded_message);
                 //write to output file and close
-                write(fd, decoded_message, decoded_size);
+                ssize_t written_data = write(fd, decoded_message, decoded_size);
+                if(written_data == -1) { log_error("No data written.  Likely an interrupt."); }
+                //Do we need a condition for when written data < temp_file_size?
                 close(fd);
                 //now free and unmap memory assigned
                 free(decoded_message);
@@ -194,7 +196,7 @@ dxwifi_rx_state_t open_file_and_capture(const char* path, dxwifi_receiver* rx, b
         close(temp_fd);
         remove("/var/tmp/EncodedFile");
         //Unmap memory assigned to the encoded temp file.
-        munmap(encoded_data, file_size);
+        munmap(encoded_data, temp_file_size);
     }
     return state;
 }
