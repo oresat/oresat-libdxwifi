@@ -172,7 +172,7 @@ dxwifi_rx_state_t open_file_and_capture(const char* path, dxwifi_receiver* rx, b
         assert_M(encoded_data != MAP_FAILED, "Failed to map file to memory - %s", strerror(errno));
 
         //If the file was transferred correctly and mapped to memory without errors...
-        if(state = DXWIFI_RX_NORMAL) {
+        if(state == DXWIFI_RX_NORMAL) {
             //Open final file
             //Error if file failed to open
             if((fd = open(path, open_flags, mode)) < 0) {
