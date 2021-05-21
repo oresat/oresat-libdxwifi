@@ -73,8 +73,8 @@ class TestTxRx(unittest.TestCase):
         test_data   = bytes([1 for i in range(1275)])
         tx_out      = f'{TEMP_DIR}/tx.raw'
 
-        tx_command = f'{TX} -q -t 1 --savefile {tx_out}'
-        rx_command = f'{RX} -q -t 5 --savefile {tx_out}'
+        tx_command = f'{TX} -v -t 1 --savefile {tx_out}'
+        rx_command = f'{RX} -v -t 5 --savefile {tx_out}'
 
         # Open tx to read from stdin
         tx_proc = subprocess.Popen(tx_command.split(), stdin=subprocess.PIPE)
