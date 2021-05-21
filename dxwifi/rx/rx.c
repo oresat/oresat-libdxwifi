@@ -154,25 +154,31 @@ dxwifi_rx_state_t open_file_and_capture(const char* path, dxwifi_receiver* rx, b
     int temp_fd     = 0; //temp file descriptor
     int open_flags  = O_WRONLY | O_CREAT | (append ? O_APPEND : 0);
     mode_t mode     = S_IRUSR  | S_IWUSR | S_IROTH | S_IWOTH; 
+    
+    log_debug("Open File and Capture");
 
     dxwifi_rx_state_t state = DXWIFI_RX_ERROR;
     //Open temp file, with RW + Create
     //Error if unable to open
-    if((temp_fd = open("/var/tmp/EncodedFile", O_RDWR | O_CREAT, mode)) < 0) {
-        log_error("Failed to open file: /var/tmp/EncodedFile");
+    if((temp_fd = open("tempfile", O_RDWR | O_CREAT , mode)) < 0) {
+        log_error("Failed to open temporary file.");
     }
+
     //Otherwise, begin capture and decoding.
     else {
-        state = setup_handlers_and_capture(rx, temp_fd);
 
-        off_t temp_file_size = get_file_size("/var/tmp/EncodedFile");
+        state = setup_handlers_and_capture(rx, temp_fd);
+        off_t temp_file_size = get_file_size("tempfile");
         
         //Map the encoded file to memory
         void* encoded_data = mmap(NULL, temp_file_size, PROT_READ, MAP_SHARED, temp_fd, 0);
         assert_M(encoded_data != MAP_FAILED, "Failed to map file to memory - %s", strerror(errno));
+        
+
+        log_debug("Path %s", path);
 
         //If the file was transferred correctly and mapped to memory without errors...
-        if(state == DXWIFI_RX_NORMAL) {
+        if(state != DXWIFI_RX_ERROR) {
             //Open final file
             //Error if file failed to open
             if((fd = open(path, open_flags, mode)) < 0) {
@@ -184,9 +190,8 @@ dxwifi_rx_state_t open_file_and_capture(const char* path, dxwifi_receiver* rx, b
                 size_t decoded_size = dxwifi_decode(encoded_data, temp_file_size, &decoded_message);
                 //write to output file and close
                 ssize_t written_data = write(fd, decoded_message, decoded_size);
-                if(written_data == -0) { log_error("No data written."); }
+                if(written_data ==  0) { log_error("No data written."); }
                 if(written_data == -1) { log_error("An error occured, ErrNo: %d", errno); }
-                //Do we need a condition for when written data < temp_file_size?
                 close(fd);
                 //now free and unmap memory assigned
                 free(decoded_message);
@@ -195,7 +200,7 @@ dxwifi_rx_state_t open_file_and_capture(const char* path, dxwifi_receiver* rx, b
         }
         //now close and remove temp file
         close(temp_fd);
-        remove("/var/tmp/EncodedFile");
+        remove("tempfile");
         //Unmap memory assigned to the encoded temp file.
         munmap(encoded_data, temp_file_size);
     }
