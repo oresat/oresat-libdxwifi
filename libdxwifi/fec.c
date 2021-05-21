@@ -51,7 +51,7 @@ static void log_rs_ldpc_data_frame(dxwifi_rs_ldpc_frame* frame) {
 
 
 // Caculate N,K values, initialize openfec session
-static of_session_t* init_openfec(uint32_t n, uint32_t k) {
+static of_session_t* init_openfec(uint32_t n, uint32_t k, of_codec_type_t type) {
     of_status_t status = OF_STATUS_OK;
 
     of_session_t* openfec_session = NULL;
@@ -66,7 +66,7 @@ static of_session_t* init_openfec(uint32_t n, uint32_t k) {
     log_codec_params(&codec_params);
 
     if(codec_params.N1 >= DXWIFI_LDPC_N1_MIN) {
-        status = of_create_codec_instance(&openfec_session, OF_CODEC_LDPC_STAIRCASE_STABLE, OF_ENCODER, 2); // TODO magic number
+        status = of_create_codec_instance(&openfec_session, OF_CODEC_LDPC_STAIRCASE_STABLE, type, 2); // TODO magic number
         assert_M(status == OF_STATUS_OK, "Failed to initialize OpenFEC session");
 
         status = of_set_fec_parameters(openfec_session, (of_parameters_t*) &codec_params);
@@ -114,7 +114,7 @@ ssize_t dxwifi_encode(void* message, size_t msglen, float coderate, void** out) 
         return FEC_ERROR_EXCEEDED_MAX_SYMBOLS;
     }
     
-    of_session_t* openfec_session = init_openfec(n, k);
+    of_session_t* openfec_session = init_openfec(n, k, OF_ENCODER);
 
     if(!openfec_session) {
         return FEC_ERROR_BELOW_N1_MIN;
@@ -169,9 +169,10 @@ ssize_t dxwifi_encode(void* message, size_t msglen, float coderate, void** out) 
         dxwifi_rs_ldpc_frame* rs_ldpc_frame = &rs_ldpc_frames[esi];
         for(size_t i = 0; i < DXWIFI_RSCODE_BLOCKS_PER_FRAME; ++i) {
             void* message  = offset(ldpc_frame, i, RSCODE_MAX_MSG_LEN);
-            void* codeword = offset(rs_ldpc_frame, i, RSCODE_MAX_LEN);
+            void* codeword = &rs_ldpc_frame->blocks[i];
 
             encode_data(message, RSCODE_MAX_MSG_LEN, codeword);
+
         }
         log_ldpc_data_frame(ldpc_frame);
         log_rs_ldpc_data_frame(rs_ldpc_frame);
@@ -190,13 +191,15 @@ ssize_t dxwifi_encode(void* message, size_t msglen, float coderate, void** out) 
 ssize_t dxwifi_decode(void* encoded_msg, size_t msglen, void** out) {
     debug_assert(encoded_msg && out);
 
-    size_t nframes = msglen / DXWIFI_RS_LDPC_FRAME_SIZE;
-
-    dxwifi_ldpc_frame* ldpc_frames = calloc(nframes, sizeof(dxwifi_ldpc_frame));
-
     if( msglen % DXWIFI_RS_LDPC_FRAME_SIZE != 0) {
         log_warning("Misaligned, msglen (%u) is not divisible by RS-LDPC frame size");
     }
+
+    initialize_ecc();
+
+    size_t nframes = msglen / DXWIFI_RS_LDPC_FRAME_SIZE;
+
+    dxwifi_ldpc_frame* ldpc_frames = calloc(nframes, sizeof(dxwifi_ldpc_frame));
 
     dxwifi_rs_ldpc_frame* rs_ldpc_frames = encoded_msg;
 
@@ -206,11 +209,15 @@ ssize_t dxwifi_decode(void* encoded_msg, size_t msglen, void** out) {
         dxwifi_rs_ldpc_frame* rs_ldpc_frame = &rs_ldpc_frames[i];
         dxwifi_ldpc_frame* ldpc_frame = &ldpc_frames[i];
 
-        for(size_t i = 0; i < DXWIFI_RSCODE_BLOCKS_PER_FRAME; ++i) {
-            void* message  = offset(ldpc_frame, i, RSCODE_MAX_MSG_LEN);
-            void* codeword = offset(rs_ldpc_frame, i, RSCODE_MAX_LEN);
+        for(size_t j = 0; j < DXWIFI_RSCODE_BLOCKS_PER_FRAME; ++j) {
+            void* message  = offset(ldpc_frame, j, RSCODE_MAX_MSG_LEN);
+            void* codeword = &rs_ldpc_frame->blocks[j];
 
             decode_data(codeword, RSCODE_MAX_LEN);
+
+            //log_hexdump(message, RSCODE_MAX_MSG_LEN);
+            //log_hexdump(codeword, RSCODE_MAX_LEN);
+
             if(check_syndrome() != 0) {
                 correct_errors_erasures(codeword, RSCODE_MAX_LEN, 0, NULL);
             }
@@ -245,24 +252,10 @@ ssize_t dxwifi_decode(void* encoded_msg, size_t msglen, void** out) {
     uint32_t k      = ntohl(oti->k);
     log_info("OTI Found: esi=%d, n=%d, k=%d", esi, n, k);
 
-    of_ldpc_parameters_t codec_params = {
-        .nb_source_symbols      = k,
-        .nb_repair_symbols      = n - k,
-        .encoding_symbol_length = DXWIFI_FEC_SYMBOL_SIZE,
-        .prng_seed              = rand(),
-        .N1                     = (n-k) > DXWIFI_LDPC_N1_MAX ? DXWIFI_LDPC_N1_MAX : (n-k)
-    };
-    of_session_t* openfec_session = NULL;
-    of_status_t status = OF_STATUS_OK;
-    log_codec_params(&codec_params);
-
-    status = of_create_codec_instance(&openfec_session, OF_CODEC_LDPC_STAIRCASE_STABLE, OF_DECODER, 2);
-    assert_M(status == OF_STATUS_OK, "Failed to initialize OpenFEC session");
-
-    status = of_set_fec_parameters(openfec_session, (of_parameters_t*) &codec_params);
-    assert_M(status == OF_STATUS_OK, "Failed to set codec parameters");
+    of_session_t* openfec_session = init_openfec(n, k, OF_DECODER);
 
     // Decode LDPC Frames
+    of_status_t status = OF_STATUS_OK;
     for (size_t i = 0; i < nframes; ++i) {
         dxwifi_ldpc_frame* frame = &ldpc_frames[i];
 
@@ -277,6 +270,7 @@ ssize_t dxwifi_decode(void* encoded_msg, size_t msglen, void** out) {
         status = of_finish_decoding(openfec_session);
         if(status != OF_STATUS_OK) {
             free(ldpc_frames);
+            of_release_codec_instance(openfec_session);
             return FEC_ERROR_DECODE_NOT_POSSIBLE;
         }
     }
@@ -296,6 +290,7 @@ ssize_t dxwifi_decode(void* encoded_msg, size_t msglen, void** out) {
     }
     *out = decoded_msg;
 
+    of_release_codec_instance(openfec_session);
     free(ldpc_frames);
 
     return k * DXWIFI_FEC_SYMBOL_SIZE;

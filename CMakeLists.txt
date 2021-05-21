@@ -44,6 +44,7 @@ string(CONCAT DXWIFI_VERSION
 add_compile_definitions(DXWIFI_VERSION="${DXWIFI_VERSION}")
 
 # User Options
+option(OPENFEC_DEBUG_MODE            "Build OpenFEC in Debug mode"  OFF)
 option(LIBDXWIFI_DISABLE_ASSERTS     "Disable Assert Functions"     OFF)
 option(LIBDXWIFI_DISABLE_LOGGING     "Disable Logging"              OFF)
 option(INSTALL_SYSLOG_CONFIG         "Include configuration files for rsyslog and logrotate" OFF)

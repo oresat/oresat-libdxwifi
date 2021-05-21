@@ -60,7 +60,7 @@ void decode_file(cli_args* args) {
 
     off_t file_size = get_file_size(args->file_in);
 
-    void* file_data = mmap(NULL, file_size, PROT_READ, MAP_SHARED, fd_in, 0);
+    void* file_data = mmap(NULL, file_size, PROT_WRITE, MAP_SHARED, fd_in, 0);
     assert_M(file_data != MAP_FAILED, "Failed to map file to memory - %s", strerror(errno));
 
     // Decode file

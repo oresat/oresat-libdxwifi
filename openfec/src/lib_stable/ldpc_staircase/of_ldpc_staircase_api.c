@@ -324,7 +324,7 @@ of_status_t	of_ldpc_staircase_set_fec_parameters (of_ldpc_staircase_cb_t*	ofcb,
 		if (is_null)
 		{
 			/*
-			 * since the last repair symbol is known to be null, pretent we received it.
+			 * since the last repair symbol is known to be null, pretend we received it.
 			 */
 			void	*null_symbol;		/* that's the null repair symbol */
 
@@ -339,6 +339,7 @@ of_status_t	of_ldpc_staircase_set_fec_parameters (of_ldpc_staircase_cb_t*	ofcb,
 				OF_PRINT_ERROR(("%s: ERROR: of_ldpc_staircase_decode_with_new_symbol() failed\n", __FUNCTION__))
 				goto error;
 			}
+			of_free(null_symbol);
 		}
 	}
 #endif //OF_USE_DECODER
