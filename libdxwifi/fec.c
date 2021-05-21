@@ -236,7 +236,6 @@ ssize_t dxwifi_decode(void* encoded_msg, size_t msglen, void** out) {
 	} 
     if(idx >= nframes){
         free(ldpc_frames);
-        of_release_codec_instance(openfec_session);
         return FEC_ERROR_NO_OTI_FOUND;
 	}
 
