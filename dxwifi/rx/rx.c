@@ -184,7 +184,8 @@ dxwifi_rx_state_t open_file_and_capture(const char* path, dxwifi_receiver* rx, b
                 size_t decoded_size = dxwifi_decode(encoded_data, temp_file_size, &decoded_message);
                 //write to output file and close
                 ssize_t written_data = write(fd, decoded_message, decoded_size);
-                if(written_data == -1) { log_error("No data written.  Likely an interrupt."); }
+                if(written_data == -0) { log_error("No data written."); }
+                if(written_data == -1) { log_error("An error occured, ErrNo: %d", errno); }
                 //Do we need a condition for when written data < temp_file_size?
                 close(fd);
                 //now free and unmap memory assigned
