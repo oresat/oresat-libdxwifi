@@ -277,6 +277,7 @@ ssize_t dxwifi_decode(void* encoded_msg, size_t msglen, void** out) {
         status = of_finish_decoding(openfec_session);
         if(status != OF_STATUS_OK) {
             free(ldpc_frames);
+            free((void *)status);
             of_release_codec_instance(openfec_session);
             return FEC_ERROR_DECODE_NOT_POSSIBLE;
         }
@@ -298,6 +299,7 @@ ssize_t dxwifi_decode(void* encoded_msg, size_t msglen, void** out) {
     *out = decoded_msg;
 
     free(ldpc_frames);
+    free((void*)status);
     of_release_codec_instance(openfec_session);
     return k * DXWIFI_FEC_SYMBOL_SIZE;
 }
