@@ -215,9 +215,6 @@ ssize_t dxwifi_decode(void* encoded_msg, size_t msglen, void** out) {
 
             decode_data(codeword, RSCODE_MAX_LEN);
 
-            //log_hexdump(message, RSCODE_MAX_MSG_LEN);
-            //log_hexdump(codeword, RSCODE_MAX_LEN);
-
             if(check_syndrome() != 0) {
                 correct_errors_erasures(codeword, RSCODE_MAX_LEN, 0, NULL);
             }
