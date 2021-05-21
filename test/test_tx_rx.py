@@ -111,8 +111,8 @@ class TestTxRx(unittest.TestCase):
         tx_out      = f'{TEMP_DIR}/tx.raw'
         rx_out      = f'{TEMP_DIR}/rx.raw'
 
-        tx_command = f'{TX} {test_file} -q --savefile {tx_out}'
-        rx_command = f'{RX} {rx_out} -q -t 2 --savefile {tx_out}'
+        tx_command = f'{TX} {test_file} -v --savefile {tx_out}'
+        rx_command = f'{RX} {rx_out} -v -t 2 --savefile {tx_out}'
 
         # Store return codes
 
@@ -167,8 +167,8 @@ class TestTxRx(unittest.TestCase):
 
         tx_out     = f'{TEMP_DIR}/tx.raw'
         rx_out     = [f'{TEMP_DIR}/rx_{x}.raw' for x in range(10)]
-        tx_command = f'{TX} {TEMP_DIR} -q --filter test_*.raw --include-all --no-listen --savefile {tx_out}'
-        rx_command = f'{RX} {TEMP_DIR} -q -t 2 --prefix rx --extension raw --savefile {tx_out}'
+        tx_command = f'{TX} {TEMP_DIR} -v --filter test_*.raw --include-all --no-listen --savefile {tx_out}'
+        rx_command = f'{RX} {TEMP_DIR} -v -t 2 --prefix rx --extension raw --savefile {tx_out}'
 
         # Transmit all files in the directory
         subprocess.run(tx_command.split()).check_returncode()
@@ -187,8 +187,8 @@ class TestTxRx(unittest.TestCase):
 
         tx_out     = f'{TEMP_DIR}/tx.raw'
         rx_out     = [f'{TEMP_DIR}/rx_{x}.raw' for x in range(10)]
-        tx_command = f'{TX_INSTALL} {TEMP_DIR} -q --watch-timeout 2 --filter=test_*.raw --savefile {tx_out}'
-        rx_command = f'{RX} {TEMP_DIR} -q -c 1 -t 2 --prefix rx --extension raw --savefile {tx_out}'
+        tx_command = f'{TX_INSTALL} {TEMP_DIR} -v --watch-timeout 2 --filter=test_*.raw --savefile {tx_out}'
+        rx_command = f'{RX} {TEMP_DIR} -v -c 1 -t 2 --prefix rx --extension raw --savefile {tx_out}'
 
 
         # Open tx to listen for new files in a directory
