@@ -73,25 +73,22 @@ compiler_assert(sizeof(dxwifi_ldpc_frame) == DXWIFI_LDPC_FRAME_SIZE, "Mismatch i
 
 
 /**
+ * Reed Solomon block is the message data plus RSCODE_NPAR bytes of parity
+ */
+typedef struct __attribute__((packed)) {
+    uint8_t data[RSCODE_MAX_MSG_LEN];
+    uint8_t parity[RSCODE_NPAR];
+} dxwifi_rs_block;
+compiler_assert(sizeof(dxwifi_rs_block) == RSCODE_MAX_LEN, "Mismatch in actual RS block size and calculated size");
+
+
+/**
  *  The RS_LDPC is the LDPC encoded symbol that has been fragmented into 5 
  *  chunks of size `RSCODE_MAX_MSG_LEN` and then Reed Solomon encoded with 
  *  `RSCODE_NPAR` parity bits.
  */
 typedef struct __attribute__((packed)) {
-    uint8_t ldpc_frag0[RSCODE_MAX_MSG_LEN];
-    uint8_t rs_block0[RSCODE_NPAR];
-
-    uint8_t ldpc_frag1[RSCODE_MAX_MSG_LEN];
-    uint8_t rs_block1[RSCODE_NPAR];
-
-    uint8_t ldpc_frag2[RSCODE_MAX_MSG_LEN];
-    uint8_t rs_block2[RSCODE_NPAR];
-
-    uint8_t ldpc_frag3[RSCODE_MAX_MSG_LEN];
-    uint8_t rs_block3[RSCODE_NPAR];
-
-    uint8_t ldpc_frag4[RSCODE_MAX_MSG_LEN];
-    uint8_t rs_block4[RSCODE_NPAR];
+    dxwifi_rs_block blocks[DXWIFI_RSCODE_BLOCKS_PER_FRAME];
 } dxwifi_rs_ldpc_frame;
 compiler_assert(sizeof(dxwifi_rs_ldpc_frame) == DXWIFI_RS_LDPC_FRAME_SIZE, "Mismatch in actual RS-LDPC Frame size and calculated size");
 

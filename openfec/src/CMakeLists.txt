@@ -10,7 +10,10 @@ add_library(openfec  STATIC  ${openfec_sources})
 #
 set_target_properties(openfec PROPERTIES
 			VERSION 1.4.2
-			SOVERSION 1) 
+			SOVERSION 1
+			# These flags are here because OpenFEC authors were sloppy in Debug configurations
+			COMPILE_FLAGS "-Wno-unused-const-variable -Wno-unused-but-set-variable -Wno-unused-variable -Wno-parentheses -Wno-unused-label"
+			) 
 
 # Feel free to edit as appropriate the "target_link_libraries".
 #
