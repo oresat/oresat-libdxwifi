@@ -24,7 +24,7 @@ Software to construct, transmit, and receive FEC encoded data packets via packet
       </ul>
     </li>
     <li><a href="#whats-in-this-repo">What's in this Repo?</a></li>
-    <li><a href="#system-tests">System Tests</a></li>
+    <li><a href="#testing">Testing</a></li>
     <li><a href="#cross-compilation">Cross Compilation</a></li>
   </ol>
 </details>

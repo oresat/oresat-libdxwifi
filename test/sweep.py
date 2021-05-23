@@ -54,6 +54,12 @@ code_rates = make_range(*args.code_rate)
 error_rates = make_range(*args.error_rate)
 packet_losses = make_range(*args.packet_loss)
 
+# Calculate number of decimals to use for string representations
+calc_pad = lambda x: max([len(str(i)) for i in x]) - 2
+cr_pad = calc_pad(code_rates)
+er_pad = calc_pad(error_rates)
+pl_pad = calc_pad(packet_losses)
+
 # Make (or overwrite) the output directory
 if os.path.exists(args.output):
     shutil.rmtree(args.output)
@@ -63,7 +69,7 @@ os.mkdir(args.output)
 for cr in code_rates:
 
     # Make a directory for this code rate
-    cr_dir = os.path.join(args.output, f"CodeRate{cr:.2f}")
+    cr_dir = os.path.join(args.output, f"CodeRate{cr:.{cr_pad}f}")
     os.mkdir(cr_dir)
 
     # Perform encoding
@@ -79,7 +85,7 @@ for cr in code_rates:
         for pl in packet_losses:
 
             # Make a directory for this combination
-            er_pl_dir = os.path.join(cr_dir, f"ErrorRate{er:.2f}_PacketLoss{pl:.2f}")
+            er_pl_dir = os.path.join(cr_dir, f"ErrorRate{er:.{er_pad}f}_PacketLoss{pl:.{pl_pad}f}")
             os.mkdir(er_pl_dir)
 
             # Perform "transmission"
@@ -101,4 +107,4 @@ for cr in code_rates:
                 subprocess.run(decode_command.split(), stdout = f, stderr = f)
 
             # Notify user
-            print(f"Finished packet loss rate {pl:.2f} for error rate {er:.2f} with code rate {cr:.2f}.")
+            print(f"Finished packet loss rate {pl:.{pl_pad}f} for error rate {er:.{er_pad}f} with code rate {cr:.{cr_pad}f}.")
