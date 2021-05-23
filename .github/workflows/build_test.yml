@@ -10,11 +10,6 @@ on:
 
 jobs:
   build-test:
-    # TODO: Should run this workflow on the correct oresat-generic-image. 
-    # We should do one of the following:
-    #   - Publish a docker image of the oresat-generic-image pull it down and run from it
-    #   - Make the FlatSat's dxwifi board a self-hosted runner
-    #   - Something else? 
     runs-on: ubuntu-20.04
     strategy:
       matrix:

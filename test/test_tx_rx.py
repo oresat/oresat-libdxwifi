@@ -113,8 +113,6 @@ class TestTxRx(unittest.TestCase):
         tx_command = f'{TX} {test_file} -q --savefile {tx_out}'
         rx_command = f'{RX} {rx_out} -q -t 2 --savefile {tx_out}'
 
-        # Store return codes
-
         # Create a single test file
         genbytes(test_file, 10, FEC_SYMBOL_SIZE) # Create test file
 
