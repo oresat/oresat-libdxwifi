@@ -355,7 +355,7 @@ dxwifi_tx_state_t transmit_files(dxwifi_transmitter* tx, char** files, size_t nu
             else {	log_error("Unable to FEC Encode File [%s]", files[i]);	}
             //Close and unmap mapped memory for next file
             close(fd);
-            munmap(FECd_message, file_size);
+            munmap(unencoded_data, file_size);
         }
     }
     return stats.tx_state;
