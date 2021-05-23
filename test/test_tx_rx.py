@@ -26,7 +26,7 @@ import subprocess
 from time import sleep
 from test.genbytes import genbytes
 
-FEC_SYMBOL_SIZE = 1224
+FEC_SYMBOL_SIZE = 1099
 
 INSTALL_DIR = os.environ.get('DXWIFI_INSTALL_DIR', default='bin/TestDebug')
 TEMP_DIR    = '__temp'
@@ -59,6 +59,7 @@ class TestTxRx(unittest.TestCase):
     def setUp(self):
         '''Create a directory to store test data'''
         os.mkdir(TEMP_DIR)
+        print(f'Current Value for FEC_SYMBOL SIZE: `{FEC_SYMBOL_SIZE}`')
 
 
     def tearDown(self):
