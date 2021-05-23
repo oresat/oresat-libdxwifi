@@ -287,7 +287,6 @@ ssize_t dxwifi_decode(void* encoded_msg, size_t msglen, void** out) {
     }
     *out = decoded_msg;
 
-    of_release_codec_instance(openfec_session);
     free(ldpc_frames);
     of_release_codec_instance(openfec_session);
     return k * DXWIFI_FEC_SYMBOL_SIZE;

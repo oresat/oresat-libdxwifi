@@ -26,8 +26,7 @@ import subprocess
 from time import sleep
 from test.genbytes import genbytes
 
-# Constant: Size of ESI Symbol Size, in bytes.
-FEC_ESI = 1224
+FEC_SYMBOL_SIZE = 1224
 
 INSTALL_DIR = os.environ.get('DXWIFI_INSTALL_DIR', default='bin/TestDebug')
 TEMP_DIR    = '__temp'
@@ -66,15 +65,15 @@ class TestTxRx(unittest.TestCase):
         '''Remove files created during previous test'''
         shutil.rmtree(TEMP_DIR)
 
-    """
+    
     def testStreamTransmission(self):
         '''Tx reads from stdin should match Rx writes to stdout'''
 
         test_data   = bytes([1 for i in range(1275)])
         tx_out      = f'{TEMP_DIR}/tx.raw'
 
-        tx_command = f'{TX} -v -t 1 --savefile {tx_out}'
-        rx_command = f'{RX} -v -t 5 --savefile {tx_out}'
+        tx_command = f'{TX} -q -t 1 --savefile {tx_out}'
+        rx_command = f'{RX} -q -t 5 --savefile {tx_out}'
 
         # Open tx to read from stdin
         tx_proc = subprocess.Popen(tx_command.split(), stdin=subprocess.PIPE)
@@ -102,7 +101,7 @@ class TestTxRx(unittest.TestCase):
 
         # Verify test data matches rx output
         self.assertEqual(test_data, rx_out)
-	"""
+
 
     def testSingleFileTransmission(self):
         '''Transmitting a single file is succesfully received and unpackaged'''
@@ -111,13 +110,13 @@ class TestTxRx(unittest.TestCase):
         tx_out      = f'{TEMP_DIR}/tx.raw'
         rx_out      = f'{TEMP_DIR}/rx.raw'
 
-        tx_command = f'{TX} {test_file} -v --savefile {tx_out}'
-        rx_command = f'{RX} {rx_out} -v -t 2 --savefile {tx_out}'
+        tx_command = f'{TX} {test_file} -q --savefile {tx_out}'
+        rx_command = f'{RX} {rx_out} -q -t 2 --savefile {tx_out}'
 
         # Store return codes
 
         # Create a single test file
-        genbytes(test_file, 10, FEC_ESI) # Create test file
+        genbytes(test_file, 10, FEC_SYMBOL_SIZE) # Create test file
 
         # Transmit the test file
         subprocess.run(tx_command.split()).check_returncode()
@@ -137,7 +136,7 @@ class TestTxRx(unittest.TestCase):
         # Create a bunch of test files
         test_files = [f'{TEMP_DIR}/test_{x}.raw' for x in range(10)]
         for file in test_files:
-            genbytes(file, 10, FEC_ESI)
+            genbytes(file, 10, FEC_SYMBOL_SIZE)
 
 
         tx_out     = f'{TEMP_DIR}/tx.raw'
@@ -163,12 +162,12 @@ class TestTxRx(unittest.TestCase):
         # Create a bunch of files in a directory
         test_files = [f'{TEMP_DIR}/test_{x}.raw' for x in range(10)]
         for file in test_files:
-            genbytes(file, 10, FEC_ESI)
+            genbytes(file, 10, FEC_SYMBOL_SIZE)
 
         tx_out     = f'{TEMP_DIR}/tx.raw'
         rx_out     = [f'{TEMP_DIR}/rx_{x}.raw' for x in range(10)]
-        tx_command = f'{TX} {TEMP_DIR} -v --filter test_*.raw --include-all --no-listen --savefile {tx_out}'
-        rx_command = f'{RX} {TEMP_DIR} -v -t 2 --prefix rx --extension raw --savefile {tx_out}'
+        tx_command = f'{TX} {TEMP_DIR} -q --filter test_*.raw --include-all --no-listen --savefile {tx_out}'
+        rx_command = f'{RX} {TEMP_DIR} -q -t 2 --prefix rx --extension raw --savefile {tx_out}'
 
         # Transmit all files in the directory
         subprocess.run(tx_command.split()).check_returncode()
@@ -187,8 +186,8 @@ class TestTxRx(unittest.TestCase):
 
         tx_out     = f'{TEMP_DIR}/tx.raw'
         rx_out     = [f'{TEMP_DIR}/rx_{x}.raw' for x in range(10)]
-        tx_command = f'{TX_INSTALL} {TEMP_DIR} -v --watch-timeout 2 --filter=test_*.raw --savefile {tx_out}'
-        rx_command = f'{RX} {TEMP_DIR} -v -c 1 -t 2 --prefix rx --extension raw --savefile {tx_out}'
+        tx_command = f'{TX_INSTALL} {TEMP_DIR} -q --watch-timeout 2 --filter=test_*.raw --savefile {tx_out}'
+        rx_command = f'{RX} {TEMP_DIR} -q -c 1 -t 2 --prefix rx --extension raw --savefile {tx_out}'
 
 
         # Open tx to listen for new files in a directory
@@ -199,7 +198,7 @@ class TestTxRx(unittest.TestCase):
         # Create a bunch of test files in the directory, causing them to be transmitted
         test_files = [f'{TEMP_DIR}/test_{x}.raw' for x in range(10)]
         for file in test_files:
-            genbytes(file, 10, FEC_ESI)
+            genbytes(file, 10, FEC_SYMBOL_SIZE)
 
         # Wait for tx to timeout and close
         proc.wait()

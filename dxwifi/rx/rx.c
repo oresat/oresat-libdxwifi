@@ -188,10 +188,19 @@ dxwifi_rx_state_t open_file_and_capture(const char* path, dxwifi_receiver* rx, b
             else {
                 void *decoded_message = NULL;
                 size_t decoded_size = dxwifi_decode(encoded_data, temp_file_size, &decoded_message);
-                //write to output file and close
-                ssize_t written_data = write(fd, decoded_message, decoded_size);
-                if(written_data ==  0) { log_error("No data written."); }
-                if(written_data == -1) { log_error("An error occured, ErrNo: %d", errno); }
+                //On FEC Decode Success:
+                if(decoded_size > 0) {
+                    log_info("Decoding Success for RX'd file, File Size: %d", decoded_size);
+                    //write to output file and close
+                    ssize_t written_data = write(fd, decoded_message, decoded_size);
+                    //Couldn't write to output file OR error cases.
+                    if(written_data ==  0) { log_error("No data written."); }
+                    if(written_data == -1) { log_error("An error occured, ErrNo: %d", errno); }
+                }
+                //On FEC Decode Failure:
+                else{
+                    log_error("Failed to Decode Rx'd file, Error: %s", dxwifi_fec_error_to_str(decoded_size));
+                }
                 close(fd);
                 //now free and unmap memory assigned
                 free(decoded_message);

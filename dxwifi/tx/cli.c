@@ -219,6 +219,7 @@ static error_t parse_opt(int key, char* arg, struct argp_state *state) {
             argp_error(state, "Error: Coderate must be a decimal between 0 and 1.");
             argp_usage(state);
         }
+        break;
 
     case GET_KEY(FILE_FILTER, DIRECTORY_MODE_GROUP):
         args->file_filter = arg;
