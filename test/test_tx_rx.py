@@ -59,7 +59,6 @@ class TestTxRx(unittest.TestCase):
     def setUp(self):
         '''Create a directory to store test data'''
         os.mkdir(TEMP_DIR)
-        print(f'Current Value for FEC_SYMBOL SIZE: `{FEC_SYMBOL_SIZE}`')
 
 
     def tearDown(self):

@@ -324,38 +324,34 @@ dxwifi_tx_state_t transmit_files(dxwifi_transmitter* tx, char** files, size_t nu
             log_info("Opened %s for transmission", files[i]);
             off_t file_size = get_file_size(files[i]);
 
-            //Map the unencoded file to memory
-            void* unencoded_data = mmap(NULL, file_size, PROT_READ, MAP_SHARED, fd, 0);
-            assert_M(unencoded_data != MAP_FAILED, "Failed to map file to memory - %s", strerror(errno));
+            void* file_data = mmap(NULL, file_size, PROT_READ, MAP_SHARED, fd, 0);
+            assert_M(file_data != MAP_FAILED, "Failed to map file to memory - %s", strerror(errno));
 
-            //FEC Encoding Below
-            void *FECd_message = NULL;
-            size_t FECd_size = dxwifi_encode(unencoded_data, file_size, coderate, &FECd_message);
+            void *encoded_message = NULL;
+            size_t msg_size = dxwifi_encode(file_data, file_size, coderate, &encoded_message);
 
-            //On Encode Success
-            if(FECd_size > 0){
-            	log_info("Encoding Success for file: [%s], Filesize: %d", files[i], FECd_size);
+            if(msg_size > 0){
+
+            	log_info("Encoding Success for file: [%s], Filesize: %d", files[i], msg_size);
 
             	int count = retransmit_count;
+
             	bool transmit_forever = (retransmit_count == -1);
-            	
-            	while((count >= 0 || transmit_forever) && stats.tx_state == DXWIFI_TX_NORMAL) {
-                	
-                	//Transmit the message
-                	transmit_bytes(tx, FECd_message, FECd_size, &stats);
+                while((count >= 0 || transmit_forever) && stats.tx_state == DXWIFI_TX_NORMAL) {
+
+                	transmit_bytes(tx, encoded_message, msg_size, &stats);
                 	
                 	msleep(delay, false);
 
-                	//Release memory used for the FEC'd block
-                	free(FECd_message);
+                	free(encoded_message);
                 	--count;
                 }
             }
-            //On Encode Failure
-            else {	log_error("Unable to FEC Encode File [%s]", files[i]);	}
-            //Close and unmap mapped memory for next file
+            else {	
+                log_error("Unable to FEC Encode File [%s]", files[i]);	
+            }
             close(fd);
-            munmap(unencoded_data, file_size);
+            munmap(file_data, file_size);
         }
     }
     return stats.tx_state;
