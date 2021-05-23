@@ -160,7 +160,7 @@ dxwifi_rx_state_t open_file_and_capture(const char* path, dxwifi_receiver* rx, b
     dxwifi_rx_state_t state = DXWIFI_RX_ERROR;
     //Open temp file, with RW + Create
     //Error if unable to open
-    if((temp_fd = open("tempfile", O_RDWR | O_CREAT , mode)) < 0) {
+    if((temp_fd = open("/tmp/tempfile", O_RDWR | O_CREAT , mode)) < 0) {
         log_error("Failed to open temporary file.");
     }
 
@@ -168,7 +168,7 @@ dxwifi_rx_state_t open_file_and_capture(const char* path, dxwifi_receiver* rx, b
     else {
 
         state = setup_handlers_and_capture(rx, temp_fd);
-        off_t temp_file_size = get_file_size("tempfile");
+        off_t temp_file_size = get_file_size("/tmp/tempfile");
         
         //Map the encoded file to memory
         void* encoded_data = mmap(NULL, temp_file_size, PROT_READ, MAP_SHARED, temp_fd, 0);
@@ -209,7 +209,7 @@ dxwifi_rx_state_t open_file_and_capture(const char* path, dxwifi_receiver* rx, b
         }
         //now close and remove temp file
         close(temp_fd);
-        remove("tempfile");
+        remove("/tmp/tempfile");
         //Unmap memory assigned to the encoded temp file.
         munmap(encoded_data, temp_file_size);
     }
