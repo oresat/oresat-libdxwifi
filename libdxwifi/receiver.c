@@ -466,7 +466,7 @@ static void process_frame(uint8_t* args, const struct pcap_pkthdr* pkt_stats, co
                 fc->rx_stats.total_caplen           += pkt_stats->caplen;
                 fc->rx_stats.total_payload_size     += payload_size;
                 fc->rx_stats.num_packets_processed  += 1;
-                fc->rx_stats.bad_crcs               += crc_valid ? 0 : 1;
+                fc->rx_stats.bad_crcs               += !crc_valid ? 0 : 1;
                 memcpy(&fc->rx_stats.pkt_stats, pkt_stats, sizeof(struct pcap_pkthdr));
 
                 log_frame_stats(&rx_frame, frame_number, &fc->rx_stats);
