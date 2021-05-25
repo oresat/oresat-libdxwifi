@@ -437,7 +437,7 @@ static void process_frame(uint8_t* args, const struct pcap_pkthdr* pkt_stats, co
 
             ssize_t payload_size = rx_frame.fcs - rx_frame.payload;
             if(payload_size != DXWIFI_TX_PAYLOAD_SIZE) {
-                log_warning("Payload size does not match expected: %u / %u", payload_size, DXWIFI_TX_PAYLOAD_SIZE);
+                log_warning("Payload size does not match expected: %d / %d", payload_size, DXWIFI_TX_PAYLOAD_SIZE);
             }
 
             int32_t frame_number = (fc->rx->ordered 
