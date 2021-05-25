@@ -70,7 +70,7 @@ typedef struct {
         .error_rate                 = 0,\
         .packet_loss                = 0,\
         .tx                         = DXWIFI_TRANSMITTER_DFLT_INITIALIZER,\
-        .coderate                   = 0.5\
+        .coderate                   = 0.667\
     }\
 
 
