@@ -41,6 +41,7 @@
  */
 typedef enum {
     DXWIFI_CONTROL_FRAME_NONE       = 0x00,
+    DXWIFI_CONTROL_FRAME_UNKNOWN    = 0x01,
     DXWIFI_CONTROL_FRAME_PREAMBLE   = 0xff,
     DXWIFI_CONTROL_FRAME_EOT        = 0xaa
 } dxwifi_control_frame_t;

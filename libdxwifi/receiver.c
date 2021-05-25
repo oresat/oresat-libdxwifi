@@ -228,6 +228,7 @@ static dxwifi_control_frame_t check_frame_control(const uint8_t* frame, const st
     dxwifi_control_frame_t type = DXWIFI_CONTROL_FRAME_NONE;
 
     if(payload_size == DXWIFI_FRAME_CONTROL_SIZE) {
+        type = DXWIFI_CONTROL_FRAME_UNKNOWN;
         for(size_t i = 0; i < DXWIFI_TX_PAYLOAD_SIZE; ++i) {
             switch (payload[i])
             {
@@ -243,12 +244,16 @@ static dxwifi_control_frame_t check_frame_control(const uint8_t* frame, const st
                 break;
             }
         } 
-        if(((float)eot / DXWIFI_TX_PAYLOAD_SIZE) > check_threshold) {
+        if(((float)eot / payload_size) > check_threshold) {
             type = DXWIFI_CONTROL_FRAME_EOT;
         }
-        else if (((float)preamble / DXWIFI_TX_PAYLOAD_SIZE) > check_threshold) {
+        else if (((float)preamble / payload_size) > check_threshold) {
             type = DXWIFI_CONTROL_FRAME_PREAMBLE;
         }
+    }
+    // Payload size is incorrect, do not process frame
+    else if(payload_size != DXWIFI_TX_PAYLOAD_SIZE) {
+        type = DXWIFI_CONTROL_FRAME_UNKNOWN;
     }
     return type;
 }
@@ -295,9 +300,10 @@ static void handle_frame_control(frame_controller* fc, dxwifi_control_frame_t ty
         }
         fc->eot_reached = true;
         break;
-    
-    default:
-        debug_assert_always("Unkown control type");
+
+    case DXWIFI_CONTROL_FRAME_UNKNOWN:
+    default: 
+        log_info("Unkown control frame recieved");
         break;
     }
 }
@@ -413,7 +419,6 @@ static void process_frame(uint8_t* args, const struct pcap_pkthdr* pkt_stats, co
     frame_controller* fc = (frame_controller*) args;
 
     if(verify_sender(frame, fc->rx->sender_addr, fc->rx->max_hamming_dist)) {
-
         dxwifi_control_frame_t ctrl_frame = check_frame_control(frame, pkt_stats, 0.66);
 
         if(ctrl_frame != DXWIFI_CONTROL_FRAME_NONE) {
@@ -438,28 +443,29 @@ static void process_frame(uint8_t* args, const struct pcap_pkthdr* pkt_stats, co
             ssize_t payload_size = rx_frame.fcs - rx_frame.payload;
             if(payload_size != DXWIFI_TX_PAYLOAD_SIZE) {
                 log_warning("Payload size does not match expected: %d / %d", payload_size, DXWIFI_TX_PAYLOAD_SIZE);
+            } else {
+
+                int32_t frame_number = (fc->rx->ordered 
+                    ? extract_frame_number(rx_frame.mac_hdr) 
+                    : fc->rx_stats.num_packets_processed);
+
+                // Heap node only points to the payload data
+                packet_heap_node node = {
+                    .frame_number   = frame_number,
+                    .data           = rx_frame.payload,
+                    .crc_valid      = false // TODO verify CRC
+                };
+                heap_push(&fc->packet_heap, &node);
+
+                // Update next write position and stats
+                fc->index                           += pkt_stats->caplen; 
+                fc->rx_stats.total_caplen           += pkt_stats->caplen;
+                fc->rx_stats.total_payload_size     += payload_size;
+                fc->rx_stats.num_packets_processed  += 1;
+                memcpy(&fc->rx_stats.pkt_stats, pkt_stats, sizeof(struct pcap_pkthdr));
+
+                log_frame_stats(&rx_frame, frame_number, &fc->rx_stats);
             }
-
-            int32_t frame_number = (fc->rx->ordered 
-                ? extract_frame_number(rx_frame.mac_hdr) 
-                : fc->rx_stats.num_packets_processed);
-
-            // Heap node only points to the payload data
-            packet_heap_node node = {
-                .frame_number   = frame_number,
-                .data           = rx_frame.payload,
-                .crc_valid      = false // TODO verify CRC
-            };
-            heap_push(&fc->packet_heap, &node);
-
-            // Update next write position and stats
-            fc->index                           += pkt_stats->caplen; 
-            fc->rx_stats.total_caplen           += pkt_stats->caplen;
-            fc->rx_stats.total_payload_size     += payload_size;
-            fc->rx_stats.num_packets_processed  += 1;
-            memcpy(&fc->rx_stats.pkt_stats, pkt_stats, sizeof(struct pcap_pkthdr));
-
-            log_frame_stats(&rx_frame, frame_number, &fc->rx_stats);
         }
     }
     else {
