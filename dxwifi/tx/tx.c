@@ -314,47 +314,34 @@ dxwifi_tx_state_t setup_handlers_and_transmit(dxwifi_transmitter* tx, int fd) {
  */
 dxwifi_tx_state_t transmit_files(dxwifi_transmitter* tx, char** files, size_t num_files, unsigned delay, int retransmit_count, float coderate) {
     int fd = 0;
-    dxwifi_tx_stats stats = { .tx_state = DXWIFI_TX_NORMAL };
+    dxwifi_tx_state_t state = DXWIFI_TX_NORMAL;
 
-    for(size_t i = 0; i < num_files && stats.tx_state == DXWIFI_TX_NORMAL; ++i) {
+    for(size_t i = 0; i < num_files && state == DXWIFI_TX_NORMAL; ++i) {
         if((fd = open(files[i], O_RDONLY)) < 0) {
             log_error("Failed to open file: %s - %s", files[i], strerror(errno));
         }
         else {
             log_info("Opened %s for transmission", files[i]);
-            off_t file_size = get_file_size(files[i]);
 
-            void* file_data = mmap(NULL, file_size, PROT_READ, MAP_SHARED, fd, 0);
-            assert_M(file_data != MAP_FAILED, "Failed to map file to memory - %s", strerror(errno));
+            int count = retransmit_count;
+            bool transmit_forever = (retransmit_count == -1);
+            while((count >= 0 || transmit_forever) && state == DXWIFI_TX_NORMAL) {
+                int status = lseek(fd, 0, SEEK_SET);
 
-            void *encoded_message = NULL;
-            size_t msg_size = dxwifi_encode(file_data, file_size, coderate, &encoded_message);
-
-            if(msg_size > 0){
-
-            	log_info("Encoding Success for file: [%s], Filesize: %d", files[i], msg_size);
-
-            	int count = retransmit_count;
-
-            	bool transmit_forever = (retransmit_count == -1);
-                while((count >= 0 || transmit_forever) && stats.tx_state == DXWIFI_TX_NORMAL) {
-
-                	transmit_bytes(tx, encoded_message, msg_size, &stats);
-                	
-                	msleep(delay, false);
-
-                	free(encoded_message);
-                	--count;
+                if(status == -1) {
+                    log_error("Failed to seek to beginning of file: %s", strerror(errno));
+                    state = DXWIFI_TX_ERROR;
                 }
-            }
-            else {	
-                log_error("Unable to FEC Encode File [%s]", files[i]);	
+                else {
+                    state = setup_handlers_and_transmit(tx, fd);
+                    msleep(delay, false);
+                }
+                --count;
             }
             close(fd);
-            munmap(file_data, file_size);
         }
     }
-    return stats.tx_state;
+    return state;
 }
 
 

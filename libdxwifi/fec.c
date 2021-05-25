@@ -239,8 +239,9 @@ ssize_t dxwifi_decode(void* encoded_msg, size_t msglen, void** out) {
         }
 	} 
     if(idx >= nframes){
-        free(ldpc_frames);
-        return FEC_ERROR_NO_OTI_FOUND;
+        idx = 0;
+        //free(ldpc_frames);
+        //return FEC_ERROR_NO_OTI_FOUND;
 	}
 
 	dxwifi_oti* oti = &ldpc_frames[idx].oti;

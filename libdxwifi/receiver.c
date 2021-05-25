@@ -411,7 +411,8 @@ static void process_frame(uint8_t* args, const struct pcap_pkthdr* pkt_stats, co
 
     if(verify_sender(frame, fc->rx->sender_addr, fc->rx->max_hamming_dist)) {
 
-        dxwifi_control_frame_t ctrl_frame = check_frame_control(frame, 0.66);
+        //dxwifi_control_frame_t ctrl_frame = check_frame_control(frame, 0.66);
+        dxwifi_control_frame_t ctrl_frame = DXWIFI_CONTROL_FRAME_NONE;
 
         if(ctrl_frame != DXWIFI_CONTROL_FRAME_NONE) {
             handle_frame_control(fc, ctrl_frame);
