@@ -154,12 +154,12 @@ dxwifi_rx_state_t open_file_and_capture(const char* path, dxwifi_receiver* rx, b
     int fd          = 0; //output file descriptor
     int temp_fd     = 0; //temp file descriptor
 
-    int open_flags  = O_WRONLY | O_CREAT | (append ? O_APPEND : O_TRUNC);
-    mode_t mode     = S_IRUSR  | S_IWUSR | S_IROTH | S_IWOTH; 
+    int open_flags  = O_RDWR  | O_CREAT | (append ? O_APPEND : O_TRUNC);
+    mode_t mode     = S_IRUSR | S_IWUSR | S_IROTH | S_IWOTH; 
     
     dxwifi_rx_state_t state = DXWIFI_RX_ERROR;
 
-    if((temp_fd = creat(RX_TEMP_FILE, mode)) < 0) {
+    if((temp_fd = open(RX_TEMP_FILE, open_flags, mode)) < 0) {
         log_error("Failed to open temp file for capture");
     }
     else {
@@ -178,7 +178,7 @@ dxwifi_rx_state_t open_file_and_capture(const char* path, dxwifi_receiver* rx, b
             else {
 
                 void *decoded_message = NULL;
-                size_t decoded_size = dxwifi_decode(encoded_data, temp_file_size, &decoded_message);
+                ssize_t decoded_size = dxwifi_decode(encoded_data, temp_file_size, &decoded_message);
 
                 if(decoded_size > 0) {
                     log_info("Decoding Success for RX'd file, File Size: %d", decoded_size);

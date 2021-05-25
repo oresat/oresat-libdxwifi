@@ -129,7 +129,7 @@ typedef struct {
     .add_noise          = false,\
     .noise_value        = 0xff,\
     .sender_addr        = {0xAA, 0xAA ,0xAA, 0xAA, 0xAA, 0xAA },\
-    .max_hamming_dist   = 10,\
+    .max_hamming_dist   = 5,\
     .filter             = NULL,\
     .optimize           = true,\
     .snaplen            = DXWIFI_SNAPLEN_MAX,\
