@@ -26,6 +26,7 @@ import subprocess
 from time import sleep
 from test.genbytes import genbytes
 
+FEC_SYMBOL_SIZE = 1099
 
 INSTALL_DIR = os.environ.get('DXWIFI_INSTALL_DIR', default='bin/TestDebug')
 TEMP_DIR    = '__temp'
@@ -64,7 +65,7 @@ class TestTxRx(unittest.TestCase):
         '''Remove files created during previous test'''
         shutil.rmtree(TEMP_DIR)
 
-
+    
     def testStreamTransmission(self):
         '''Tx reads from stdin should match Rx writes to stdout'''
 
@@ -112,10 +113,8 @@ class TestTxRx(unittest.TestCase):
         tx_command = f'{TX} {test_file} -q --savefile {tx_out}'
         rx_command = f'{RX} {rx_out} -q -t 2 --savefile {tx_out}'
 
-        # Store return codes
-
         # Create a single test file
-        genbytes(test_file, 10, 1275) # Create test file
+        genbytes(test_file, 10, FEC_SYMBOL_SIZE) # Create test file
 
         # Transmit the test file
         subprocess.run(tx_command.split()).check_returncode()
@@ -135,7 +134,7 @@ class TestTxRx(unittest.TestCase):
         # Create a bunch of test files
         test_files = [f'{TEMP_DIR}/test_{x}.raw' for x in range(10)]
         for file in test_files:
-            genbytes(file, 10, 1275)
+            genbytes(file, 10, FEC_SYMBOL_SIZE)
 
 
         tx_out     = f'{TEMP_DIR}/tx.raw'
@@ -161,7 +160,7 @@ class TestTxRx(unittest.TestCase):
         # Create a bunch of files in a directory
         test_files = [f'{TEMP_DIR}/test_{x}.raw' for x in range(10)]
         for file in test_files:
-            genbytes(file, 10, 1275)
+            genbytes(file, 10, FEC_SYMBOL_SIZE)
 
         tx_out     = f'{TEMP_DIR}/tx.raw'
         rx_out     = [f'{TEMP_DIR}/rx_{x}.raw' for x in range(10)]
@@ -197,7 +196,7 @@ class TestTxRx(unittest.TestCase):
         # Create a bunch of test files in the directory, causing them to be transmitted
         test_files = [f'{TEMP_DIR}/test_{x}.raw' for x in range(10)]
         for file in test_files:
-            genbytes(file, 10, 1275)
+            genbytes(file, 10, FEC_SYMBOL_SIZE)
 
         # Wait for tx to timeout and close
         proc.wait()

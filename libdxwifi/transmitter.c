@@ -433,6 +433,7 @@ void start_transmission(dxwifi_transmitter* tx, int fd, dxwifi_tx_stats* out) {
     };
 
     dxwifi_tx_frame data_frame;
+    memset(&data_frame, 0x00, sizeof(dxwifi_tx_frame));
 
     construct_radiotap_header(&data_frame.radiotap_hdr, tx->rtap_flags, tx->rtap_rate_mbps, tx->rtap_tx_flags);
 
@@ -516,6 +517,7 @@ void transmit_bytes(dxwifi_transmitter* tx, const void* data, size_t nbytes, dxw
     };
 
     dxwifi_tx_frame data_frame;
+    memset(&data_frame, 0x00, sizeof(dxwifi_tx_frame));
 
     construct_radiotap_header(&data_frame.radiotap_hdr, tx->rtap_flags, tx->rtap_rate_mbps, tx->rtap_tx_flags);
 
