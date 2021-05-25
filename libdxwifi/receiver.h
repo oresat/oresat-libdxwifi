@@ -77,6 +77,7 @@ typedef struct {
     uint32_t                total_noise_added;      /* Number of bytes of noise added   */
     uint32_t                num_packets_processed;  /* Number of packets processed      */
     uint32_t                packets_dropped;        /* Packets dropped because by rx    */
+    uint32_t                bad_crcs;               /* Number of packets with a bad CRC */
     dxwifi_rx_state_t       capture_state;          /* State of last capture            */
     struct pcap_pkthdr      pkt_stats;              /* Stats for the current capture    */
     struct pcap_stat        pcap_stats;             /* Pcap statistics                  */

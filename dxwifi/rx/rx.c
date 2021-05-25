@@ -73,6 +73,7 @@ void log_rx_stats(dxwifi_rx_stats stats) {
         "\tTotal Capture Size:          %d\n"
         "\tTotal Blocks Lost:           %d\n"
         "\tTotal Noise Added:           %d\n"
+        "\tBad CRC Count:               %d\n"
         "\tPackets Processed:           %d\n"
         "\tPackets Received:            %d\n"
         "\tPackets Dropped (receiver):  %d\n"
@@ -85,6 +86,7 @@ void log_rx_stats(dxwifi_rx_stats stats) {
         stats.total_caplen,
         stats.total_blocks_lost,
         stats.total_noise_added,
+        stats.bad_crcs,
         stats.num_packets_processed,
         stats.pcap_stats.ps_recv,
         stats.packets_dropped,

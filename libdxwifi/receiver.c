@@ -20,6 +20,7 @@
 #include <libdxwifi/receiver.h>
 #include <libdxwifi/transmitter.h>
 #include <libdxwifi/details/heap.h>
+#include <libdxwifi/details/crc32.h>
 #include <libdxwifi/details/assert.h>
 #include <libdxwifi/details/logging.h>
 
@@ -449,11 +450,14 @@ static void process_frame(uint8_t* args, const struct pcap_pkthdr* pkt_stats, co
                     ? extract_frame_number(rx_frame.mac_hdr) 
                     : fc->rx_stats.num_packets_processed);
 
+                uint32_t crc = crc32((uint8_t*)rx_frame.mac_hdr, (uint8_t*)rx_frame.fcs - (uint8_t*)rx_frame.mac_hdr);
+                bool crc_valid = (crc == *rx_frame.fcs);
+
                 // Heap node only points to the payload data
                 packet_heap_node node = {
                     .frame_number   = frame_number,
                     .data           = rx_frame.payload,
-                    .crc_valid      = false // TODO verify CRC
+                    .crc_valid      = crc_valid
                 };
                 heap_push(&fc->packet_heap, &node);
 
@@ -462,6 +466,7 @@ static void process_frame(uint8_t* args, const struct pcap_pkthdr* pkt_stats, co
                 fc->rx_stats.total_caplen           += pkt_stats->caplen;
                 fc->rx_stats.total_payload_size     += payload_size;
                 fc->rx_stats.num_packets_processed  += 1;
+                fc->rx_stats.bad_crcs               += crc_valid ? 0 : 1;
                 memcpy(&fc->rx_stats.pkt_stats, pkt_stats, sizeof(struct pcap_pkthdr));
 
                 log_frame_stats(&rx_frame, frame_number, &fc->rx_stats);
