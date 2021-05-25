@@ -209,7 +209,7 @@ typedef struct {
         .wep                = false,\
         .order              = false\
     },\
-    .address = {0xAA, 0xAA ,0xAA, 0xAA, 0xAA, 0xAA },\
+    .address = DXWIFI_DFLT_SENDER_ADDR,\
 }\
 
 

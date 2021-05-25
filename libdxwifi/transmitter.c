@@ -92,8 +92,9 @@ static void construct_ieee80211_header( ieee80211_hdr* mac, ieee80211_frame_cont
 
     mac->duration_id = htons(duration_id);
 
-    memset(mac->addr1, 0xff, IEEE80211_MAC_ADDR_LEN);
-    memset(mac->addr3, 0xff, IEEE80211_MAC_ADDR_LEN);
+    memcpy(mac->addr1, sender_address, IEEE80211_MAC_ADDR_LEN);
+    memcpy(mac->addr2, sender_address, IEEE80211_MAC_ADDR_LEN);
+    memcpy(mac->addr3, sender_address, IEEE80211_MAC_ADDR_LEN);
 
     // Note to future developers, for some reason if the first two bytes of 
     // addr1 are 0x00 then the ath9k_htc driver will attempt to retransmit the
@@ -102,7 +103,6 @@ static void construct_ieee80211_header( ieee80211_hdr* mac, ieee80211_frame_cont
     // broken after the seemingly innocuous change of modifying the address field
     debug_assert(mac->addr1[0] && mac->addr1[1]);
 
-    memcpy(mac->addr2, sender_address, IEEE80211_MAC_ADDR_LEN);
 
     mac->seq_ctrl = 0;
 }

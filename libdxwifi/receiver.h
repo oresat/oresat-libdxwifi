@@ -128,7 +128,7 @@ typedef struct {
     .ordered            = false,\
     .add_noise          = false,\
     .noise_value        = 0xff,\
-    .sender_addr        = {0xAA, 0xAA ,0xAA, 0xAA, 0xAA, 0xAA },\
+    .sender_addr        = DXWIFI_DFLT_SENDER_ADDR,\
     .max_hamming_dist   = 5,\
     .filter             = NULL,\
     .optimize           = true,\
