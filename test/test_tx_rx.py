@@ -212,7 +212,8 @@ class TestTxRx(unittest.TestCase):
         self.assertEqual(all(results), True)
 
     """
-    This test will fail until issue #28 is fixed and merged.
+    This test will fail until issue #44 is fixed and merged.
+    https://github.com/oresat/oresat-dxwifi-software/issues/44
     
     Since the test image is not divisible by the DXWIFI_PAYLOAD_SIZE the final 
     packet is zero filled. This causes the filecmp to fail since the received
@@ -239,6 +240,78 @@ class TestTxRx(unittest.TestCase):
 
         self.assertEqual(status, True)
     """
+
+    def testForwardErrorCorrection(self):
+        '''Tx and Rx can recover and correct for bit errors'''
+
+        test_file   = f'{TEMP_DIR}/test.raw'
+        tx_out      = f'{TEMP_DIR}/tx.raw'
+        rx_out      = f'{TEMP_DIR}/rx.raw'
+
+        tx_command = f'{TX} {test_file} -q --error-rate 0.003 --savefile {tx_out}'
+        rx_command = f'{RX} {rx_out} -q -t 2 --savefile {tx_out}'
+
+        # Create a single test file
+        genbytes(test_file, 10, FEC_SYMBOL_SIZE) # Create test file
+
+        # Transmit the test file
+        subprocess.run(tx_command.split()).check_returncode()
+
+        # Receive the test file
+        subprocess.run(rx_command.split()).check_returncode()
+
+        # Verify both files match
+        status = filecmp.cmp(test_file, rx_out)
+
+        self.assertEqual(status, True)
+
+    def testForwardErasureCorrection(self):
+        '''Tx and Rx can recover and correct for packet loss'''
+
+        test_file   = f'{TEMP_DIR}/test.raw'
+        tx_out      = f'{TEMP_DIR}/tx.raw'
+        rx_out      = f'{TEMP_DIR}/rx.raw'
+
+        tx_command = f'{TX} {test_file} -q --packet-loss 0.05 --savefile {tx_out}'
+        rx_command = f'{RX} {rx_out} -q --savefile {tx_out}'
+
+        # Create a single test file
+        genbytes(test_file, 10, FEC_SYMBOL_SIZE) # Create test file
+
+        # Transmit the test file
+        subprocess.run(tx_command.split()).check_returncode()
+
+        # Receive the test file
+        subprocess.run(rx_command.split()).check_returncode()
+
+        # Verify both files match
+        status = filecmp.cmp(test_file, rx_out)
+
+        self.assertEqual(status, True)
+
+    def testForwardErasureAndErrorCorrection(self):
+        '''Tx and Rx can recover and correct for bit errors and packet loss'''
+
+        test_file   = f'{TEMP_DIR}/test.raw'
+        tx_out      = f'{TEMP_DIR}/tx.raw'
+        rx_out      = f'{TEMP_DIR}/rx.raw'
+
+        tx_command = f'{TX} {test_file} -q --packet-loss 0.05 --error-rate 0.003 --savefile {tx_out}'
+        rx_command = f'{RX} {rx_out} -q --savefile {tx_out}'
+
+        # Create a single test file
+        genbytes(test_file, 10, FEC_SYMBOL_SIZE) # Create test file
+
+        # Transmit the test file
+        subprocess.run(tx_command.split()).check_returncode()
+
+        # Receive the test file
+        subprocess.run(rx_command.split()).check_returncode()
+
+        # Verify both files match
+        status = filecmp.cmp(test_file, rx_out)
+
+        self.assertEqual(status, True)
 
 
 if __name__ == '__main__':

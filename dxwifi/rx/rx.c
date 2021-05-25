@@ -182,7 +182,7 @@ dxwifi_rx_state_t open_file_and_capture(const char* path, dxwifi_receiver* rx, b
             else {
 
                 void *decoded_message = NULL;
-                size_t decoded_size = dxwifi_decode(encoded_data, temp_file_size, &decoded_message);
+                ssize_t decoded_size = dxwifi_decode(encoded_data, temp_file_size, &decoded_message);
 
                 if(decoded_size > 0) {
                     log_info("Decoding Success for RX'd file, File Size: %d", decoded_size);
