@@ -29,6 +29,8 @@
 
 #define DXWIFI_DFLT_PACKET_BUFFER_TIMEOUT 20
 
+#define DXWIFI_FRAME_CONTROL_SIZE 256
+
 /************************
  *  Types
  ***********************/

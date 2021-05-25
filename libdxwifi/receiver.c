@@ -217,35 +217,38 @@ static void log_frame_stats(dxwifi_rx_frame* frame, int32_t frame_no, dxwifi_rx_
  *      dxwifi_control_frame_t: The type of the control frame
  *  
  */
-static dxwifi_control_frame_t check_frame_control(const uint8_t* frame, float check_threshold) {
+static dxwifi_control_frame_t check_frame_control(const uint8_t* frame, const struct pcap_pkthdr* pkt_stats, float check_threshold) {
     // Get info we need from the raw data frame
     const ieee80211_radiotap_hdr* rtap = (const ieee80211_radiotap_hdr*)frame;
     const uint8_t* payload = frame + rtap->it_len + sizeof(ieee80211_hdr);
+    size_t payload_size = pkt_stats->caplen - rtap->it_len - sizeof(ieee80211_hdr) - IEEE80211_FCS_SIZE;
 
     unsigned eot                = 0;
     unsigned preamble           = 0;
     dxwifi_control_frame_t type = DXWIFI_CONTROL_FRAME_NONE;
 
-    for(size_t i = 0; i < DXWIFI_TX_PAYLOAD_SIZE; ++i) {
-        switch (payload[i])
-        {
-        case DXWIFI_CONTROL_FRAME_PREAMBLE:
-            ++preamble;
-            break;
-        
-        case DXWIFI_CONTROL_FRAME_EOT:
-            ++eot;
-            break;
+    if(payload_size == DXWIFI_FRAME_CONTROL_SIZE) {
+        for(size_t i = 0; i < DXWIFI_TX_PAYLOAD_SIZE; ++i) {
+            switch (payload[i])
+            {
+            case DXWIFI_CONTROL_FRAME_PREAMBLE:
+                ++preamble;
+                break;
+            
+            case DXWIFI_CONTROL_FRAME_EOT:
+                ++eot;
+                break;
 
-        default:
-            break;
+            default:
+                break;
+            }
+        } 
+        if(((float)eot / DXWIFI_TX_PAYLOAD_SIZE) > check_threshold) {
+            type = DXWIFI_CONTROL_FRAME_EOT;
         }
-    } 
-    if(((float)eot / DXWIFI_TX_PAYLOAD_SIZE) > check_threshold) {
-        type = DXWIFI_CONTROL_FRAME_EOT;
-    }
-    else if (((float)preamble / DXWIFI_TX_PAYLOAD_SIZE) > check_threshold) {
-        type = DXWIFI_CONTROL_FRAME_PREAMBLE;
+        else if (((float)preamble / DXWIFI_TX_PAYLOAD_SIZE) > check_threshold) {
+            type = DXWIFI_CONTROL_FRAME_PREAMBLE;
+        }
     }
     return type;
 }
@@ -411,8 +414,7 @@ static void process_frame(uint8_t* args, const struct pcap_pkthdr* pkt_stats, co
 
     if(verify_sender(frame, fc->rx->sender_addr, fc->rx->max_hamming_dist)) {
 
-        //dxwifi_control_frame_t ctrl_frame = check_frame_control(frame, 0.66);
-        dxwifi_control_frame_t ctrl_frame = DXWIFI_CONTROL_FRAME_NONE;
+        dxwifi_control_frame_t ctrl_frame = check_frame_control(frame, pkt_stats, 0.66);
 
         if(ctrl_frame != DXWIFI_CONTROL_FRAME_NONE) {
             handle_frame_control(fc, ctrl_frame);
@@ -434,6 +436,9 @@ static void process_frame(uint8_t* args, const struct pcap_pkthdr* pkt_stats, co
             // TODO parse radiotap header data and store provided info
 
             ssize_t payload_size = rx_frame.fcs - rx_frame.payload;
+            if(payload_size != DXWIFI_TX_PAYLOAD_SIZE) {
+                log_warning("Payload size does not match expected: %u / %u", payload_size, DXWIFI_TX_PAYLOAD_SIZE);
+            }
 
             int32_t frame_number = (fc->rx->ordered 
                 ? extract_frame_number(rx_frame.mac_hdr) 

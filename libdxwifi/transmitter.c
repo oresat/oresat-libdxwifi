@@ -221,16 +221,21 @@ static int inject_packet(dxwifi_transmitter* tx, dxwifi_tx_frame* frame, dxwifi_
     int status = 0;
     bool transmit = invoke_handlers(tx->__preinjection, frame, stats);
 
+    size_t frame_size = DXWIFI_TX_FRAME_SIZE;
+    if(stats->frame_type != DXWIFI_CONTROL_FRAME_NONE) {
+        frame_size = DXWIFI_TX_HEADER_SIZE + DXWIFI_FRAME_CONTROL_SIZE + IEEE80211_FCS_SIZE;
+    }
+
     if(transmit) {
 #if defined(DXWIFI_TESTS)
         struct pcap_pkthdr pcap_hdr;
         gettimeofday(&pcap_hdr.ts, NULL);
-        pcap_hdr.caplen = DXWIFI_TX_FRAME_SIZE;
+        pcap_hdr.caplen = frame_size;
         pcap_hdr.len = pcap_hdr.caplen;
         pcap_dump((uint8_t*)tx->dumper, &pcap_hdr, (void*)frame);
         status = pcap_hdr.caplen;
 #else
-        status = pcap_inject(tx->__handle, frame, DXWIFI_TX_FRAME_SIZE);
+        status = pcap_inject(tx->__handle, frame, frame_size);
 #endif
     }
     assert_continue(status != PCAP_ERROR, "Injection failure: %s", pcap_statustostr(status));
@@ -265,7 +270,10 @@ static void send_control_frame(dxwifi_transmitter* tx, dxwifi_tx_frame* frame, d
 
     stats->frame_type = type;
 
-    memset(frame->payload, type, DXWIFI_TX_PAYLOAD_SIZE);
+    uint8_t control_data[DXWIFI_FRAME_CONTROL_SIZE];
+    memset(control_data, type, DXWIFI_FRAME_CONTROL_SIZE);
+
+    memcpy(frame->payload, control_data, DXWIFI_FRAME_CONTROL_SIZE);
 
     for (int i = 0; i < tx->redundant_ctrl_frames + 1; ++i) {
 
@@ -485,9 +493,9 @@ void start_transmission(dxwifi_transmitter* tx, int fd, dxwifi_tx_stats* out) {
         }
     } while(tx->__activated && stats.prev_bytes_read > 0);
 
-    log_info("DxWiFI Transmission stopped");
-
     send_control_frame(tx, &data_frame, DXWIFI_CONTROL_FRAME_EOT, &stats);
+
+    log_info("DxWiFI Transmission stopped");
 
 #if defined(DXWIFI_TESTS)
     pcap_dump_flush(tx->dumper);
