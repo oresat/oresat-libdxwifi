@@ -66,7 +66,13 @@ int main(int argc, char** argv) {
         signal(SIGTERM, terminate);
     }
 
-    srand(time(0)); // Seed random number generator
+#if defined(DXWIFI_TESTS)
+    unsigned seed = 1621981756;
+#else
+    unsigned seed = time(0);
+#endif
+
+    srand(seed);
 
     init_transmitter(transmitter, args.device);
 
@@ -243,6 +249,7 @@ bool bit_error_rate_sim(dxwifi_tx_frame* frame, dxwifi_tx_stats stats, void* use
     log_debug("Bits in frame: %d, bits flipped: %d", frame_size * 8, total_num_errors);
     return true;
 }
+
 
 /**
  *  DESCRIPTION:    Called before every frame is injected, packs the current

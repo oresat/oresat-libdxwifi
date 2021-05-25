@@ -248,12 +248,11 @@ class TestTxRx(unittest.TestCase):
         tx_out      = f'{TEMP_DIR}/tx.raw'
         rx_out      = f'{TEMP_DIR}/rx.raw'
 
-        tx_command = f'{TX} {test_file} -q --error-rate 0.003 --savefile {tx_out}'
+        tx_command = f'{TX} {test_file} -q --error-rate 0.004 --savefile {tx_out}'
         rx_command = f'{RX} {rx_out} -q -t 2 --savefile {tx_out}'
 
         # Create a single test file
         genbytes(test_file, 10, FEC_SYMBOL_SIZE) # Create test file
-
 
         # Transmit the test file
         subprocess.run(tx_command.split()).check_returncode()
@@ -273,7 +272,7 @@ class TestTxRx(unittest.TestCase):
         tx_out      = f'{TEMP_DIR}/tx.raw'
         rx_out      = f'{TEMP_DIR}/rx.raw'
 
-        tx_command = f'{TX} {test_file} -q --packet-loss 0.05 --savefile {tx_out}'
+        tx_command = f'{TX} {test_file} -q --packet-loss 0.1 --savefile {tx_out}'
         rx_command = f'{RX} {rx_out} -q --savefile {tx_out}'
 
         # Create a single test file
@@ -297,7 +296,7 @@ class TestTxRx(unittest.TestCase):
         tx_out      = f'{TEMP_DIR}/tx.raw'
         rx_out      = f'{TEMP_DIR}/rx.raw'
 
-        tx_command = f'{TX} {test_file} -q --packet-loss 0.05 --error-rate 0.003 --savefile {tx_out}'
+        tx_command = f'{TX} {test_file} -q --packet-loss 0.1 --error-rate 0.004 --savefile {tx_out}'
         rx_command = f'{RX} {rx_out} -q --savefile {tx_out}'
 
         # Create a single test file
