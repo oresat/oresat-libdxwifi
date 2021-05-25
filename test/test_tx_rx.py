@@ -254,6 +254,7 @@ class TestTxRx(unittest.TestCase):
         # Create a single test file
         genbytes(test_file, 10, FEC_SYMBOL_SIZE) # Create test file
 
+
         # Transmit the test file
         subprocess.run(tx_command.split()).check_returncode()
 
