@@ -83,10 +83,11 @@ static bool order_by_frame_number_desc(const uint8_t* lhs, const uint8_t* rhs) {
  *      mac_hdr:    MAC layer header of the captured packet
  * 
  */
-static uint32_t extract_frame_number(ieee80211_hdr* mac_hdr) {
+static uint32_t extract_frame_number(const ieee80211_hdr* mac_hdr) {
     // Packed Frame number is in the last four bytes of address 1 field
     return ntohl(*(uint32_t*)(mac_hdr->addr1 + 2));
 }
+
 
 /**
  *  DESCRIPTION:    Initializes and allocates any frame controller resources
@@ -156,7 +157,7 @@ static void teardown_frame_controller(frame_controller* fc) {
  *      into the provided data buffer and should not be freed or modified.
  *  
  */
-static dxwifi_rx_frame parse_rx_frame_fields(const struct pcap_pkthdr* pkt_stats, uint8_t* data) {
+static dxwifi_rx_frame parse_rx_frame_fields(const struct pcap_pkthdr* pkt_stats, const uint8_t* data) {
     dxwifi_rx_frame frame;
 
     frame.__frame   = data;
@@ -426,37 +427,39 @@ static void process_frame(uint8_t* args, const struct pcap_pkthdr* pkt_stats, co
             handle_frame_control(fc, ctrl_frame);
         }
         else {
-            // Buffer is full, write it out first
-            if( fc->index + pkt_stats->caplen >= fc->pb_size ) {
-                dump_packet_buffer(fc);
-            }
 
-            // Next available slot in the packet buffer
-            uint8_t* buffer_slot = fc->packet_buffer + fc->index;
-
-            // Copy the entire frame into the packet buffer
-            memcpy(buffer_slot, frame, pkt_stats->caplen);
-
-            dxwifi_rx_frame rx_frame = parse_rx_frame_fields(pkt_stats, buffer_slot);
+            dxwifi_rx_frame rx_frame = parse_rx_frame_fields(pkt_stats, frame);
 
             // TODO parse radiotap header data and store provided info
 
             ssize_t payload_size = rx_frame.fcs - rx_frame.payload;
+
             if(payload_size != DXWIFI_TX_PAYLOAD_SIZE) {
                 log_warning("Payload size does not match expected: %d / %d", payload_size, DXWIFI_TX_PAYLOAD_SIZE);
             } else {
+
+                // Buffer is full, write it out first
+                if( fc->index + DXWIFI_TX_PAYLOAD_SIZE >= fc->pb_size ) {
+                    dump_packet_buffer(fc);
+                }
+
+                // Next available slot in the packet buffer
+                uint8_t* write_idx = fc->packet_buffer + fc->index;
+
+                // Copy the entire frame into the packet buffer
+                memcpy(write_idx, rx_frame.payload, DXWIFI_TX_PAYLOAD_SIZE);
 
                 int32_t frame_number = (fc->rx->ordered 
                     ? extract_frame_number(rx_frame.mac_hdr) 
                     : fc->rx_stats.num_packets_processed);
 
-                uint32_t crc = crc32((uint8_t*)rx_frame.mac_hdr, (uint8_t*)rx_frame.fcs - (uint8_t*)rx_frame.mac_hdr);
+                uint32_t crc = crc32((uint8_t*)rx_frame.mac_hdr, DXWIFI_TX_PAYLOAD_SIZE + sizeof(ieee80211_hdr));
                 bool crc_valid = (crc == *rx_frame.fcs);
 
                 // Heap node only points to the payload data
                 packet_heap_node node = {
                     .frame_number   = frame_number,
-                    .data           = rx_frame.payload,
+                    .data           = write_idx,
                     .crc_valid      = crc_valid
                 };
                 heap_push(&fc->packet_heap, &node);
