@@ -21,8 +21,9 @@
 // Max number of symbols that OpenFEC can handle, 50000
 #define OFEC_MAX_SYMBOLS OF_LDPC_STAIRCASE_MAX_NB_ENCODING_SYMBOLS_DEFAULT
 
-// TODO Add function comments
+#define FEC_PRNG 1804289383
 
+// TODO Add function comments
 static void log_codec_params(const of_ldpc_parameters_t* params) {
     log_info(
         "DxWiFi Codec\n"
@@ -60,7 +61,7 @@ static of_session_t* init_openfec(uint32_t n, uint32_t k, of_codec_type_t type) 
         .nb_source_symbols      = k,
         .nb_repair_symbols      = n - k,
         .encoding_symbol_length = DXWIFI_FEC_SYMBOL_SIZE,
-        .prng_seed              = rand(), // TODO no seed for rand(), does this need to match the decoder?
+        .prng_seed              = FEC_PRNG, 
         .N1                     = (n-k) > DXWIFI_LDPC_N1_MAX ? DXWIFI_LDPC_N1_MAX : (n-k) 
     };
     log_codec_params(&codec_params);
@@ -172,7 +173,6 @@ ssize_t dxwifi_encode(void* message, size_t msglen, float coderate, void** out) 
             void* codeword = &rs_ldpc_frame->blocks[i];
 
             encode_data(message, RSCODE_MAX_MSG_LEN, codeword);
-
         }
         log_ldpc_data_frame(ldpc_frame);
         log_rs_ldpc_data_frame(rs_ldpc_frame);

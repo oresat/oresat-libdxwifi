@@ -45,12 +45,10 @@ static const uint32_t crctable[] = {
     0xbdbdf21cL, 0xcabac28aL, 0x53b39330L, 0x24b4a3a6L, 0xbad03605L, 0xcdd70693L, 0x54de5729L, 0x23d967bfL,
     0xb3667a2eL, 0xc4614ab8L, 0x5d681b02L, 0x2a6f2b94L, 0xb40bbe37L, 0xc30c8ea1L, 0x5a05df1bL, 0x2d02ef8dL};
 
-uint32_t crc32(const uint8_t *bytes, uint32_t bytes_sz)
-{
+static uint32_t crc32(const uint8_t *bytes, uint32_t bytes_sz) {
     uint32_t crc = ~0;
     uint32_t i;
-    for (i = 0; i < bytes_sz; ++i)
-    {
+    for (i = 0; i < bytes_sz; ++i) {
         crc = crctable[(crc ^ bytes[i]) & 0xff] ^ (crc >> 8);
     }
     return ~crc;
