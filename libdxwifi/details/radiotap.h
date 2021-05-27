@@ -7,6 +7,9 @@
  * 
  */
 
+#ifndef LIBDXWIFI_RADIOTAP_H
+#define LIBDXWIFI_RADIOTAP_H
+
 #include <stdint.h>
 #include <stdlib.h>
 #include <stdbool.h>
@@ -162,14 +165,16 @@ int radiotap_iterator_next(struct radiotap_iterator *iterator);
 
 int run_parser(struct radiotap_header_data *output_data);
 
-uint64_t get_unaligned_le64(const void *p){
+static uint64_t get_unaligned_le64(const void *p){
     return get_unaligned_le64(p);
 }
 
-uint32_t get_unaligned_le32(const void *p) {
+static uint32_t get_unaligned_le32(const void *p) {
     return get_unaligned_le32(p);
 }
 
-uint16_t get_unaligned_le16 (const void *p){
+static uint16_t get_unaligned_le16 (const void *p){
     return get_unaligned_le16(p);
 }
+
+#endif //LIBDXWIFI_RADIOTAP_H
