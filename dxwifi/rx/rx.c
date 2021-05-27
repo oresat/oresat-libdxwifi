@@ -73,6 +73,7 @@ void log_rx_stats(dxwifi_rx_stats stats) {
         "\tTotal Capture Size:          %d\n"
         "\tTotal Blocks Lost:           %d\n"
         "\tTotal Noise Added:           %d\n"
+        "\tBad CRC Count:               %d\n"
         "\tPackets Processed:           %d\n"
         "\tPackets Received:            %d\n"
         "\tPackets Dropped (receiver):  %d\n"
@@ -85,6 +86,7 @@ void log_rx_stats(dxwifi_rx_stats stats) {
         stats.total_caplen,
         stats.total_blocks_lost,
         stats.total_noise_added,
+        stats.bad_crcs,
         stats.num_packets_processed,
         stats.pcap_stats.ps_recv,
         stats.packets_dropped,
@@ -151,17 +153,16 @@ dxwifi_rx_state_t setup_handlers_and_capture(dxwifi_receiver* rx, int fd) {
  * 
  */
 dxwifi_rx_state_t open_file_and_capture(const char* path, dxwifi_receiver* rx, bool append) {
-    int fd          = 0; //output file descriptor
-    int temp_fd     = 0; //temp file descriptor
+    int fd_out      = 0;
+    int temp_fd     = 0;
 
-    int open_flags  = O_WRONLY | O_CREAT | (append ? O_APPEND : 0);
+    int temp_flags  = O_RDWR   | O_CREAT | O_TRUNC;
+    int open_flags  = O_WRONLY | O_CREAT | (append ? O_APPEND : O_TRUNC);
     mode_t mode     = S_IRUSR  | S_IWUSR | S_IROTH | S_IWOTH; 
     
-    log_debug("Open File and Capture");
-
     dxwifi_rx_state_t state = DXWIFI_RX_ERROR;
 
-    if((temp_fd = open(RX_TEMP_FILE, O_RDWR | O_CREAT, mode)) < 0) {
+    if((temp_fd = open(RX_TEMP_FILE, temp_flags, mode)) < 0) {
         log_error("Failed to open temp file for capture");
     }
     else {
@@ -173,28 +174,26 @@ dxwifi_rx_state_t open_file_and_capture(const char* path, dxwifi_receiver* rx, b
         void* encoded_data = mmap(NULL, temp_file_size, PROT_WRITE, MAP_SHARED, temp_fd, 0);
         assert_M(encoded_data != MAP_FAILED, "Failed to map file to memory - %s", strerror(errno));
         
-        //If the file was transferred correctly and mapped to memory without errors...
         if(state != DXWIFI_RX_ERROR) {
-
-            if((fd = open(path, open_flags, mode)) < 0) {
+            if((fd_out = open(path, open_flags, mode)) < 0) {
                 log_error("Failed to open file: %s", path);
             }
             else {
 
                 void *decoded_message = NULL;
-                size_t decoded_size = dxwifi_decode(encoded_data, temp_file_size, &decoded_message);
+                ssize_t decoded_size = dxwifi_decode(encoded_data, temp_file_size, &decoded_message);
 
                 if(decoded_size > 0) {
                     log_info("Decoding Success for RX'd file, File Size: %d", decoded_size);
 
-                    ssize_t nbytes = write(fd, decoded_message, decoded_size);
+                    ssize_t nbytes = write(fd_out, decoded_message, decoded_size);
                     assert_M(decoded_size == nbytes, "Partial write occured: %d/%d - %s", nbytes, decoded_size, strerror(errno));
                     free(decoded_message);
                 }
                 else{
                     log_error("Failed to Decode Rx'd file, Error: %s", dxwifi_fec_error_to_str(decoded_size));
                 }
-                close(fd);
+                close(fd_out);
             }
         }
         close(temp_fd);
@@ -257,5 +256,4 @@ void receive(cli_args* args, dxwifi_receiver* rx) {
     default:
         break;
     }
-
 }

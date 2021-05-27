@@ -66,7 +66,13 @@ int main(int argc, char** argv) {
         signal(SIGTERM, terminate);
     }
 
-    srand(time(0)); // Seed random number generator
+#if defined(DXWIFI_TESTS)
+    unsigned seed = 1621981756;
+#else
+    unsigned seed = time(0);
+#endif
+
+    srand(seed);
 
     init_transmitter(transmitter, args.device);
 
@@ -156,13 +162,15 @@ void log_tx_stats(dxwifi_tx_stats stats) {
  *
  */
 bool log_frame_stats(dxwifi_tx_frame* frame, dxwifi_tx_stats stats, void* user) {
+    int frame_size = DXWIFI_TX_FRAME_SIZE;
     if(stats.frame_type == DXWIFI_CONTROL_FRAME_NONE) {
         log_debug("Frame: %d - (Read: %ld, Sent: %ld)", stats.data_frame_count, stats.prev_bytes_read, stats.prev_bytes_sent);
     }
     else {
+        frame_size = DXWIFI_FRAME_CONTROL_SIZE;
         log_debug("%s Frame Sent: %d", control_frame_type_to_str(stats.frame_type), stats.prev_bytes_sent);
     }
-    log_hexdump(frame, DXWIFI_TX_FRAME_SIZE);
+    log_hexdump(frame, frame_size);
     return true;
 }
 
@@ -241,6 +249,7 @@ bool bit_error_rate_sim(dxwifi_tx_frame* frame, dxwifi_tx_stats stats, void* use
     log_debug("Bits in frame: %d, bits flipped: %d", frame_size * 8, total_num_errors);
     return true;
 }
+
 
 /**
  *  DESCRIPTION:    Called before every frame is injected, packs the current
