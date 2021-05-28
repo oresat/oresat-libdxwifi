@@ -148,7 +148,12 @@ int radiotap_iterator_next(struct radiotap_iterator *iterator){
 		uint32_t oui;
 		
 		if((iterator -> arg_index % 32) == IEEE80211_RADIOTAP_EXT && !(iterator -> bitmap_shifter & 1)){ return -ENOENT; }       
-		if(!(iterator -> bitmap_shifter & 1)) { goto next; }
+		if(!(iterator -> bitmap_shifter & 1)) {
+            //Replacement for GOTO    
+            iterator -> bitmap_shifter >>= 1;
+			iterator -> arg_index++;
+            //END
+        }
 
 		switch(iterator -> arg_index % 32)
 		{
@@ -173,7 +178,10 @@ int radiotap_iterator_next(struct radiotap_iterator *iterator){
 			if(!align){
 				iterator -> arg = iterator -> next_ns_data;
 				iterator -> current_namespace = NULL;
-				goto next;
+				//Replacement for GOTO
+                iterator -> bitmap_shifter >>= 1;
+			    iterator -> arg_index++;
+                //END
 			}
 			break;
 		}
@@ -203,35 +211,43 @@ int radiotap_iterator_next(struct radiotap_iterator *iterator){
 		switch (iterator -> arg_index % 32)
 		{
 			case IEEE80211_RADIOTAP_VENDOR_NAMESPACE:
-			iterator -> reset_on_ext = 1;
-			iterator -> is_radiotap_namespace = 0;
-			iterator -> this_arg_index = IEEE80211_RADIOTAP_VENDOR_NAMESPACE;
-			if(!iterator -> current_namespace){
-				hit = 1;
-			}
-			goto next;
+			    iterator -> reset_on_ext = 1;
+			    iterator -> is_radiotap_namespace = 0;
+			    iterator -> this_arg_index = IEEE80211_RADIOTAP_VENDOR_NAMESPACE;
+			    if(!iterator -> current_namespace){
+				    hit = 1;
+			    }
+			    //Replacement for GOTO
+                iterator -> bitmap_shifter >>= 1;
+			    iterator -> arg_index++;
+                break;
+                //END
 			case IEEE80211_RADIOTAP_RADIOTAP_NAMESPACE:
-			iterator -> reset_on_ext = 1;
-			iterator -> current_namespace = &current_radiotap_namespace;
-			iterator -> is_radiotap_namespace = 1;
-			goto next;
+			    iterator -> reset_on_ext = 1;
+			    iterator -> current_namespace = &current_radiotap_namespace;
+			    iterator -> is_radiotap_namespace = 1;
+                //Replacement for GOTO
+                iterator -> bitmap_shifter >>= 1;
+			    iterator -> arg_index++;
+                break;
+                //END
 			case IEEE80211_RADIOTAP_EXT:
-			iterator -> bitmap_shifter = get_unaligned_le32(iterator -> next_bitmap);
-			iterator -> next_bitmap++;
-			if(iterator -> reset_on_ext){
-				iterator -> arg_index = 0;
-			}
-			else{
-				iterator -> arg_index++;
-			}
-			iterator -> reset_on_ext = 0;
-			break;
-			
+			    iterator -> bitmap_shifter = get_unaligned_le32(iterator -> next_bitmap);
+			    iterator -> next_bitmap++;
+			    if(iterator -> reset_on_ext){
+				    iterator -> arg_index = 0;
+			    }
+			    else{
+				    iterator -> arg_index++;
+			    }
+			    iterator -> reset_on_ext = 0;
+                break;
 			default:
-			hit = 1;
-			next:
-			iterator -> bitmap_shifter >>= 1;
-			iterator -> arg_index++;
+			    hit = 1;
+                //Original location of GOTO endpoint.
+			    iterator -> bitmap_shifter >>= 1;
+			    iterator -> arg_index++;
+                break;
 		}
             //return valid arg if found
 		if(hit) return 0;

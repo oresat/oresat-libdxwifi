@@ -60,10 +60,6 @@ typedef struct {
  * 
  */
 typedef struct {
-    uint8_t  it_version; /* Version */
-    uint8_t  it_pad; /* padding */
-    uint16_t it_len; /* */
-    uint32_t it_present; /* */
     //Capture Flags, Derived from IE80211.h, Transmitter.h, & Radiotap.org
    
     //TSFT:  Bit Number 0.
