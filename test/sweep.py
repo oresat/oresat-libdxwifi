@@ -30,7 +30,7 @@ TX = f'./{INSTALL_DIR}/tx'
 RX = f'./{INSTALL_DIR}/rx'
 
 # Verify binaries exist
-if not all([os.access(binary, os.X_OK) for binary in (TX, RX)]):#  , ENCODE, DECODE)]):
+if not all([os.access(binary, os.X_OK) for binary in (TX, RX)]):
     print(f"Error! Please verify all programs available at {INSTALL_DIR}.")
     sys.exit(1)
 
@@ -70,9 +70,6 @@ for cr in code_rates:
     cr_dir = os.path.join(args.output, f"CodeRate{cr:.{cr_pad}f}")
     os.mkdir(cr_dir)
 
-    # Create code rate output
-    cr_output = os.path.join(cr_dir, "file.encoded")
-
     # Iterate over error rates
     for er in error_rates:
 
@@ -85,7 +82,7 @@ for cr in code_rates:
 
             # Perform "transmission"
             tx_output = os.path.join(er_pl_dir, "file.sent")
-            tx_command = f"{TX} -e {er} -p {pl} --savefile {tx_output} {cr_output}"
+            tx_command = f"{TX} -c {cr} -e {er} -p {pl} --savefile {tx_output} {args.source}"
             with open(os.path.join(er_pl_dir, "tx_output.txt"), "w") as f:
                 subprocess.run(tx_command.split(), stdout = f, stderr = f)
 
