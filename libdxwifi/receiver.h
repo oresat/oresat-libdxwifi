@@ -56,12 +56,12 @@ typedef enum {
  * 
  */
 typedef struct {
-    ieee80211_radiotap_hdr  *rtap_hdr;  /* packed radiotap header       */
-    ieee80211_hdr           *mac_hdr;   /* link-layer header            */
-    uint8_t                 *payload;   /* packet data                  */
-    uint8_t                 *fcs;       /* frame check sequence         */
+    const ieee80211_radiotap_hdr  *rtap_hdr;  /* packed radiotap header       */
+    const ieee80211_hdr           *mac_hdr;   /* link-layer header            */
+    const uint8_t                 *payload;   /* packet data                  */
+    const uint8_t                 *fcs;       /* frame check sequence         */
 
-    uint8_t                 *__frame;   /* storage for the data         */
+    const uint8_t                 *__frame;   /* storage for the data         */
 } dxwifi_rx_frame;
 
 
@@ -77,6 +77,7 @@ typedef struct {
     uint32_t                total_noise_added;      /* Number of bytes of noise added   */
     uint32_t                num_packets_processed;  /* Number of packets processed      */
     uint32_t                packets_dropped;        /* Packets dropped because by rx    */
+    uint32_t                bad_crcs;               /* Number of packets with a bad CRC */
     dxwifi_rx_state_t       capture_state;          /* State of last capture            */
     struct pcap_pkthdr      pkt_stats;              /* Stats for the current capture    */
     struct pcap_stat        pcap_stats;             /* Pcap statistics                  */
@@ -128,8 +129,8 @@ typedef struct {
     .ordered            = false,\
     .add_noise          = false,\
     .noise_value        = 0xff,\
-    .sender_addr        = {0xAA, 0xAA ,0xAA, 0xAA, 0xAA, 0xAA },\
-    .max_hamming_dist   = 20,\
+    .sender_addr        = DXWIFI_DFLT_SENDER_ADDR,\
+    .max_hamming_dist   = 5,\
     .filter             = NULL,\
     .optimize           = true,\
     .snaplen            = DXWIFI_SNAPLEN_MAX,\
