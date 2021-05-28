@@ -28,8 +28,6 @@ def make_range(start, stop, step):
 INSTALL_DIR = os.environ.get('DXWIFI_INSTALL_DIR', default='bin/TestDebug')
 TX = f'./{INSTALL_DIR}/tx'
 RX = f'./{INSTALL_DIR}/rx'
-#ENCODE = f'./{INSTALL_DIR}/encode'
-#DECODE = f'./{INSTALL_DIR}/decode'
 
 # Verify binaries exist
 if not all([os.access(binary, os.X_OK) for binary in (TX, RX)]):#  , ENCODE, DECODE)]):
@@ -72,11 +70,8 @@ for cr in code_rates:
     cr_dir = os.path.join(args.output, f"CodeRate{cr:.{cr_pad}f}")
     os.mkdir(cr_dir)
 
-    # Perform encoding
+    # Create code rate output
     cr_output = os.path.join(cr_dir, "file.encoded")
-    #encode_command = f"{ENCODE} {args.source} -o {cr_output} -c {cr}"
-    #with open(os.path.join(cr_dir, "encode_output.txt"), "w") as f:
-    #    subprocess.run(encode_command.split(), stdout = f, stderr = f)
 
     # Iterate over error rates
     for er in error_rates:
@@ -99,12 +94,6 @@ for cr in code_rates:
             rx_command = f"{RX} --savefile {tx_output} {rx_output}"
             with open(os.path.join(er_pl_dir, "rx_output.txt"), "w") as f:
                 subprocess.run(rx_command.split(), stdout = f, stderr = f)
-
-            # Perform decoding
-            #decode_output = os.path.join(er_pl_dir, "file.decoded")
-            #decode_command = f"{DECODE} {rx_output} -o {decode_output}"
-            #with open(os.path.join(er_pl_dir, "decode_output.txt"), "w") as f:
-            #   subprocess.run(decode_command.split(), stdout = f, stderr = f)
 
             # Notify user
             print(f"Finished packet loss rate {pl:.{pl_pad}f} for error rate {er:.{er_pad}f} with code rate {cr:.{cr_pad}f}.")
