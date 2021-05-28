@@ -73,7 +73,7 @@ for cr in code_rates:
     os.mkdir(cr_dir)
 
     # Perform encoding
-    #cr_output = os.path.join(cr_dir, "file.encoded")
+    cr_output = os.path.join(cr_dir, "file.encoded")
     #encode_command = f"{ENCODE} {args.source} -o {cr_output} -c {cr}"
     #with open(os.path.join(cr_dir, "encode_output.txt"), "w") as f:
     #    subprocess.run(encode_command.split(), stdout = f, stderr = f)
@@ -90,7 +90,7 @@ for cr in code_rates:
 
             # Perform "transmission"
             tx_output = os.path.join(er_pl_dir, "file.sent")
-            tx_command = f"{TX} -e {er} -p {pl} --savefile {tx_output}"#{cr_output}"
+            tx_command = f"{TX} -e {er} -p {pl} --savefile {tx_output} {cr_output}"
             with open(os.path.join(er_pl_dir, "tx_output.txt"), "w") as f:
                 subprocess.run(tx_command.split(), stdout = f, stderr = f)
 
