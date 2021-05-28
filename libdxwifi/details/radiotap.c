@@ -58,6 +58,19 @@ static const struct radiotap_namespace radiotap_ns = {
     .align_size = rtap_namespace_sizes,
 };
 
+
+uint16_t get_unaligned_le16 (const void *p){
+    //From linux/unaligned/packed_struct.h (__get_unaligned_cpu_16)
+    const struct __una_u16 * ptr = (const struct __una_u16 *)p;
+    return ptr -> x;
+}
+
+uint32_t get_unaligned_le32(const void *p) {
+    //From linux/unaligned/packed_struct.h (__get_unaligned_cpu_32)
+    const struct __una_u32 * ptr = (const struct __una_u32 *)p;
+    return ptr -> x;
+}
+
 /**
  * ieee80211_radiotap_iterator_init - radiotap parser iterator initialization
  * @iterator: radiotap_iterator to initialize
@@ -384,15 +397,28 @@ int ieee80211_radiotap_iterator_next(
  *  -EINVAL if something went wrong
  * 
  */
-int run_parser(struct radiotap_header_data *data_out){
+int run_parser(struct radiotap_header_data *data_out, const struct ieee80211_radiotap_header *actual_data){
     debug_assert(data_out);
+
     struct ieee80211_radiotap_iterator * iterator = malloc(sizeof(*iterator));
-    struct ieee80211_radiotap_header * header = malloc(sizeof(*header));
-    uint64_t max_len = sizeof(header);
-    int return_value = ieee80211_radiotap_iterator_init(iterator, header, max_len, NULL);
+    struct ieee80211_radiotap_header * header = malloc(sizeof(actual_data));
+    header->it_version = actual_data->it_version;
+    header->it_len = actual_data->it_len;
+    header->it_pad = actual_data->it_pad;
+    header->it_present = actual_data->it_present;
+
+    uint64_t max_len = sizeof(actual_data);
     uint8_t buffer = 0;
+
+    int return_value = ieee80211_radiotap_iterator_init(iterator, header, max_len, NULL);
     int buffer_length = sizeof(iterator);
-    
+
+    //Sanity check for init function failure.
+    if(return_value == -EINVAL) {
+        free(iterator);
+        return -EINVAL;
+    }
+
     while(buffer_length > 0){
         while(!return_value){
             return_value = ieee80211_radiotap_iterator_next(iterator);
@@ -426,7 +452,6 @@ int run_parser(struct radiotap_header_data *data_out){
         //While there's more headers
         if(return_value != -ENOENT){
             free(iterator);
-            free(header);
             return return_value;
         }
         //discard current header part and continue
@@ -434,6 +459,5 @@ int run_parser(struct radiotap_header_data *data_out){
         buffer_length -= iterator->_max_length;
     }
     free(iterator);
-    free(header);
     return 0;
 }

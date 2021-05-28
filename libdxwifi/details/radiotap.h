@@ -92,18 +92,6 @@ int radiotap_iterator_init(struct ieee80211_radiotap_iterator *iterator, struct 
 
 int radiotap_iterator_next(struct ieee80211_radiotap_iterator *iterator);
 
-int run_parser(struct radiotap_header_data *output_data);
-
-static uint16_t get_unaligned_le16 (const void *p){
-    //return get_unaligned_le16(p);
-    const struct __una_u16 * ptr = (const struct __una_u16 *)p;
-    return ptr -> x;
-}
-
-static uint32_t get_unaligned_le32(const void *p) {
-    //return get_unaligned_le32(p);
-    const struct __una_u32 * ptr = (const struct __una_u32 *)p;
-    return ptr -> x;
-}
+int run_parser(struct radiotap_header_data *output_data, const struct ieee80211_radiotap_header *actual_header);
 
 #endif //LIBDXWIFI_RADIOTAP_H

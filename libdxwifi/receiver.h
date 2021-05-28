@@ -21,6 +21,8 @@
 
 #include <libdxwifi/fec.h>
 #include <libdxwifi/details/ieee80211.h>
+#include<libdxwifi/details/radiotap.h>
+
 
 /************************
  *  Constants

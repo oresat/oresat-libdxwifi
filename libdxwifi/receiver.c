@@ -24,8 +24,6 @@
 #include <libdxwifi/details/assert.h>
 #include <libdxwifi/details/logging.h>
 
-#include<libdxwifi/details/radiotap.h>
-
 
 #define DXWIFI_RX_PACKET_HEAP_CAPACITY ((DXWIFI_RX_PACKET_BUFFER_SIZE_MAX / DXWIFI_TX_BLOCKSIZE) + 1)
 
@@ -183,7 +181,7 @@ static dxwifi_rx_frame parse_rx_frame_fields(const struct pcap_pkthdr* pkt_stats
  *      rx_stats:   State of the current capture session
  *  
  */
-static void log_frame_stats(dxwifi_rx_frame* frame, int32_t frame_no, dxwifi_rx_stats* rx_stats) {
+static void log_frame_stats(dxwifi_rx_frame* frame, int32_t frame_no, dxwifi_rx_stats* rx_stats, radiotap_header_data* data_out) {
     debug_assert(frame && rx_stats);
 
     char timestamp[256];
@@ -200,6 +198,8 @@ static void log_frame_stats(dxwifi_rx_frame* frame, int32_t frame_no, dxwifi_rx_
         rx_stats->pkt_stats.len
         );
     log_hexdump(frame->__frame, rx_stats->pkt_stats.caplen);
+    log_info("Antenna dBM Signal: %d", data_out->dBm_AntSignal);
+
 }
 
 
@@ -358,34 +358,6 @@ static void dump_packet_buffer(frame_controller* fc) {
 
 
 /**
- *  DESCRIPTION:    Parses the Radiotap header sent along with the data  
- *                  
- * 
- *  ARGUMENTS: 
- * 
- *  None
- * 
- *  RETURNS:
- *  Integer containing success state.
- *  Structure of type radiotap_header_data containing all fields filled.
- *                  
- * 
- */
-static int parse_radiotap(){
-    struct radiotap_header_data * data_out = malloc(sizeof(radiotap_header_data));
-    run_parser(data_out);
-    log_info("Logging for Radiotap Header\n");
-    log_info("Data should be cross-referenced with radiotap.org/fields/defined and radiotap.org/fields/suggested\n");
-    log_info("Radiotap Flags: \t %u, RX Flags: \t %u\n", data_out->Flags, data_out->Rx_Flags);
-    log_info("Channel Frequency: \t %u, Channel Flags: \t %u\n", data_out->ChannelFreq, data_out->ChannelFlags);
-    log_info("ANTENNA:\t Antenna dBM Signal: %d\n", data_out->dBm_AntSignal);
-    log_info("MCS (known, flags, MCS):\t %u, %u, %u\n", data_out->MCS_Known, data_out->MCS_Flags, data_out->MCS_MCS);
-    free(data_out);
-    return 0;
-}
-
-
-/**
  *  DESCRIPTION:    Checks the IEEE header address fields to verify that the 
  *                  packet orignated from OreSat
  * 
@@ -448,6 +420,7 @@ static bool verify_sender(const uint8_t* frame, const uint8_t* expected_address,
  */
 static void process_frame(uint8_t* args, const struct pcap_pkthdr* pkt_stats, const uint8_t* frame) { 
     frame_controller* fc = (frame_controller*) args;
+    struct radiotap_header_data * data_out = malloc(sizeof(radiotap_header_data));
 
     if(verify_sender(frame, fc->rx->sender_addr, fc->rx->max_hamming_dist)) {
         dxwifi_control_frame_t ctrl_frame = check_frame_control(frame, pkt_stats, 0.66);
@@ -458,9 +431,10 @@ static void process_frame(uint8_t* args, const struct pcap_pkthdr* pkt_stats, co
         else {
 
             dxwifi_rx_frame rx_frame = parse_rx_frame_fields(pkt_stats, frame);
-
-            parse_radiotap();
-
+           
+            //Run Radiotap Parser
+            run_parser(data_out, rx_frame.rtap_hdr);
+    
             ssize_t payload_size = rx_frame.fcs - rx_frame.payload;
 
             if(payload_size != DXWIFI_TX_PAYLOAD_SIZE) {
@@ -501,7 +475,9 @@ static void process_frame(uint8_t* args, const struct pcap_pkthdr* pkt_stats, co
                 fc->rx_stats.bad_crcs               += !crc_valid ? 0 : 1;
                 memcpy(&fc->rx_stats.pkt_stats, pkt_stats, sizeof(struct pcap_pkthdr));
 
-                log_frame_stats(&rx_frame, frame_number, &fc->rx_stats);
+                log_frame_stats(&rx_frame, frame_number, &fc->rx_stats, data_out);
+                //Temporary until better placement
+                free(data_out);
             }
         }
     }
@@ -543,6 +519,24 @@ static void log_rx_configuration(const dxwifi_receiver* rx, const char* dev_name
             rx->dispatch_count,
             pcap_datalink_val_to_description(datalink)
     );
+   /* Where to put this? 
+    log_info(
+             "Radiotap Settings\n"
+             "\tRadiotap Flags:         %u\n"
+             "\tRX Flags:               %u\n"
+             "\tChannel Frequency:      %u\n"
+             "\tChannel Flags:          %u\n"
+             "\tMCS Known               %u\n"
+             "\tMCS flags               %u\n"
+             "\tMCS                     %u\n",
+            data_out->Flags,
+            data_out->Rx_Flags,
+            data_out->ChannelFreq, 
+            data_out->ChannelFlags,
+            data_out->MCS_Known,
+            data_out->MCS_Flags,
+            data_out->MCS_MCS
+    ); */
 }
 
 
@@ -613,6 +607,7 @@ void receiver_activate_capture(dxwifi_receiver* rx, int fd, dxwifi_rx_stats* out
         .events     = POLLIN,
         .revents    = 0
     };
+
     assert_M(request.fd >= 0, "Receiver handle cannot be polled");
 
     init_frame_controller(&fc, rx, fd);
