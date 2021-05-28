@@ -379,6 +379,7 @@ static int parse_radiotap(){
     log_info("Radiotap Flags: \t %u, RX Flags: \t %u\n", data_out->Flags, data_out->Rx_Flags);
     log_info("Channel Frequency: \t %u, Channel Flags: \t %u\n", data_out->ChannelFreq, data_out->ChannelFlags);
     log_info("ANTENNA:\t Antenna dBM Signal: %d\n", data_out->dBm_AntSignal);
+    log_info("MCS (known, flags, MCS):\t %u, %u, %u\n", data_out->MCS_Known, data_out->MCS_Flags, data_out->MCS_MCS);
     free(data_out);
     return 0;
 }

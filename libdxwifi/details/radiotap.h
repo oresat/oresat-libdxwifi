@@ -50,21 +50,21 @@ struct radiotap_vendor_namespace{
 
 //See linux/blob/master/include/net/cfg80211.h for desc.
 //Ref: ieee80211_radiotap_iterator
-struct radiotap_iterator{
-    struct ieee80211_radiotap_header * header;
-    const struct radiotap_vendor_namespace * vendor_namespace;
+struct ieee80211_radiotap_iterator{
+    struct ieee80211_radiotap_header * _rtheader;
+    const struct radiotap_vendor_namespace * _vns;
     const struct radiotap_namespace * current_namespace;
-    u_char *arg;  //Pointer to next argument
-    u_char *next_ns_data; //beginning of next namespace's data.
-    __le32 *next_bitmap; //Internal pointer to next present u32
-    u_char *this_arg; // Current Arg.
-    int this_arg_index; // Index of current arg
-    int this_arg_size; // length of current arg.
-    int is_radiotap_namespace; //Is the current namespace the default radiotap namespace?
-    uint64_t max_length; //Length of radiotap header in CPU Byte Order
-    int arg_index; //Next argument index
-    uint32_t bitmap_shifter; //Internal shifter for current u32 butmap, bit 0 set, arg present.
-    int reset_on_ext;  //Reset arg index to 0 when advancing to next bitmap word
+    u_char *_arg;  //Pointer to next argument
+    u_char *_next_ns_data; //beginning of next namespace's data.
+    __le32 *_next_bitmap; //Internal pointer to next present u32
+    u_char *_this_arg; // Current Arg.
+    int _this_arg_index; // Index of current arg
+    int _this_arg_size; // length of current arg.
+    int is_radiotap_ns; //Is the current namespace the default radiotap namespace?
+    uint64_t _max_length; //Length of radiotap header in CPU Byte Order
+    int _arg_index; //Next argument index
+    uint32_t _bitmap_shifter; //Internal shifter for current u32 butmap, bit 0 set, arg present.
+    int _reset_on_ext;  //Reset arg index to 0 when advancing to next bitmap word
 
 };
 
@@ -88,9 +88,9 @@ struct radiotap_iterator{
     uint8_t  MCS_MCS; //Rate Index (IEEE 802.11N-2009)
 } radiotap_header_data;
 
-int radiotap_iteratator_initialize(struct radiotap_iterator *iterator, struct ieee80211_radiotap_header *current_header, uint64_t max_length, const struct radiotap_vendor_namespace *vendor_namespace);
+int radiotap_iterator_init(struct ieee80211_radiotap_iterator *iterator, struct ieee80211_radiotap_header *current_header, uint64_t max_length, const struct radiotap_vendor_namespace *vendor_namespace);
 
-int radiotap_iterator_next(struct radiotap_iterator *iterator);
+int radiotap_iterator_next(struct ieee80211_radiotap_iterator *iterator);
 
 int run_parser(struct radiotap_header_data *output_data);
 
