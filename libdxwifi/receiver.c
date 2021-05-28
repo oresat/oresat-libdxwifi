@@ -467,6 +467,17 @@ static void dump_packet_buffer(frame_controller* fc) {
 static int parse_radiotap(){
     struct radiotap_header_data * data_out = malloc(sizeof(radiotap_header_data));
     run_parser(data_out);
+    log_info("Logging for Radiotap Header\n");
+    log_info("Warning, this is experimental functionality and may not be fully implemented\n");
+    log_info("Data should be cross-referenced with radiotap.org/fields/defined and radiotap.org/fields/suggested\n");
+    log_info("Radiotap Flags: \t %u, RX Flags: \t %u, TX Flags: \t %u\n", data_out->Flags, data_out->Rx_Flags, data_out->Tx_Flags);
+    log_info("Radiotap Rate: \t %u kbps\n", data_out->Rate);
+    log_info("Retries \t \t RTS: %u\t Data: %u\n", data_out->RTS_Retries, data_out->Data_Retries);
+    log_info("Channel Frequency: \t %u, Channel Flags: \t %u\n", data_out->ChannelFreq, data_out->ChannelFlags);
+    log_info("ANTENNA:\t %u, Antenna dB Signal: %u, Antenna dB Noise: %u\n", data_out->Antenna, data_out->db_AntSignal, data_out->db_AntNoise);
+    log_info("ANTENNA:\t %u, Antenna dBM Signal: %d, Antenna dBM Noise: %d\n", data_out->Antenna, data_out->dBm_AntSignal, data_out->db_AntNoise);
+    log_info("Barker Lock Quality: \t %u\n", data_out->LockQuality);
+    log_info("TX Attenuation: \t %u, TX Attenuation (dB): \t %u, TX Power: \t %d\n", data_out->TX_Attenuation, data_out->dB_TX_Attenuation, data_out->dBm_Tx_Power);
     free(data_out);
     return 0;
 }
@@ -546,7 +557,7 @@ static void process_frame(uint8_t* args, const struct pcap_pkthdr* pkt_stats, co
 
             dxwifi_rx_frame rx_frame = parse_rx_frame_fields(pkt_stats, frame);
 
-            // TODO parse radiotap header data and store provided info
+            parse_radiotap();
 
             ssize_t payload_size = rx_frame.fcs - rx_frame.payload;
 

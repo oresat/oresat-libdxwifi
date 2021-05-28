@@ -277,8 +277,9 @@ int run_parser(struct radiotap_header_data *data_out){
 				data_out->Rate = (*iterator -> this_arg) * 5;
 				break;
 				case IEEE80211_RADIOTAP_CHANNEL:
-                //data_out->ChannelFreq  = 
-                //data_out->ChannelFlags = 
+                //Note, this may not work correctly.
+                data_out->ChannelFreq  = get_unaligned_le16((void *)iterator -> this_arg);
+                data_out->ChannelFlags = get_unaligned_le16((void*)iterator -> this_arg);
 				break;
 				case IEEE80211_RADIOTAP_FHSS:
                // data_out->FHSS_hop_set = ???; //TODO FIGURE THIS OUT
