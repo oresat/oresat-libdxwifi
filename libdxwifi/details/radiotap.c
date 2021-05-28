@@ -143,9 +143,10 @@ static void find_ns(struct radiotap_iterator *iterator, uint32_t oui, uint8_t su
 int radiotap_iterator_next(struct radiotap_iterator *iterator){
 	while(1) {
 		int hit = 0;
-		int pad, align, size;
-		uint8_t subns;
-		uint32_t oui;
+		int pad, align;
+        int size = 0;
+		uint8_t subns = 0;
+		uint32_t oui = 0;
 		
 		if((iterator -> arg_index % 32) == IEEE80211_RADIOTAP_EXT && !(iterator -> bitmap_shifter & 1)){ return -ENOENT; }       
 		if(!(iterator -> bitmap_shifter & 1)) {
