@@ -21,13 +21,11 @@
 
 #include <libdxwifi/details/ieee80211.h>
 
-typedef __u64 __bitwise _le64;
 typedef __u32 __bitwise _le32;
 typedef __u16 __bitwise _le16;
 
 struct __una_u16 { uint16_t x __attribute__((packed));};
 struct __una_u32 { uint32_t x __attribute__((packed));};
-struct __una_u64 { uint64_t x __attribute__((packed));};
 
 struct radiotap_override {
     uint8_t field;
@@ -114,16 +112,5 @@ static uint32_t get_unaligned_le32(const void *p) {
     const struct __una_u32 * ptr = (const struct __una_u32 *)p;
     return ptr -> x;
 }
-
-
-static uint64_t get_unaligned_le64(const void *p){
-    //return get_unaligned_le64(p);
-    const struct __una_u64 * ptr = (const struct __una_u64 *)p;
-    return ptr -> x;
-
-}
-
-
-
 
 #endif //LIBDXWIFI_RADIOTAP_H
