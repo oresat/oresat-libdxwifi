@@ -77,19 +77,12 @@ struct radiotap_iterator{
  typedef struct radiotap_header_data {
     //Capture Flags, Derived from IE80211.h, Transmitter.h, & Radiotap.org
    
-    //TSFT:  Bit Number 0.
     uint32_t TSFT[2]; //Unit: Microseconds
-    //Flags: Bit Number 1.  
     uint8_t  Flags; //Unit: Bitmap. See: /radiotap/fields/flags
-    //Channel:  Bit Number 3.  
     uint16_t ChannelFreq; //Unit: MHz. (TX/RX Frequency)
     uint16_t ChannelFlags; //Unit: Bitmap.  See: /radiotap/fields/Channel
-    //Antenna Signal: Bit Number 5.
     int8_t   dBm_AntSignal;
-    //Antenna Noise:  Bit Number 6.
-    //RX Flags:  Bit Number 14.
     uint16_t Rx_Flags; //Bitmap
-    //MCS: Required Alignment 1.
     uint8_t  MCS_Known;
     uint8_t  MCS_Flags;
     uint8_t  MCS_MCS; //Rate Index (IEEE 802.11N-2009)

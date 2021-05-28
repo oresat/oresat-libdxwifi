@@ -52,9 +52,15 @@ static const struct radiotap_namespace current_radiotap_namespace = {
  */
 int radiotap_iterator_initialize(struct radiotap_iterator *iterator, struct ieee80211_radiotap_header *current_header, uint64_t max_length, const struct radiotap_vendor_namespace *vendor){
 	//Failure case handling
-	if(max_length < sizeof(struct ieee80211_radiotap_header)) { return -EINVAL; }
-	if(current_header -> it_version != 0) { return -EINVAL; }
-	if(max_length > get_unaligned_le16(&current_header -> it_len)) { return -EINVAL; }
+	if(max_length < sizeof(struct ieee80211_radiotap_header)) {
+        return -EINVAL;
+    }
+	if(current_header -> it_version != 0) {
+        return -EINVAL;
+    }
+	if(max_length > get_unaligned_le16(&current_header -> it_len)) {
+        return -EINVAL; 
+    }
 
 	iterator -> header = current_header;
 	iterator -> max_length = get_unaligned_le16(&current_header -> it_len);
@@ -101,7 +107,9 @@ int radiotap_iterator_initialize(struct radiotap_iterator *iterator, struct ieee
 static void find_ns(struct radiotap_iterator *iterator, uint32_t oui, uint8_t subns){
 	int index;
 	iterator -> current_namespace = NULL;
-	if(!iterator -> vendor_namespace) { return; }
+	if(!iterator -> vendor_namespace) {
+        return; 
+    }
 	for(index = 0; index < iterator -> vendor_namespace -> n_ns; index++){
 		if(iterator -> vendor_namespace -> ns[index].oui != oui) {
             continue; 
