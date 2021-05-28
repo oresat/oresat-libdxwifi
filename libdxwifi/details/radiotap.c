@@ -307,7 +307,7 @@ int run_parser(struct radiotap_header_data *data_out){
 		if(return_value != -ENOENT){
             free(iterator);
             free(header);
-            return 0; //insert value here to return.  Note to self, ask Alex.
+            return return_value;
         }
         //discard current header part and continue
         buffer += iterator->max_length;
