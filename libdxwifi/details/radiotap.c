@@ -78,7 +78,7 @@ int radiotap_iterator_initialize(struct radiotap_iterator *iterator, struct ieee
         if((unsigned long)iterator -> arg - (unsigned long)iterator -> header + sizeof(uint32_t) > (unsigned long)iterator -> max_length) { 
             return -EINVAL;
         }
-        while(get_unaligned_le32(iterator -> arg) & 1 << IEEE80211_RADIOTAP_EXT) {
+        while(get_unaligned_le32(iterator -> arg) & (1 << IEEE80211_RADIOTAP_EXT)) {
             iterator -> arg += sizeof(uint32_t);
             //Failure case when Bitmaps > Header Len
             if((unsigned long)iterator -> arg - (unsigned long)iterator -> header + sizeof(uint32_t) > (unsigned long)iterator -> max_length) { 
