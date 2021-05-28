@@ -25,6 +25,10 @@ typedef __u64 __bitwise _le64;
 typedef __u32 __bitwise _le32;
 typedef __u16 __bitwise _le16;
 
+struct __una_u16 { uint16_t x __attribute__((packed));};
+struct __una_u32 { uint32_t x __attribute__((packed));};
+struct __una_u64 { uint64_t x __attribute__((packed));};
+
 struct radiotap_override {
     uint8_t field;
     uint8_t align:4, size:4;
@@ -162,22 +166,27 @@ int radiotap_iterator_next(struct radiotap_iterator *iterator);
 
 int run_parser(struct radiotap_header_data *output_data);
 
+static uint16_t get_unaligned_le16 (const void *p){
+    //return get_unaligned_le16(p);
+    const struct __una_u16 * ptr = (const struct __una_u16 *)p;
+    return ptr -> x;
+}
+
+static uint32_t get_unaligned_le32(const void *p) {
+    //return get_unaligned_le32(p);
+    const struct __una_u32 * ptr = (const struct __una_u32 *)p;
+    return ptr -> x;
+}
+
+
 static uint64_t get_unaligned_le64(const void *p){
     //return get_unaligned_le64(p);
-    //code below borrowed from le_byteshift.h
-    return (uint64_t)get_unaligned_le32(p + 4) << 32;
+    const struct __una_u64 * ptr = (const struct __una_u64 *)p;
+    return ptr -> x;
+
 }
 
-static uint32_t get_unaligned_le32(const uint8_t *p) {
-    //return get_unaligned_le32(p);
-    //code below borrowed from le_byteshift.h
-    return p[0] | p[1] << 4 | p[2] << 16 | p[3] << 24;
-}
 
-static uint16_t get_unaligned_le16 (const uint8_t *p){
-    //return get_unaligned_le16(p);
-    //code below borrowed from le_byteshift.h
-    return p[0] | p[1] << 8;
-}
+
 
 #endif //LIBDXWIFI_RADIOTAP_H
