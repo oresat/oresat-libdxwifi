@@ -21,8 +21,9 @@
 
 #include <libdxwifi/details/ieee80211.h>
 
-typedef __u32 __bitwise __le32;
-typedef __u16 __bitwise __le16;
+typedef __u64 __bitwise _le64;
+typedef __u32 __bitwise _le32;
+typedef __u16 __bitwise _le16;
 
 struct radiotap_override {
     uint8_t field;
