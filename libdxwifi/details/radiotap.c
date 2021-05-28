@@ -416,6 +416,7 @@ int run_parser(struct radiotap_header_data *data_out, const struct ieee80211_rad
     //Sanity check for init function failure.
     if(return_value == -EINVAL) {
         free(iterator);
+        free(header);
         return -EINVAL;
     }
 
@@ -452,6 +453,7 @@ int run_parser(struct radiotap_header_data *data_out, const struct ieee80211_rad
         //While there's more headers
         if(return_value != -ENOENT){
             free(iterator);
+            free(header);
             return return_value;
         }
         //discard current header part and continue
@@ -459,5 +461,6 @@ int run_parser(struct radiotap_header_data *data_out, const struct ieee80211_rad
         buffer_length -= iterator->_max_length;
     }
     free(iterator);
+    free(header);
     return 0;
 }
