@@ -13,8 +13,10 @@
 
 #include <libdxwifi/details/radiotap.h>
 #include <libdxwifi/details/ieee80211.h>
+#include <libdxwifi/details/assert.h>
 
-//Necessary due to multibyte fields.
+
+//radiotap header is correctly aligned, but compiler doesn't believe so.  Pragma ignores warning for this file.
 #pragma GCC diagnostic ignored "-Waddress-of-packed-member"
 
 //Note, Aligns are defined in radiotap.org/fields/defined AND radiotap.org/fields/suggested
@@ -23,31 +25,10 @@
 static const struct radiotap_align_size radiotap_namespace_sizes[] ={
 	[IEEE80211_RADIOTAP_TSFT]              = {.align = 8, .size = 8, },
 	[IEEE80211_RADIOTAP_FLAGS]             = {.align = 1, .size = 1, },
-	[IEEE80211_RADIOTAP_RATE]              = {.align = 1, .size = 1, },
 	[IEEE80211_RADIOTAP_CHANNEL]           = {.align = 2, .size = 4, },
-	[IEEE80211_RADIOTAP_FHSS]              = {.align = 2, .size = 2, },
 	[IEEE80211_RADIOTAP_DBM_ANTSIGNAL]     = {.align = 1, .size = 1, },
-	[IEEE80211_RADIOTAP_DBM_ANTNOISE]      = {.align = 1, .size = 1, },
-	[IEEE80211_RADIOTAP_LOCK_QUALITY]      = {.align = 2, .size = 2, },
-	[IEEE80211_RADIOTAP_TX_ATTENUATION]    = {.align = 2, .size = 2, },
-	[IEEE80211_RADIOTAP_DB_TX_ATTENUATION] = {.align = 2, .size = 2, },
-	[IEEE80211_RADIOTAP_DBM_TX_POWER]      = {.align = 1, .size = 1, },
-	[IEEE80211_RADIOTAP_ANTENNA]           = {.align = 1, .size = 1, },
-	[IEEE80211_RADIOTAP_DB_ANTSIGNAL]      = {.align = 1, .size = 1, },
-	[IEEE80211_RADIOTAP_DB_ANTNOISE]       = {.align = 1, .size = 1, },
 	[IEEE80211_RADIOTAP_RX_FLAGS]          = {.align = 2, .size = 2, },
-	[IEEE80211_RADIOTAP_TX_FLAGS]          = {.align = 2, .size = 2, },
-	[IEEE80211_RADIOTAP_RTS_RETRIES]       = {.align = 1, .size = 1, },
-	[IEEE80211_RADIOTAP_DATA_RETRIES]      = {.align = 1, .size = 1, },
 	[IEEE80211_RADIOTAP_MCS]               = {.align = 1, .size = 3, },
-	[IEEE80211_RADIOTAP_AMPDU_STATUS]      = {.align = 4, .size = 8, },
-	[IEEE80211_RADIOTAP_VHT]               = {.align = 2, .size = 12, },
-    /* Additional Fields for ORESAT */
-	[IEEE80211_RADIOTAP_TIMESTAMP]         = {.align = 8, .size =12, },
-	[IEEE80211_RADIOTAP_HE]                = {.align = 2, .size =12, },
-	[IEEE80211_RADIOTAP_HE_MU]             = {.align = 2, .size =12, },
-    [IEEE80211_RADIOTAP_ZERO_LEN_PSDU]     = {.align = 1, .size =1, }, //May not be correct.  radiotap.org/fields/0-length-PSDU states no required align.
-    [IEEE80211_RADIOTAP_LSIG]              = {.align = 2, .size =4, },
 };
 
 static const struct radiotap_namespace current_radiotap_namespace = {
@@ -88,11 +69,15 @@ int radiotap_iterator_initialize(struct radiotap_iterator *iterator, struct ieee
 	iterator -> is_radiotap_namespace = 1;
 
 	if(iterator -> bitmap_shifter & (1 << IEEE80211_RADIOTAP_EXT)){
-		if((unsigned long)iterator -> arg - (unsigned long)iterator -> header + sizeof(uint32_t) > (unsigned long)iterator -> max_length) { return -EINVAL; }
+		if((unsigned long)iterator -> arg - (unsigned long)iterator -> header + sizeof(uint32_t) > (unsigned long)iterator -> max_length) { 
+            return -EINVAL;
+        }
 		while(get_unaligned_le32(iterator -> arg) & 1 << IEEE80211_RADIOTAP_EXT) {
 			iterator -> arg += sizeof(uint32_t);
             //Failure case when Bitmaps > Header Len
-			if((unsigned long)iterator -> arg - (unsigned long)iterator -> header + sizeof(uint32_t) > (unsigned long)iterator -> max_length) { return -EINVAL; }
+			if((unsigned long)iterator -> arg - (unsigned long)iterator -> header + sizeof(uint32_t) > (unsigned long)iterator -> max_length) { 
+                return -EINVAL; 
+            }
 		}
 		iterator -> arg += sizeof(uint32_t);
 	}
@@ -118,8 +103,12 @@ static void find_ns(struct radiotap_iterator *iterator, uint32_t oui, uint8_t su
 	iterator -> current_namespace = NULL;
 	if(!iterator -> vendor_namespace) { return; }
 	for(index = 0; index < iterator -> vendor_namespace -> n_ns; index++){
-		if(iterator -> vendor_namespace -> ns[index].oui != oui) { continue; }
-		if(iterator -> vendor_namespace -> ns[index].subns != subns) {continue; }
+		if(iterator -> vendor_namespace -> ns[index].oui != oui) {
+            continue; 
+        }
+		if(iterator -> vendor_namespace -> ns[index].subns != subns) {
+            continue; 
+        }
 		iterator -> current_namespace = &iterator -> vendor_namespace -> ns[index];
 		break;
 	}
@@ -133,7 +122,7 @@ static void find_ns(struct radiotap_iterator *iterator, uint32_t oui, uint8_t su
  * 
  *  RETURNS:
  *  0 if no arguments to handle
- *  -ENOINT if no more args
+ *  -ENOENT if no more args
  *  -EINVAL if something went wrong
  * 
  *  WARNING: 
@@ -148,28 +137,32 @@ int radiotap_iterator_next(struct radiotap_iterator *iterator){
 		uint8_t subns = 0;
 		uint32_t oui = 0;
 		
-		if((iterator -> arg_index % 32) == IEEE80211_RADIOTAP_EXT && !(iterator -> bitmap_shifter & 1)){ return -ENOENT; }       
+		if((iterator -> arg_index % 32) == IEEE80211_RADIOTAP_EXT && !(iterator -> bitmap_shifter & 1)){
+            return -ENOENT;
+        }       
 		if(!(iterator -> bitmap_shifter & 1)) {
             //Replacement for GOTO    
             iterator -> bitmap_shifter >>= 1;
 			iterator -> arg_index++;
-            //END
+            //END replacement
         }
 
 		switch(iterator -> arg_index % 32)
 		{
 			case IEEE80211_RADIOTAP_RADIOTAP_NAMESPACE:
 			case IEEE80211_RADIOTAP_EXT:
-			align = 1;
-			size = 0;
+			    align = 1;
+			    size = 0;
 			break;
 			case IEEE80211_RADIOTAP_VENDOR_NAMESPACE:
-			align = 2;
-			size = 6;
+			    align = 2;
+			    size = 6;
 			break;
 			default:
 			if(!iterator -> current_namespace || iterator -> arg_index >= iterator -> current_namespace -> n_bits) {
-				if(iterator -> current_namespace == &current_radiotap_namespace) { return -ENOENT; }
+				if(iterator -> current_namespace == &current_radiotap_namespace) {
+                    return -ENOENT; 
+                }
 				align = 0;
 			}
 			else {
@@ -182,7 +175,7 @@ int radiotap_iterator_next(struct radiotap_iterator *iterator){
 				//Replacement for GOTO
                 iterator -> bitmap_shifter >>= 1;
 			    iterator -> arg_index++;
-                //END
+                //END Replacement
 			}
 			break;
 		}
@@ -192,7 +185,9 @@ int radiotap_iterator_next(struct radiotap_iterator *iterator){
 		}
 		if(iterator->arg_index % 32 == IEEE80211_RADIOTAP_VENDOR_NAMESPACE){
 			int length_vendor_namespace;
-			if((unsigned long)iterator -> arg + size - (unsigned long)iterator -> header > (unsigned long)iterator -> max_length) { return -EINVAL; }
+			if((unsigned long)iterator -> arg + size - (unsigned long)iterator -> header > (unsigned long)iterator -> max_length) {
+                return -EINVAL;
+            }
 
 			oui = (*iterator -> arg << 16) | (*(iterator -> arg + 1) << 8) | *(iterator -> arg + 2);
 			subns = *(iterator -> arg +3);
@@ -208,7 +203,9 @@ int radiotap_iterator_next(struct radiotap_iterator *iterator){
 
 		iterator -> arg += size;
 
-		if((unsigned long)iterator -> arg - (unsigned long) iterator -> header > (unsigned long)iterator -> max_length) { return -EINVAL; }
+		if((unsigned long)iterator -> arg - (unsigned long) iterator -> header > (unsigned long)iterator -> max_length) {
+            return -EINVAL; 
+        }
 		switch (iterator -> arg_index % 32)
 		{
 			case IEEE80211_RADIOTAP_VENDOR_NAMESPACE:
@@ -222,7 +219,7 @@ int radiotap_iterator_next(struct radiotap_iterator *iterator){
                 iterator -> bitmap_shifter >>= 1;
 			    iterator -> arg_index++;
                 break;
-                //END
+                //END Replacement
 			case IEEE80211_RADIOTAP_RADIOTAP_NAMESPACE:
 			    iterator -> reset_on_ext = 1;
 			    iterator -> current_namespace = &current_radiotap_namespace;
@@ -231,7 +228,7 @@ int radiotap_iterator_next(struct radiotap_iterator *iterator){
                 iterator -> bitmap_shifter >>= 1;
 			    iterator -> arg_index++;
                 break;
-                //END
+                //END Replacement
 			case IEEE80211_RADIOTAP_EXT:
 			    iterator -> bitmap_shifter = get_unaligned_le32(iterator -> next_bitmap);
 			    iterator -> next_bitmap++;
@@ -263,15 +260,16 @@ int radiotap_iterator_next(struct radiotap_iterator *iterator){
  * 
  *  RETURNS:
  *  0 if no arguments to handle
- *  -ENOINT if no more args
+ *  -ENOENT if no more args
  *  -EINVAL if something went wrong
  * 
  */
 int run_parser(struct radiotap_header_data *data_out){
-	struct radiotap_iterator * iterator = malloc(sizeof(*iterator));
+	assert_M(data_out == NULL, "NULL value fround instead of fillable structure");
+    struct radiotap_iterator * iterator = malloc(sizeof(*iterator));
 	struct ieee80211_radiotap_header * header = malloc(sizeof(*header));
 	uint64_t max_len = sizeof(header);
-	int return_value = radiotap_iterator_initialize(iterator, header, max_len, iterator->vendor_namespace);
+	int return_value = radiotap_iterator_initialize(iterator, header, max_len, NULL);
 	uint8_t buffer = 0;
     int buffer_length = sizeof(iterator);
     
@@ -281,89 +279,26 @@ int run_parser(struct radiotap_header_data *data_out){
 			if(return_value){
 				continue;
 			}
-        //NOTE, inside these case statements, get_unaligned(type *)iterator->this_arg MUST be used for multibyte data fields.
+            //NOTE, inside these case statements, get_unaligned(type *)iterator->this_arg MUST be used for multibyte data fields.
 			switch(iterator->this_arg_index){
 				case IEEE80211_RADIOTAP_TSFT:
-				data_out->TSFT = get_unaligned_le64((void *)iterator -> this_arg);
+				    data_out->TSFT[0] = get_unaligned_le32((void *)iterator -> this_arg);
+                    data_out->TSFT[1] = get_unaligned_le32((void *)iterator -> this_arg);
 				break;
 				case IEEE80211_RADIOTAP_FLAGS:
-				data_out->Flags = *iterator -> this_arg;
-				break;
-				case IEEE80211_RADIOTAP_RATE:
-				data_out->Rate = (*iterator -> this_arg) * 5;
+				    data_out->Flags = *iterator -> this_arg;
 				break;
 				case IEEE80211_RADIOTAP_CHANNEL:
-                //Note, this may not work correctly.
-                //data_out->ChannelFreq  = get_unaligned_le16((void *)iterator -> this_arg);
-                //data_out->ChannelFlags = get_unaligned_le16((void*)iterator -> this_arg);
-				break;
-				case IEEE80211_RADIOTAP_FHSS:
-               // data_out->FHSS_hop_set = ???; //TODO FIGURE THIS OUT
-               // data_out->FHSS_hop_patt = ???; //TODO FIGURE THIS OUT
+                    data_out->ChannelFreq  = get_unaligned_le16((void *)iterator -> this_arg);
+                    data_out->ChannelFlags = get_unaligned_le16((void*)iterator -> this_arg);
 				break;
 				case IEEE80211_RADIOTAP_DBM_ANTSIGNAL:
-				data_out->dBm_AntSignal = *iterator -> this_arg;
+				    data_out->dBm_AntSignal = *iterator -> this_arg;
 				break;
-				case IEEE80211_RADIOTAP_DBM_ANTNOISE:
-				data_out->dBm_AntNoise = *iterator -> this_arg;
-				break;
-				case IEEE80211_RADIOTAP_LOCK_QUALITY:
-				data_out->LockQuality = get_unaligned_le16((void*)iterator -> this_arg);
-				break;
-				case IEEE80211_RADIOTAP_TX_ATTENUATION:
-				data_out->TX_Attenuation = get_unaligned_le16((void*)iterator -> this_arg);
-				break;
-				case IEEE80211_RADIOTAP_DB_TX_ATTENUATION:
-				data_out->dB_TX_Attenuation = get_unaligned_le16((void *)iterator -> this_arg);
-				break;
-				case IEEE80211_RADIOTAP_DBM_TX_POWER:
-				data_out->dBm_Tx_Power = *iterator -> this_arg;
-				break;
-				case IEEE80211_RADIOTAP_ANTENNA:
-				data_out->Antenna = *iterator -> this_arg;
-				break;
-				case IEEE80211_RADIOTAP_DB_ANTSIGNAL:
-				data_out->db_AntSignal = *iterator -> this_arg;
-				break;
-				case IEEE80211_RADIOTAP_DB_ANTNOISE:
-				data_out->db_AntNoise = *iterator -> this_arg;
-				break;
-				case IEEE80211_RADIOTAP_RX_FLAGS:
-				data_out->Rx_Flags = get_unaligned_le16((void *)iterator -> this_arg);
-				break;
-				case IEEE80211_RADIOTAP_TX_FLAGS:
-				data_out->Tx_Flags = get_unaligned_le16((void *)iterator -> this_arg);
-				break;
-				case IEEE80211_RADIOTAP_RTS_RETRIES:
-				data_out->RTS_Retries = *iterator -> this_arg;
-				break;
-				case IEEE80211_RADIOTAP_DATA_RETRIES:
-				data_out->Data_Retries = *iterator -> this_arg;
-				break;
-				case IEEE80211_RADIOTAP_MCS:
-            //To Do
-				break;
-				case IEEE80211_RADIOTAP_AMPDU_STATUS:
-            //To Do
-				break;
-				case IEEE80211_RADIOTAP_VHT:
-            //To Do
-				break;
-				case IEEE80211_RADIOTAP_TIMESTAMP:
-            //To Do
-				break;
-				case IEEE80211_RADIOTAP_HE:
-            //To Do
-				break;
-				case IEEE80211_RADIOTAP_HE_MU:
-            //To Do
-				break;
-				case IEEE80211_RADIOTAP_ZERO_LEN_PSDU:
-				data_out->ZERO_LEN_PSDU = *iterator -> this_arg;
-				break;
-				case IEEE80211_RADIOTAP_LSIG:
-            //To Do
-				break;
+                case IEEE80211_RADIOTAP_MCS:
+                    data_out->MCS_Known = *iterator -> this_arg;
+                    data_out->MCS_Flags = *iterator -> this_arg;
+                    data_out->MCS_MCS = *iterator-> this_arg;
 				default:
 				break;
 			}

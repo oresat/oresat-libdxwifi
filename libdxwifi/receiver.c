@@ -54,95 +54,6 @@ typedef struct {
     int                     fd;             /* Sink to write out data         */
 } frame_controller;
 
-/*
- *
- * Radiotap header data contains captured flags from the radiotap header
- * 
- */
-typedef struct {
-    //Capture Flags, Derived from IE80211.h, Transmitter.h, & Radiotap.org
-   
-    //TSFT:  Bit Number 0.
-    uint64_t TSFT; //Unit: Microseconds
-    //Flags: Bit Number 1.  
-    uint8_t  Flags; //Unit: Bitmap. See: /radiotap/fields/flags
-    //Rate: Bit Number 2.
-    uint8_t  Rate; //Unit 500Kbps (Tx/Rx Data Rate)
-    //Channel:  Bit Number 3.  
-    uint16_t ChannelFreq; //Unit: MHz. (TX/RX Frequency)
-    uint16_t ChannelFlags; //Unit: Bitmap.  See: /radiotap/fields/Channel
-    //FHSS: Bit Number 4.  
-    uint8_t  FHSS_hop_set; //Unit: ??
-    uint8_t  FHSS_hop_patt; //Unit: ??
-    //Antenna Signal: Bit Number 5.
-    int8_t   dBm_AntSignal; //Unit: dBm
-    //Antenna Noise:  Bit Number 6.
-    int8_t   dBm_AntNoise; //Unit: dBm
-    //Lock Quality:  Bit Number 7. (Quality of Barker code Lock).
-    uint16_t LockQuality; //Unitless
-    //TX Attenuation:  Bit Number 8.
-    uint16_t TX_Attenuation;
-    //dB Tx Attenuation:  Bit Number 9.
-    uint16_t dB_TX_Attenuation;
-    //dBm Tx Power:  Bit Number 10.
-    int8_t   dBm_Tx_Power;
-    //Antenna: Bit Number 11.
-    uint8_t  Antenna;
-    //dB Antenna Signal: Bit Number 12.
-    uint8_t  db_AntSignal; //Unit: dB
-    //dB Antenna Noise: Bit Number 13.
-    uint8_t  db_AntNoise; //Unit: dB
-    //RX Flags:  Bit Number 14.
-    uint16_t Rx_Flags; //Bitmap
-    //TX Flags:  Bit Number 15.
-    uint16_t Tx_Flags; //Bitmap
-    //RTS Retries: Bit Number 16.
-    uint8_t  RTS_Retries;  //Number of RTS retries a transmission frame used.
-    //Data Retries: Bit Number 17.
-    uint8_t  Data_Retries; //Number of data retries a transmission frame used.
-    //Bit Number 18. - XChannel - Undefined
-    //MCS: Required Alignment 1.  Bit Number 19.
-    uint8_t  MCS_Known;
-    uint8_t  MCS_Flags;
-    uint8_t  MCS_MCS; //Rate Index (IEEE 802.11N-2009)
-    //A-MPDU Status:  Bit Number 20.
-    uint32_t AMPDU_RefNumber;
-    uint16_t AMPDU_Flags;
-    uint8_t  AMPDU_Delimiter_CRC_Value;
-    //Last Byte Reserved.
-    //VHT:  Bit Number 21.
-    uint8_t  VHT_Known;
-    uint8_t  VHT_Flags;
-    uint8_t  VHT_Bandwidth;
-    uint8_t  VHT_MCS_NSS;
-    uint8_t  VHT_Coding;
-    uint8_t  VHT_GroupID;
-    uint16_t VHT_PartialAid;
-    //Timestamp:  Bit Number 22.
-    uint64_t Timestamp_timestamp;
-    uint16_t Timestamp_accuracy;
-    uint8_t  Timestamp_UnitPos;
-    uint8_t  Timestamp_Flags;
-    //HE: Bit Number 23.  Frame Received/Transmitted using HE PHY.
-    uint16_t HE_Data1;
-    uint16_t HE_Data2;
-    uint16_t HE_Data3;
-    uint16_t HE_Data4;
-    uint16_t HE_Data5;
-    uint16_t HE_Data6;
-    //HE-MU: Bit Number 24.
-    uint16_t HE_MU_Flags1;
-    uint16_t HE_MU_Flags2; //Only used for 40MHz or Higher
-    uint8_t  HE_MU_RU_Channel1;
-    uint8_t  HE_MU_RU_Channel2;  //Only used for 40 MHz or Higher
-    //Bit Number 25. - Undefined
-    //0-Length PSDU: No PSDU in / captured for PPDU.  Header not followed by 802.11 Header. Bit Number 26.
-    uint8_t  ZERO_LEN_PSDU;
-    //L-SIG: Bit Number 27.
-    uint16_t LSIG_Data1; //Unitless
-    uint16_t LSIG_Data2;
-} radiotap_header_data;
-
 /**
  *  DESCRIPTION:    Ordering function for the packet heap
  * 
@@ -464,16 +375,10 @@ static int parse_radiotap(){
     struct radiotap_header_data * data_out = malloc(sizeof(radiotap_header_data));
     run_parser(data_out);
     log_info("Logging for Radiotap Header\n");
-    log_info("Warning, this is experimental functionality and may not be fully implemented\n");
     log_info("Data should be cross-referenced with radiotap.org/fields/defined and radiotap.org/fields/suggested\n");
-    log_info("Radiotap Flags: \t %u, RX Flags: \t %u, TX Flags: \t %u\n", data_out->Flags, data_out->Rx_Flags, data_out->Tx_Flags);
-    log_info("Radiotap Rate: \t %u kbps\n", data_out->Rate);
-    log_info("Retries \t \t RTS: %u\t Data: %u\n", data_out->RTS_Retries, data_out->Data_Retries);
+    log_info("Radiotap Flags: \t %u, RX Flags: \t %u\n", data_out->Flags, data_out->Rx_Flags);
     log_info("Channel Frequency: \t %u, Channel Flags: \t %u\n", data_out->ChannelFreq, data_out->ChannelFlags);
-    log_info("ANTENNA:\t %u, Antenna dB Signal: %u, Antenna dB Noise: %u\n", data_out->Antenna, data_out->db_AntSignal, data_out->db_AntNoise);
-    log_info("ANTENNA:\t %u, Antenna dBM Signal: %d, Antenna dBM Noise: %d\n", data_out->Antenna, data_out->dBm_AntSignal, data_out->db_AntNoise);
-    log_info("Barker Lock Quality: \t %u\n", data_out->LockQuality);
-    log_info("TX Attenuation: \t %u, TX Attenuation (dB): \t %u, TX Power: \t %d\n", data_out->TX_Attenuation, data_out->dB_TX_Attenuation, data_out->dBm_Tx_Power);
+    log_info("ANTENNA:\t Antenna dBM Signal: %d\n", data_out->dBm_AntSignal);
     free(data_out);
     return 0;
 }
