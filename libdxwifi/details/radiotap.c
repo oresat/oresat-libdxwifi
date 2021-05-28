@@ -265,7 +265,7 @@ int radiotap_iterator_next(struct radiotap_iterator *iterator){
  * 
  */
 int run_parser(struct radiotap_header_data *data_out){
-	assert_M(data_out == NULL, "NULL value fround instead of fillable structure - %s", strerror(errno));
+    debug_assert(data_out);
     struct radiotap_iterator * iterator = malloc(sizeof(*iterator));
 	struct ieee80211_radiotap_header * header = malloc(sizeof(*header));
 	uint64_t max_len = sizeof(header);
