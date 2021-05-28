@@ -267,8 +267,8 @@ int radiotap_iterator_next(struct radiotap_iterator *iterator){
  * 
  */
 int run_parser(struct radiotap_header_data *data_out){
-	struct radiotap_iterator * iterator;
-	struct ieee80211_radiotap_header * header;
+	struct radiotap_iterator * iterator = malloc(sizeof(*iterator));
+	struct ieee80211_radiotap_header * header = malloc(sizeof(*header));
 	uint64_t max_len = sizeof(header);
 	int return_value = radiotap_iterator_initialize(iterator, header, max_len, iterator->vendor_namespace);
 	uint8_t buffer = 0;
@@ -377,5 +377,7 @@ int run_parser(struct radiotap_header_data *data_out){
         buffer += iterator->max_length;
         buffer_length -= iterator->max_length;
     }
+    free(iterator);
+    free(header);
     return 0;
 }
