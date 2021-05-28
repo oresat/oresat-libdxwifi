@@ -35,8 +35,8 @@ TX_INSTALL = f'./{INSTALL_DIR}/tx'
 RX_INSTALL = f'./{INSTALL_DIR}/tx'
 
 if 'DXWIFI_MEMORY_CHECK' in os.environ: 
-    TX = f'valgrind --leak-check=full ./{INSTALL_DIR}/tx'
-    RX = f'valgrind --leak-check=full ./{INSTALL_DIR}/rx'
+    TX = f'valgrind --leak-check=full --track-origins=yes ./{INSTALL_DIR}/tx'
+    RX = f'valgrind --leak-check=full --track-origins=yes ./{INSTALL_DIR}/rx'
 else:
     TX = f'./{INSTALL_DIR}/tx'
     RX = f'./{INSTALL_DIR}/rx'
