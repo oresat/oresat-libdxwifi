@@ -83,6 +83,7 @@ typedef struct {
     dxwifi_rx_state_t       capture_state;          /* State of last capture            */
     struct pcap_pkthdr      pkt_stats;              /* Stats for the current capture    */
     struct pcap_stat        pcap_stats;             /* Pcap statistics                  */
+    struct radiotap_header_data header_stats;
 } dxwifi_rx_stats;
 
 

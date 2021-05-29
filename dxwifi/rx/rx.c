@@ -24,6 +24,7 @@
 #include <libdxwifi/details/assert.h>
 #include <libdxwifi/details/logging.h>
 #include <libdxwifi/details/syslogger.h>
+#include <libdxwifi/details/radiotap.h>
 
 
 #define RX_TEMP_FILE "/tmp/rx.raw"
@@ -92,6 +93,23 @@ void log_rx_stats(dxwifi_rx_stats stats) {
         stats.packets_dropped,
         stats.pcap_stats.ps_drop,
         stats.pcap_stats.ps_ifdrop
+    );
+    log_info(
+             "Radiotap Settings\n"
+             "\tRadiotap Flags:         %u\n"
+             "\tRX Flags:               %u\n"
+             "\tChannel Frequency:      %u\n"
+             "\tChannel Flags:          %u\n"
+             "\tMCS Known               %u\n"
+             "\tMCS flags               %u\n"
+             "\tMCS                     %u\n",
+            stats.header_stats.Flags,
+            stats.header_stats.Rx_Flags,
+            stats.header_stats.ChannelFreq,
+            stats.header_stats.ChannelFlags,
+            stats.header_stats.MCS_Known,
+            stats.header_stats.MCS_Flags,
+            stats.header_stats.MCS_MCS
     );
 }
 

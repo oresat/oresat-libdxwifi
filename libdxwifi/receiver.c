@@ -420,7 +420,7 @@ static bool verify_sender(const uint8_t* frame, const uint8_t* expected_address,
  */
 static void process_frame(uint8_t* args, const struct pcap_pkthdr* pkt_stats, const uint8_t* frame) { 
     frame_controller* fc = (frame_controller*) args;
-    struct radiotap_header_data * data_out = malloc(sizeof(radiotap_header_data));
+    struct radiotap_header_data data_out;
 
     if(verify_sender(frame, fc->rx->sender_addr, fc->rx->max_hamming_dist)) {
         dxwifi_control_frame_t ctrl_frame = check_frame_control(frame, pkt_stats, 0.66);
@@ -433,7 +433,14 @@ static void process_frame(uint8_t* args, const struct pcap_pkthdr* pkt_stats, co
             dxwifi_rx_frame rx_frame = parse_rx_frame_fields(pkt_stats, frame);
            
             //Run Radiotap Parser
-            run_parser(data_out, rx_frame.rtap_hdr);
+            run_parser(&data_out, rx_frame.rtap_hdr);
+            fc->rx_stats.header_stats.Flags = data_out.Flags;
+            fc->rx_stats.header_stats.Rx_Flags = data_out.Rx_Flags;
+            fc->rx_stats.header_stats.ChannelFreq = data_out.ChannelFreq;
+            fc->rx_stats.header_stats.ChannelFlags = data_out.ChannelFlags;
+            fc->rx_stats.header_stats.MCS_Known = data_out.MCS_Known;
+            fc->rx_stats.header_stats.MCS_Flags = data_out.MCS_Flags;
+            fc->rx_stats.header_stats.MCS_MCS = data_out.MCS_MCS;
     
             ssize_t payload_size = rx_frame.fcs - rx_frame.payload;
 
@@ -475,15 +482,13 @@ static void process_frame(uint8_t* args, const struct pcap_pkthdr* pkt_stats, co
                 fc->rx_stats.bad_crcs               += !crc_valid ? 0 : 1;
                 memcpy(&fc->rx_stats.pkt_stats, pkt_stats, sizeof(struct pcap_pkthdr));
 
-                log_frame_stats(&rx_frame, frame_number, &fc->rx_stats, data_out);
+                log_frame_stats(&rx_frame, frame_number, &fc->rx_stats, &data_out);
             }
         }
     }
     else {
         ++fc->rx_stats.packets_dropped;
     }
-    //Temporary until better placement(?)
-    free(data_out);
 }
 
 //
@@ -519,24 +524,6 @@ static void log_rx_configuration(const dxwifi_receiver* rx, const char* dev_name
             rx->dispatch_count,
             pcap_datalink_val_to_description(datalink)
     );
-   /* Where to put this? 
-    log_info(
-             "Radiotap Settings\n"
-             "\tRadiotap Flags:         %u\n"
-             "\tRX Flags:               %u\n"
-             "\tChannel Frequency:      %u\n"
-             "\tChannel Flags:          %u\n"
-             "\tMCS Known               %u\n"
-             "\tMCS flags               %u\n"
-             "\tMCS                     %u\n",
-            data_out->Flags,
-            data_out->Rx_Flags,
-            data_out->ChannelFreq, 
-            data_out->ChannelFlags,
-            data_out->MCS_Known,
-            data_out->MCS_Flags,
-            data_out->MCS_MCS
-    ); */
 }
 
 
