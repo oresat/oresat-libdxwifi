@@ -8,6 +8,9 @@
     installed in `bin/TestDebug`. If they are installed elsewhere
     please define the `DXWIFI_INSTALL_DIR` environment variable with
     the correct install location.
+
+    TODO: figure out stdout and stderr interleaving with subprocesses,
+    probably something here -- https://bit.ly/3fN6JdC
 '''
 
 # Imports
