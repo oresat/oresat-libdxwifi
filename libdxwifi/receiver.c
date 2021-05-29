@@ -476,14 +476,14 @@ static void process_frame(uint8_t* args, const struct pcap_pkthdr* pkt_stats, co
                 memcpy(&fc->rx_stats.pkt_stats, pkt_stats, sizeof(struct pcap_pkthdr));
 
                 log_frame_stats(&rx_frame, frame_number, &fc->rx_stats, data_out);
-                //Temporary until better placement
-                free(data_out);
             }
         }
     }
     else {
         ++fc->rx_stats.packets_dropped;
     }
+    //Temporary until better placement(?)
+    free(data_out);
 }
 
 //
