@@ -21,6 +21,11 @@
 //Pragma is used to override warning, as otherwise the iterator cannot initialize.
 #pragma GCC diagnostic ignored "-Waddress-of-packed-member"
 
+//Pragma used to fix paranoid compiler
+//Error on: iterator->_arg += align - pad;
+//However _arg defined previously as: iterator->_arg = (uint8_t *)radiotap_header + sizeof(*radiotap_header);
+#pragma GCC diagnostic ignored "-Wmaybe-uninitialized"
+
 //Note, Aligns are defined in radiotap.org/fields/defined AND radiotap.org/fields/suggested
 //Align is given in each field's description
 //Size is derived from the nubmer of bytes that the field's structure contains.
@@ -407,7 +412,7 @@ int run_parser(struct radiotap_header_data *data_out, const struct ieee80211_rad
     header.it_pad = actual_data->it_pad;
     header.it_present = actual_data->it_present;
 
-    iterator._arg = 0;
+
 
     uint64_t max_len = sizeof(actual_data);
     int buffer_length = sizeof(actual_data);
