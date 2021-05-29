@@ -407,11 +407,12 @@ int run_parser(struct radiotap_header_data *data_out, const struct ieee80211_rad
     header.it_pad = actual_data->it_pad;
     header.it_present = actual_data->it_present;
 
+    iterator._arg = 0;
+
     uint64_t max_len = sizeof(actual_data);
-    uint8_t buffer = 0;
+    int buffer_length = sizeof(actual_data);
 
     int return_value = ieee80211_radiotap_iterator_init(&iterator, &header, max_len, NULL);
-    int buffer_length = sizeof(iterator);
 
     //Sanity check for init function failure.
     if(return_value == -EINVAL) {
@@ -453,7 +454,7 @@ int run_parser(struct radiotap_header_data *data_out, const struct ieee80211_rad
             return return_value;
         }
         //discard current header part and continue
-        buffer += iterator._max_length;
+        actual_data += iterator._max_length;
         buffer_length -= iterator._max_length;
     }
     return 0;
