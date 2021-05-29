@@ -433,7 +433,7 @@ static void process_frame(uint8_t* args, const struct pcap_pkthdr* pkt_stats, co
             dxwifi_rx_frame rx_frame = parse_rx_frame_fields(pkt_stats, frame);
            
             //Run Radiotap Parser
-            run_parser(&data_out, rx_frame.rtap_hdr);
+            run_parser(&data_out, rx_frame.rtap_hdr, sizeof(rx_frame.rtap_hdr));
             fc->rx_stats.header_stats.Flags = data_out.Flags;
             fc->rx_stats.header_stats.Rx_Flags = data_out.Rx_Flags;
             fc->rx_stats.header_stats.ChannelFreq = data_out.ChannelFreq;

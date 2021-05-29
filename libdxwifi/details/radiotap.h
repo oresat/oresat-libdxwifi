@@ -88,10 +88,10 @@ struct ieee80211_radiotap_iterator{
     uint8_t  MCS_MCS; //Rate Index (IEEE 802.11N-2009)
 } radiotap_header_data;
 
-int radiotap_iterator_init(struct ieee80211_radiotap_iterator *iterator, struct ieee80211_radiotap_header *current_header, uint64_t max_length, const struct radiotap_vendor_namespace *vendor_namespace);
+int radiotap_iterator_init(struct ieee80211_radiotap_iterator *iterator, struct ieee80211_radiotap_header *radiotap_header, long unsigned int max_length, const struct radiotap_vendor_namespace *vns);
 
 int radiotap_iterator_next(struct ieee80211_radiotap_iterator *iterator);
 
-int run_parser(struct radiotap_header_data *output_data, const struct ieee80211_radiotap_header *actual_header);
+int run_parser(struct radiotap_header_data *output_data, const struct ieee80211_radiotap_header *actual_header, int length_data);
 
 #endif //LIBDXWIFI_RADIOTAP_H

@@ -402,7 +402,7 @@ int ieee80211_radiotap_iterator_next(
  *  -EINVAL if something went wrong
  * 
  */
-int run_parser(struct radiotap_header_data *data_out, const struct ieee80211_radiotap_header *actual_data){
+int run_parser(struct radiotap_header_data *data_out, const struct ieee80211_radiotap_header *actual_data, int length_data){
     debug_assert(data_out && actual_data);
 
     struct ieee80211_radiotap_iterator iterator;
@@ -414,8 +414,8 @@ int run_parser(struct radiotap_header_data *data_out, const struct ieee80211_rad
 
 
 
-    uint64_t max_len = sizeof(actual_data);
-    int buffer_length = sizeof(actual_data);
+    long unsigned int max_len = (long unsigned int)length_data;
+    int buffer_length = length_data;
 
     int return_value = ieee80211_radiotap_iterator_init(&iterator, &header, max_len, NULL);
 
