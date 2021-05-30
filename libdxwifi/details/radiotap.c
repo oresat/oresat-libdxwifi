@@ -28,8 +28,7 @@
 
 //Note, Aligns are defined in radiotap.org/fields/defined AND radiotap.org/fields/suggested
 //Align is given in each field's description
-//Size is derived from the nubmer of bytes that the field's structure contains.
-//These fields are the ones that the implemented pcap header contains.
+//Size is derived from the number of bytes that the field's structure contains.
 static const struct radiotap_align_size rtap_namespace_sizes[] = {
 	[IEEE80211_RADIOTAP_TSFT] = { .align = 8, .size = 8, },
 	[IEEE80211_RADIOTAP_FLAGS] = { .align = 1, .size = 1, },
@@ -412,12 +411,9 @@ int run_parser(struct radiotap_header_data *data_out, const struct ieee80211_rad
     header.it_pad = actual_data->it_pad;
     header.it_present = actual_data->it_present;
 
-
-
-    long unsigned int max_len = (long unsigned int)length_data;
     int buffer_length = length_data;
 
-    int return_value = ieee80211_radiotap_iterator_init(&iterator, &header, max_len, NULL);
+    int return_value = ieee80211_radiotap_iterator_init(&iterator, &header, (long unsigned int)length_data, NULL);
 
     //Sanity check for init function failure.
     if(return_value == -EINVAL) {

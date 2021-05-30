@@ -101,7 +101,7 @@ void log_rx_stats(dxwifi_rx_stats stats) {
              "\tChannel Frequency:      %u MHz\n"
              "\tChannel Flags:          %#.4x\n"
              "\tMCS Known               0x%02x\n"
-             "\tMCS flags               0x%02x\n"
+             "\tMCS Flags               0x%02x\n"
              "\tMCS                     %u\n",
             stats.header_stats.Flags,
             le16toh(stats.header_stats.Rx_Flags),
