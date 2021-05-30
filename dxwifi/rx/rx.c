@@ -86,7 +86,9 @@ void log_rx_stats(dxwifi_rx_stats stats) {
         "\tPackets Dropped (Kernel):    %d\n"
         "\tPackets Dropped (NIC):       %d\n"
         "\tNote: Packet drop data is platform dependent.\n"
-        "\tBlocks lost is only tracked when `ordered` flag is set\n",
+        "\tBlocks lost is only tracked when `ordered` flag is set\n"
+        "\tMCS Rate Index Data (Known): 0x%02x\n"
+        "\tMCS Rate Index Data (Data) : %u\n",
         stats.total_payload_size,
         stats.total_writelen,
         stats.total_caplen,
@@ -101,7 +103,49 @@ void log_rx_stats(dxwifi_rx_stats stats) {
         stats.pcap_stats.ps_recv,
         stats.packets_dropped,
         stats.pcap_stats.ps_drop,
-        stats.pcap_stats.ps_ifdrop
+        stats.pcap_stats.ps_ifdrop,
+        stats.rtap.mcs.known,
+        stats.rtap.mcs.mcs
+    );
+    if((stats.rtap.mcs.flags & 0x03) == 0){
+        log_info("\tMCS Bandwidth = 20");
+    }
+    if((stats.rtap.mcs.flags & 0x03) == 1){
+        log_info("\tMCS Bandwith = 40");
+    }
+    if((stats.rtap.mcs.flags & 0x03) == 2){
+        log_info("\tMCS Bandwith = 20L");
+    }
+    if((stats.rtap.mcs.flags & 0x03) == 3){
+        log_info("\tMCS Bandwidth = 20U");
+    }
+    if((stats.rtap.mcs.flags & 0x04) == 0){
+        log_info("\tMCS Guard Interval: Long");
+    }
+    if((stats.rtap.mcs.flags & 0x04) != 0){
+        log_info("\tMCS Guard Interval: Short");
+    }
+    if((stats.rtap.mcs.flags & 0x08) == 0){
+        log_info("\tMCS HT Format: Mixed");
+    }
+    if((stats.rtap.mcs.flags & 0x08) != 0){
+        log_info("\tMCS HT Format: Greenfield");
+    }
+    if((stats.rtap.mcs.flags & 0x10) == 0){
+        log_info("\tMCS FEC Type: BCC");
+    }
+    if((stats.rtap.mcs.flags & 0x10) != 0){
+        log_info("\tMCS FEC Type: LDPC");
+    }
+    if((stats.rtap.mcs.known & 0x20) && ((stats.rtap.mcs.flags & 0x60) != 0)){
+        log_info("\tNumber of STBC Streams: %u", (stats.rtap.mcs.flags & 0x60));
+    }
+    if((stats.rtap.mcs.known & 0x40) && ((stats.rtap.mcs.flags & 0x80) != 0)){
+        log_info("\tNumber of Extension Spatial Streams: %u", (stats.rtap.mcs.flags & 0x80));
+    }
+    log_info(
+        "\tMCS Rate Index Data (Flags): 0x%02x",   
+        stats.rtap.mcs.flags
     );
     free(channel_flags_str);
 }
