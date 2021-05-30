@@ -96,15 +96,15 @@ void log_rx_stats(dxwifi_rx_stats stats) {
     );
     log_info(
              "Radiotap Settings\n"
-             "\tRadiotap Flags:         %u\n"
-             "\tRX Flags:               %u\n"
-             "\tChannel Frequency:      %u\n"
-             "\tChannel Flags:          %u\n"
-             "\tMCS Known               %u\n"
-             "\tMCS flags               %u\n"
+             "\tRadiotap Flags:         0x%02x\n"
+             "\tRX Flags:               %#.4x\n"
+             "\tChannel Frequency:      %u MHz\n"
+             "\tChannel Flags:          %#.4x\n"
+             "\tMCS Known               0x%02x\n"
+             "\tMCS flags               0x%02x\n"
              "\tMCS                     %u\n",
             stats.header_stats.Flags,
-            stats.header_stats.Rx_Flags,
+            le16toh(stats.header_stats.Rx_Flags),
             stats.header_stats.ChannelFreq,
             stats.header_stats.ChannelFlags,
             stats.header_stats.MCS_Known,

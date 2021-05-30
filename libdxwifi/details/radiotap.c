@@ -454,8 +454,8 @@ int run_parser(struct radiotap_header_data *data_out, const struct ieee80211_rad
                 break;
             }
         }
-        //While there's more headers
         if(return_value != -ENOENT){
+            log_error("Malformed Radiotap Data!\n");
             return return_value;
         }
         //discard current header part and continue
