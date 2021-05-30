@@ -400,6 +400,7 @@ static bool verify_sender(const uint8_t* frame, const uint8_t* expected_address,
     return addr1_dist < threshold || addr2_dist < threshold || addr3_dist < threshold;
 }
 
+
 dxwifi_rx_radiotap_hdr parse_radiotap_header(const uint8_t* frame, uint32_t caplen) {
     dxwifi_rx_radiotap_hdr rtap;
     memset(&rtap, 0x00, sizeof(dxwifi_rx_radiotap_hdr));
@@ -412,6 +413,14 @@ dxwifi_rx_radiotap_hdr parse_radiotap_header(const uint8_t* frame, uint32_t capl
         while(!(err = ieee80211_radiotap_iterator_next(&iter))) {
             switch (iter.this_arg_index) 
             {
+            case IEEE80211_RADIOTAP_FLAGS:
+                rtap.flags = *iter.this_arg;
+                break;
+
+            case IEEE80211_RADIOTAP_RX_FLAGS:
+                rtap.rx_flags = get_unaligned_le16((uint16_t*)iter.this_arg);
+                break;
+
             case IEEE80211_RADIOTAP_CHANNEL:
                 rtap.channel.frequency = get_unaligned_le16((uint16_t*)iter.this_arg);
                 rtap.channel.flags = get_unaligned_le16((uint16_t*)(iter.this_arg + 2));
@@ -429,6 +438,12 @@ dxwifi_rx_radiotap_hdr parse_radiotap_header(const uint8_t* frame, uint32_t capl
             case IEEE80211_RADIOTAP_DBM_ANTSIGNAL:
                 // Convert in decibels difference form 1mW
                 rtap.ant_signal = (*iter.this_arg - 255);
+                break;
+
+            case IEEE80211_RADIOTAP_MCS:
+                rtap.mcs.known = *iter.this_arg;
+                rtap.mcs.flags = *(iter.this_arg + 1);
+                rtap.mcs.mcs   = *(iter.this_arg + 2);
                 break;
 
             default:

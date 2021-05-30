@@ -66,7 +66,7 @@ int main(int argc, char** argv) {
  * 
  */
 void log_rx_stats(dxwifi_rx_stats stats) {
-    const char* channel_flags_str = radiotap_channel_flags_to_str(stats.rtap.channel.flags);
+    char* channel_flags_str = radiotap_channel_flags_to_str(stats.rtap.channel.flags);
 
     log_debug(
         "Receiver Capture Stats\n"

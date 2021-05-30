@@ -54,12 +54,24 @@ typedef enum {
  * See https://www.radiotap.org/ for more information
  */
 typedef struct {
+
+    uint32_t tsft[2];       /* Time Sync Function Timer in microseconds */
     struct {
         uint16_t frequency;
         uint16_t flags;
     } channel;              /* Tx/Rx Frequency and modulation flags     */
-    uint32_t tsft[2];       /* Time Sync Function Timer in microseconds */
+
+    uint16_t rx_flags;      /* Received frame extended flags            */
+    struct {
+        uint8_t known;
+        uint8_t flags;
+        uint8_t mcs;
+    } mcs;                  /* MCS rate index as in IEEE802.11n-2009    */
+
+    uint8_t flags;          /* Received frame properties                */
+
     uint8_t antenna;        /* Antenna used during capture              */
+
     int8_t  ant_signal;     /* Antenna signal in dBm                    */
 } dxwifi_rx_radiotap_hdr;
 
