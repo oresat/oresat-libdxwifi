@@ -452,9 +452,12 @@ extern CALLING_CONVENTION int ieee80211_radiotap_iterator_next(
  * 
  * RETURNS: 
  * 
- *      const char*: Static string of the channel 
+ *      char*: Allocated string of the channel 
+ * 
+ * NOTES:
+ *      It is the callers responsibility to free the returned string.
  * 
  */
-extern const char* radiotap_channel_flags_to_str(uint16_t flags);
+extern char* radiotap_channel_flags_to_str(uint16_t flags);
 
 #endif // LIBDXWIFI_RADIOTAP_H

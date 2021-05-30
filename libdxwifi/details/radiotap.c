@@ -373,28 +373,29 @@ int ieee80211_radiotap_iterator_next(
 }
 
 
-const char* radiotap_channel_flags_to_str(uint16_t flags) {
+char* radiotap_channel_flags_to_str(uint16_t flags) {
+    char* result = calloc(512, sizeof(char));
     if(IEEE80211_CHAN_CCK & flags) {
-        return "CCK";
+        strcat(result, "CCK ");
     }
     if(IEEE80211_CHAN_OFDM & flags) {
-        return "OFDM";
+        strcat(result, "OFDM ");
     }
     if(IEEE80211_CHAN_2GHZ & flags) {
-        return "2 GHz spectrum";
+        strcat(result, "2 GHz spectrum ");
     }
     if(IEEE80211_CHAN_5GHZ & flags) {
-        return "5 GHz spectrum";
+        strcat(result, "5 GHz spectrum");
     }
     if(IEEE80211_CHAN_DYN & flags) {
-        return "Dynamic CCK-OFDM";
+        strcat(result, "Dynamic CCK-OFDM ");
     }
     if(IEEE80211_CHAN_HALF & flags) {
-        return "Half CCK-OFDM";
+        strcat(result, "Half CCK-OFDM ");
     }
     if(IEEE80211_CHAN_QUARTER & flags) {
-        return "Quarter CCK-OFDM";
+        strcat(result, "Quarter CCK-OFDM ");
     }
-    return "Unknown";
+    return result;
 }
 

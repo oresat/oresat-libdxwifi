@@ -66,6 +66,8 @@ int main(int argc, char** argv) {
  * 
  */
 void log_rx_stats(dxwifi_rx_stats stats) {
+    const char* channel_flags_str = radiotap_channel_flags_to_str(stats.rtap.channel.flags);
+
     log_debug(
         "Receiver Capture Stats\n"
         "\tTotal Payload Size:          %d\n"
@@ -92,7 +94,7 @@ void log_rx_stats(dxwifi_rx_stats stats) {
         stats.total_noise_added,
         stats.bad_crcs,
         stats.rtap.channel.frequency,
-        radiotap_channel_flags_to_str(stats.rtap.channel.flags),
+        channel_flags_str,
         stats.rtap.antenna,
         stats.rtap.ant_signal,
         stats.num_packets_processed,
@@ -101,6 +103,7 @@ void log_rx_stats(dxwifi_rx_stats stats) {
         stats.pcap_stats.ps_drop,
         stats.pcap_stats.ps_ifdrop
     );
+    free(channel_flags_str);
 }
 
 

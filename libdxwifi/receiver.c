@@ -413,13 +413,13 @@ dxwifi_rx_radiotap_hdr parse_radiotap_header(const uint8_t* frame, uint32_t capl
             switch (iter.this_arg_index) 
             {
             case IEEE80211_RADIOTAP_CHANNEL:
-                rtap.channel.frequency = *(uint16_t*)iter.this_arg;
-                rtap.channel.flags = *(uint16_t*)(iter.this_arg + 2);
+                rtap.channel.frequency = get_unaligned_le16((uint16_t*)iter.this_arg);
+                rtap.channel.flags = get_unaligned_le16((uint16_t*)(iter.this_arg + 2));
                 break;
 
             case IEEE80211_RADIOTAP_TSFT:
-                rtap.tsft[0] = *(uint32_t*)iter.this_arg;
-                rtap.tsft[1] = *(uint32_t*)(iter.this_arg + 4);
+                rtap.tsft[0] = get_unaligned_le32((uint32_t*)iter.this_arg);
+                rtap.tsft[1] = get_unaligned_le32((uint32_t*)(iter.this_arg + 4));
                 break;
 
             case IEEE80211_RADIOTAP_ANTENNA:
