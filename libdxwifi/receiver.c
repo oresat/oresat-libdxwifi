@@ -27,7 +27,6 @@
 
 #define DXWIFI_RX_PACKET_HEAP_CAPACITY ((DXWIFI_RX_PACKET_BUFFER_SIZE_MAX / DXWIFI_TX_BLOCKSIZE) + 1)
 
-
 typedef struct {
     int32_t     frame_number;   /* Number of the frame was sent with          */
     uint8_t*    data;           /* pointer to data inside the packet buffer   */
@@ -191,11 +190,11 @@ static void log_frame_stats(dxwifi_rx_frame* frame, int32_t frame_no, dxwifi_rx_
     strftime(timestamp, sizeof(timestamp), "%Y-%m-%d %H:%M:%S", time);
 
     log_debug(
-        "%d - (%s) - (Capture Length=%d, Packet Length=%d)", 
+        "%d - ( %s ) Packet Length: %d, Antenna Signal: %ddBm",
         frame_no,
         timestamp, 
-        rx_stats->pkt_stats.caplen, 
-        rx_stats->pkt_stats.len
+        rx_stats->pkt_stats.caplen,
+        rx_stats->rtap.ant_signal
         );
     log_hexdump(frame->__frame, rx_stats->pkt_stats.caplen);
 }
@@ -401,6 +400,48 @@ static bool verify_sender(const uint8_t* frame, const uint8_t* expected_address,
     return addr1_dist < threshold || addr2_dist < threshold || addr3_dist < threshold;
 }
 
+dxwifi_rx_radiotap_hdr parse_radiotap_header(const uint8_t* frame, uint32_t caplen) {
+    dxwifi_rx_radiotap_hdr rtap;
+    memset(&rtap, 0x00, sizeof(dxwifi_rx_radiotap_hdr));
+
+    struct ieee80211_radiotap_iterator iter;
+    int err = ieee80211_radiotap_iterator_init(&iter, (ieee80211_radiotap_hdr*)frame, caplen, NULL);
+    if(err) {
+        log_warning("Malformed radiotap header");
+    } else {
+        while(!(err = ieee80211_radiotap_iterator_next(&iter))) {
+            switch (iter.this_arg_index) 
+            {
+            case IEEE80211_RADIOTAP_CHANNEL:
+                rtap.channel.frequency = *(uint16_t*)iter.this_arg;
+                rtap.channel.flags = *(uint16_t*)(iter.this_arg + 2);
+                break;
+
+            case IEEE80211_RADIOTAP_TSFT:
+                rtap.tsft[0] = *(uint32_t*)iter.this_arg;
+                rtap.tsft[1] = *(uint32_t*)(iter.this_arg + 4);
+                break;
+
+            case IEEE80211_RADIOTAP_ANTENNA:
+                rtap.antenna = *iter.this_arg;
+                break;
+
+            case IEEE80211_RADIOTAP_DBM_ANTSIGNAL:
+                // Convert in decibels difference form 1mW
+                rtap.ant_signal = (*iter.this_arg - 255);
+                break;
+
+            default:
+                break;
+            }
+        }
+
+        if(err != -ENOENT) {
+            log_warning("An error occured while parsing the radiotap header");
+        }
+    }
+    return rtap;
+}
 
 /**
  *  DESCRIPTION:    Callback for PCAP dispatch. Called each time a frame is
@@ -428,8 +469,8 @@ static void process_frame(uint8_t* args, const struct pcap_pkthdr* pkt_stats, co
         else {
 
             dxwifi_rx_frame rx_frame = parse_rx_frame_fields(pkt_stats, frame);
-           
-            // TODO parse radiotap header data and store provided info
+
+            fc->rx_stats.rtap = parse_radiotap_header(frame, pkt_stats->caplen);
 
             ssize_t payload_size = rx_frame.fcs - rx_frame.payload;
 

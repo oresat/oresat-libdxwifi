@@ -20,6 +20,7 @@
 #include <pcap.h>
 
 #include <libdxwifi/fec.h>
+#include <libdxwifi/details/radiotap.h>
 #include <libdxwifi/details/ieee80211.h>
 
 
@@ -41,6 +42,26 @@ typedef enum {
     DXWIFI_RX_DEACTIVATED,
     DXWIFI_RX_ERROR
 } dxwifi_rx_state_t;
+
+
+/**
+ * The received radiotap header is populated by the MAC driver and attached to
+ * each captured packet. Different drivers will add different radiotap data, and
+ * the following fields may not be present in every packet. The following 
+ * radiotap fields are what has been tested on the AR9271 ath9k_htc drivers as 
+ * being present. 
+ * 
+ * See https://www.radiotap.org/ for more information
+ */
+typedef struct {
+    struct {
+        uint16_t frequency;
+        uint16_t flags;
+    } channel;              /* Tx/Rx Frequency and modulation flags     */
+    uint32_t tsft[2];       /* Time Sync Function Timer in microseconds */
+    uint8_t antenna;        /* Antenna used during capture              */
+    int8_t  ant_signal;     /* Antenna signal in dBm                    */
+} dxwifi_rx_radiotap_hdr;
 
 /**
  *  The DxWifi RX frame structure comes in like this:
@@ -82,6 +103,7 @@ typedef struct {
     dxwifi_rx_state_t       capture_state;          /* State of last capture            */
     struct pcap_pkthdr      pkt_stats;              /* Stats for the current capture    */
     struct pcap_stat        pcap_stats;             /* Pcap statistics                  */
+    dxwifi_rx_radiotap_hdr  rtap;                   /* Radiotap metadata                */
 } dxwifi_rx_stats;
 
 
@@ -205,6 +227,5 @@ void receiver_activate_capture(dxwifi_receiver* receiver, int fd, dxwifi_rx_stat
  * 
  */
 void receiver_stop_capture(dxwifi_receiver* receiver);
-
 
 #endif // LIBDXWIFI_RECEIVER_H

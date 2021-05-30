@@ -74,19 +74,27 @@ void log_rx_stats(dxwifi_rx_stats stats) {
         "\tTotal Blocks Lost:           %d\n"
         "\tTotal Noise Added:           %d\n"
         "\tBad CRC Count:               %d\n"
+        "\tChannel Frequency:           %d\n"
+        "\tChannel Mode:                %s\n"
+        "\tAntenna:                     %d\n"
+        "\tAntenna Signal:              %ddBm\n"
         "\tPackets Processed:           %d\n"
         "\tPackets Received:            %d\n"
         "\tPackets Dropped (receiver):  %d\n"
         "\tPackets Dropped (Kernel):    %d\n"
         "\tPackets Dropped (NIC):       %d\n"
         "\tNote: Packet drop data is platform dependent.\n"
-        "\tBlocks lost is only valid when `ordered` flag is set\n",
+        "\tBlocks lost is only tracked when `ordered` flag is set\n",
         stats.total_payload_size,
         stats.total_writelen,
         stats.total_caplen,
         stats.total_blocks_lost,
         stats.total_noise_added,
         stats.bad_crcs,
+        stats.rtap.channel.frequency,
+        radiotap_channel_flags_to_str(stats.rtap.channel.flags),
+        stats.rtap.antenna,
+        stats.rtap.ant_signal,
         stats.num_packets_processed,
         stats.pcap_stats.ps_recv,
         stats.packets_dropped,
