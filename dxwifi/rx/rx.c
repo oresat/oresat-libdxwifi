@@ -108,42 +108,42 @@ void log_rx_stats(dxwifi_rx_stats stats) {
         stats.rtap.mcs.mcs
     );
     if((stats.rtap.mcs.flags & 0x03) == 0){
-        log_info("\tMCS Bandwidth = 20");
+        log_debug("\tMCS Bandwidth = 20");
     }
     if((stats.rtap.mcs.flags & 0x03) == 1){
-        log_info("\tMCS Bandwith = 40");
+        log_debug("\tMCS Bandwith = 40");
     }
     if((stats.rtap.mcs.flags & 0x03) == 2){
-        log_info("\tMCS Bandwith = 20L");
+        log_debug("\tMCS Bandwith = 20L");
     }
     if((stats.rtap.mcs.flags & 0x03) == 3){
-        log_info("\tMCS Bandwidth = 20U");
+        log_debug("\tMCS Bandwidth = 20U");
     }
     if((stats.rtap.mcs.flags & 0x04) == 0){
-        log_info("\tMCS Guard Interval: Long");
+        log_debug("\tMCS Guard Interval: Long");
     }
     if((stats.rtap.mcs.flags & 0x04) != 0){
-        log_info("\tMCS Guard Interval: Short");
+        log_debug("\tMCS Guard Interval: Short");
     }
     if((stats.rtap.mcs.flags & 0x08) == 0){
-        log_info("\tMCS HT Format: Mixed");
+        log_debug("\tMCS HT Format: Mixed");
     }
     if((stats.rtap.mcs.flags & 0x08) != 0){
-        log_info("\tMCS HT Format: Greenfield");
+        log_debug("\tMCS HT Format: Greenfield");
     }
     if((stats.rtap.mcs.flags & 0x10) == 0){
-        log_info("\tMCS FEC Type: BCC");
+        log_debug("\tMCS FEC Type: BCC");
     }
     if((stats.rtap.mcs.flags & 0x10) != 0){
-        log_info("\tMCS FEC Type: LDPC");
+        log_debug("\tMCS FEC Type: LDPC");
     }
     if((stats.rtap.mcs.known & 0x20) && ((stats.rtap.mcs.flags & 0x60) != 0)){
-        log_info("\tNumber of STBC Streams: %u", (stats.rtap.mcs.flags & 0x60));
+        log_debug("\tNumber of STBC Streams: %u", (stats.rtap.mcs.flags & 0x60));
     }
     if((stats.rtap.mcs.known & 0x40) && ((stats.rtap.mcs.flags & 0x80) != 0)){
-        log_info("\tNumber of Extension Spatial Streams: %u", (stats.rtap.mcs.flags & 0x80));
+        log_debug("\tNumber of Extension Spatial Streams: %u", (stats.rtap.mcs.flags & 0x80));
     }
-    log_info(
+    log_debug(
         "\tMCS Rate Index Data (Flags): 0x%02x",   
         stats.rtap.mcs.flags
     );
