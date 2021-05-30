@@ -181,7 +181,7 @@ static dxwifi_rx_frame parse_rx_frame_fields(const struct pcap_pkthdr* pkt_stats
  *      rx_stats:   State of the current capture session
  *  
  */
-static void log_frame_stats(dxwifi_rx_frame* frame, int32_t frame_no, dxwifi_rx_stats* rx_stats, radiotap_header_data* data_out) {
+static void log_frame_stats(dxwifi_rx_frame* frame, int32_t frame_no, dxwifi_rx_stats* rx_stats) {
     debug_assert(frame && rx_stats);
 
     char timestamp[256];
@@ -198,8 +198,6 @@ static void log_frame_stats(dxwifi_rx_frame* frame, int32_t frame_no, dxwifi_rx_
         rx_stats->pkt_stats.len
         );
     log_hexdump(frame->__frame, rx_stats->pkt_stats.caplen);
-    log_info("Antenna dBM Signal: %d", data_out->dBm_AntSignal);
-
 }
 
 
@@ -420,7 +418,6 @@ static bool verify_sender(const uint8_t* frame, const uint8_t* expected_address,
  */
 static void process_frame(uint8_t* args, const struct pcap_pkthdr* pkt_stats, const uint8_t* frame) { 
     frame_controller* fc = (frame_controller*) args;
-    struct radiotap_header_data data_out;
 
     if(verify_sender(frame, fc->rx->sender_addr, fc->rx->max_hamming_dist)) {
         dxwifi_control_frame_t ctrl_frame = check_frame_control(frame, pkt_stats, 0.66);
@@ -432,16 +429,8 @@ static void process_frame(uint8_t* args, const struct pcap_pkthdr* pkt_stats, co
 
             dxwifi_rx_frame rx_frame = parse_rx_frame_fields(pkt_stats, frame);
            
-            //Run Radiotap Parser
-            run_parser(&data_out, rx_frame.rtap_hdr, rx_frame.rtap_hdr->it_len);
-            fc->rx_stats.header_stats.Flags = data_out.Flags;
-            fc->rx_stats.header_stats.Rx_Flags = data_out.Rx_Flags;
-            fc->rx_stats.header_stats.ChannelFreq = data_out.ChannelFreq;
-            fc->rx_stats.header_stats.ChannelFlags = data_out.ChannelFlags;
-            fc->rx_stats.header_stats.MCS_Known = data_out.MCS_Known;
-            fc->rx_stats.header_stats.MCS_Flags = data_out.MCS_Flags;
-            fc->rx_stats.header_stats.MCS_MCS = data_out.MCS_MCS;
-    
+            // TODO parse radiotap header data and store provided info
+
             ssize_t payload_size = rx_frame.fcs - rx_frame.payload;
 
             if(payload_size != DXWIFI_TX_PAYLOAD_SIZE) {
@@ -482,7 +471,7 @@ static void process_frame(uint8_t* args, const struct pcap_pkthdr* pkt_stats, co
                 fc->rx_stats.bad_crcs               += !crc_valid ? 0 : 1;
                 memcpy(&fc->rx_stats.pkt_stats, pkt_stats, sizeof(struct pcap_pkthdr));
 
-                log_frame_stats(&rx_frame, frame_number, &fc->rx_stats, &data_out);
+                log_frame_stats(&rx_frame, frame_number, &fc->rx_stats);
             }
         }
     }
@@ -594,7 +583,6 @@ void receiver_activate_capture(dxwifi_receiver* rx, int fd, dxwifi_rx_stats* out
         .events     = POLLIN,
         .revents    = 0
     };
-
     assert_M(request.fd >= 0, "Receiver handle cannot be polled");
 
     init_frame_controller(&fc, rx, fd);
