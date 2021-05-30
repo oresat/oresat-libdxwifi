@@ -651,7 +651,7 @@ void receiver_activate_capture(dxwifi_receiver* rx, int fd, dxwifi_rx_stats* out
         status = poll(&request, 1, rx->capture_timeout * 1000);
 
         if(status == 0) {
-            log_info("Reciever timeout occured");
+            log_info("Receiver timeout occured");
             fc.rx_stats.capture_state = DXWIFI_RX_TIMED_OUT;
             rx->__activated = false;
         }
