@@ -27,7 +27,6 @@
 
 #define DXWIFI_RX_PACKET_HEAP_CAPACITY ((DXWIFI_RX_PACKET_BUFFER_SIZE_MAX / DXWIFI_TX_BLOCKSIZE) + 1)
 
-
 typedef struct {
     int32_t     frame_number;   /* Number of the frame was sent with          */
     uint8_t*    data;           /* pointer to data inside the packet buffer   */
@@ -51,7 +50,6 @@ typedef struct {
     dxwifi_rx_stats         rx_stats;       /* Capture statistics             */
     int                     fd;             /* Sink to write out data         */
 } frame_controller;
-
 
 /**
  *  DESCRIPTION:    Ordering function for the packet heap
@@ -192,11 +190,11 @@ static void log_frame_stats(dxwifi_rx_frame* frame, int32_t frame_no, dxwifi_rx_
     strftime(timestamp, sizeof(timestamp), "%Y-%m-%d %H:%M:%S", time);
 
     log_debug(
-        "%d - (%s) - (Capture Length=%d, Packet Length=%d)", 
+        "%d - ( %s ) Packet Length: %d, Antenna Signal: %ddBm",
         frame_no,
         timestamp, 
-        rx_stats->pkt_stats.caplen, 
-        rx_stats->pkt_stats.len
+        rx_stats->pkt_stats.caplen,
+        rx_stats->rtap.ant_signal
         );
     log_hexdump(frame->__frame, rx_stats->pkt_stats.caplen);
 }
@@ -288,7 +286,9 @@ static void handle_frame_control(frame_controller* fc, dxwifi_control_frame_t ty
     // file for capture.
     case DXWIFI_CONTROL_FRAME_PREAMBLE:
         if(fc->rx_stats.num_packets_processed > 0) {
+            // Somehow we have run into the next files capture.
             fc->end_capture = true;
+            pcap_breakloop(fc->rx->__handle);
         }
         else if(!fc->preamble_recv){
             log_info("Uplink established!");
@@ -299,8 +299,10 @@ static void handle_frame_control(frame_controller* fc, dxwifi_control_frame_t ty
     case DXWIFI_CONTROL_FRAME_EOT:
         if(!fc->eot_reached) {
             log_info("End-Of-Transmission signalled");
+            fc->eot_reached = true;
+            fc->end_capture = true;
+            pcap_breakloop(fc->rx->__handle);
         }
-        fc->eot_reached = true;
         break;
 
     case DXWIFI_CONTROL_FRAME_UNKNOWN:
@@ -403,6 +405,63 @@ static bool verify_sender(const uint8_t* frame, const uint8_t* expected_address,
 }
 
 
+dxwifi_rx_radiotap_hdr parse_radiotap_header(const uint8_t* frame, uint32_t caplen) {
+    dxwifi_rx_radiotap_hdr rtap;
+    memset(&rtap, 0x00, sizeof(dxwifi_rx_radiotap_hdr));
+
+    struct ieee80211_radiotap_iterator iter;
+    int err = ieee80211_radiotap_iterator_init(&iter, (ieee80211_radiotap_hdr*)frame, caplen, NULL);
+    if(err) {
+        log_warning("Malformed radiotap header");
+    } else {
+        while(!(err = ieee80211_radiotap_iterator_next(&iter))) {
+            switch (iter.this_arg_index) 
+            {
+            case IEEE80211_RADIOTAP_FLAGS:
+                rtap.flags = *iter.this_arg;
+                break;
+
+            case IEEE80211_RADIOTAP_RX_FLAGS:
+                rtap.rx_flags = get_unaligned_le16((uint16_t*)iter.this_arg);
+                break;
+
+            case IEEE80211_RADIOTAP_CHANNEL:
+                rtap.channel.frequency = get_unaligned_le16((uint16_t*)iter.this_arg);
+                rtap.channel.flags = get_unaligned_le16((uint16_t*)(iter.this_arg + 2));
+                break;
+
+            case IEEE80211_RADIOTAP_TSFT:
+                rtap.tsft[0] = get_unaligned_le32((uint32_t*)iter.this_arg);
+                rtap.tsft[1] = get_unaligned_le32((uint32_t*)(iter.this_arg + 4));
+                break;
+
+            case IEEE80211_RADIOTAP_ANTENNA:
+                rtap.antenna = *iter.this_arg;
+                break;
+
+            case IEEE80211_RADIOTAP_DBM_ANTSIGNAL:
+                // Convert in decibels difference form 1mW
+                rtap.ant_signal = (*iter.this_arg - 255);
+                break;
+
+            case IEEE80211_RADIOTAP_MCS:
+                rtap.mcs.known = *iter.this_arg;
+                rtap.mcs.flags = *(iter.this_arg + 1);
+                rtap.mcs.mcs   = *(iter.this_arg + 2);
+                break;
+
+            default:
+                break;
+            }
+        }
+
+        if(err != -ENOENT) {
+            log_warning("An error occured while parsing the radiotap header");
+        }
+    }
+    return rtap;
+}
+
 /**
  *  DESCRIPTION:    Callback for PCAP dispatch. Called each time a frame is
  *                  matching the BPF expression is captured
@@ -430,7 +489,7 @@ static void process_frame(uint8_t* args, const struct pcap_pkthdr* pkt_stats, co
 
             dxwifi_rx_frame rx_frame = parse_rx_frame_fields(pkt_stats, frame);
 
-            // TODO parse radiotap header data and store provided info
+            fc->rx_stats.rtap = parse_radiotap_header(frame, pkt_stats->caplen);
 
             ssize_t payload_size = rx_frame.fcs - rx_frame.payload;
 
@@ -596,7 +655,7 @@ void receiver_activate_capture(dxwifi_receiver* rx, int fd, dxwifi_rx_stats* out
         status = poll(&request, 1, rx->capture_timeout * 1000);
 
         if(status == 0) {
-            log_info("Reciever timeout occured");
+            log_info("Receiver timeout occured");
             fc.rx_stats.capture_state = DXWIFI_RX_TIMED_OUT;
             rx->__activated = false;
         }

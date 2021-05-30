@@ -66,6 +66,10 @@ int main(int argc, char** argv) {
  * 
  */
 void log_rx_stats(dxwifi_rx_stats stats) {
+    char* channel_flags_str = radiotap_channel_flags_to_str(stats.rtap.channel.flags);
+
+    log_fatal("hmm");
+
     log_debug(
         "Receiver Capture Stats\n"
         "\tTotal Payload Size:          %d\n"
@@ -74,25 +78,74 @@ void log_rx_stats(dxwifi_rx_stats stats) {
         "\tTotal Blocks Lost:           %d\n"
         "\tTotal Noise Added:           %d\n"
         "\tBad CRC Count:               %d\n"
+        "\tChannel Frequency:           %d\n"
+        "\tChannel Mode:                %s\n"
+        "\tAntenna:                     %d\n"
+        "\tAntenna Signal:              %ddBm\n"
         "\tPackets Processed:           %d\n"
         "\tPackets Received:            %d\n"
         "\tPackets Dropped (receiver):  %d\n"
         "\tPackets Dropped (Kernel):    %d\n"
         "\tPackets Dropped (NIC):       %d\n"
         "\tNote: Packet drop data is platform dependent.\n"
-        "\tBlocks lost is only valid when `ordered` flag is set\n",
+        "\tBlocks lost is only tracked when `ordered` flag is set",
         stats.total_payload_size,
         stats.total_writelen,
         stats.total_caplen,
         stats.total_blocks_lost,
         stats.total_noise_added,
         stats.bad_crcs,
+        stats.rtap.channel.frequency,
+        channel_flags_str,
+        stats.rtap.antenna,
+        stats.rtap.ant_signal,
         stats.num_packets_processed,
         stats.pcap_stats.ps_recv,
         stats.packets_dropped,
         stats.pcap_stats.ps_drop,
         stats.pcap_stats.ps_ifdrop
     );
+    if((stats.rtap.mcs.flags & 0x03) == 0){
+        log_debug("MCS Bandwidth = 20");
+    }
+    if((stats.rtap.mcs.flags & 0x03) == 1){
+        log_debug("MCS Bandwith = 40");
+    }
+    if((stats.rtap.mcs.flags & 0x03) == 2){
+        log_debug("MCS Bandwith = 20L");
+    }
+    if((stats.rtap.mcs.flags & 0x03) == 3){
+        log_debug("MCS Bandwidth = 20U");
+    }
+    if((stats.rtap.mcs.flags & 0x04) == 0){
+        log_debug("MCS Guard Interval: Long");
+    }
+    if((stats.rtap.mcs.flags & 0x04) != 0){
+        log_debug("MCS Guard Interval: Short");
+    }
+    if((stats.rtap.mcs.flags & 0x08) == 0){
+        log_debug("MCS HT Format: Mixed");
+    }
+    if((stats.rtap.mcs.flags & 0x08) != 0){
+        log_debug("MCS HT Format: Greenfield");
+    }
+    if((stats.rtap.mcs.flags & 0x10) == 0){
+        log_debug("MCS FEC Type: BCC");
+    }
+    if((stats.rtap.mcs.flags & 0x10) != 0){
+        log_debug("MCS FEC Type: LDPC");
+    }
+    if((stats.rtap.mcs.known & 0x20) && ((stats.rtap.mcs.flags & 0x60) != 0)){
+        log_debug("Number of STBC Streams: %u", (stats.rtap.mcs.flags & 0x60));
+    }
+    if((stats.rtap.mcs.known & 0x40) && ((stats.rtap.mcs.flags & 0x80) != 0)){
+        log_debug("Number of Extension Spatial Streams: %u", (stats.rtap.mcs.flags & 0x80));
+    }
+    log_debug(
+        "MCS Rate Index Data (Flags): 0x%02x",   
+        stats.rtap.mcs.flags
+    );
+    free(channel_flags_str);
 }
 
 
@@ -169,36 +222,41 @@ dxwifi_rx_state_t open_file_and_capture(const char* path, dxwifi_receiver* rx, b
 
         state = setup_handlers_and_capture(rx, temp_fd);
         off_t temp_file_size = get_file_size(RX_TEMP_FILE);
-        
-        //Map the encoded file to memory
-        void* encoded_data = mmap(NULL, temp_file_size, PROT_WRITE, MAP_SHARED, temp_fd, 0);
-        assert_M(encoded_data != MAP_FAILED, "Failed to map file to memory - %s", strerror(errno));
-        
-        if(state != DXWIFI_RX_ERROR) {
-            if((fd_out = open(path, open_flags, mode)) < 0) {
-                log_error("Failed to open file: %s", path);
-            }
-            else {
 
-                void *decoded_message = NULL;
-                ssize_t decoded_size = dxwifi_decode(encoded_data, temp_file_size, &decoded_message);
-
-                if(decoded_size > 0) {
-                    log_info("Decoding Success for RX'd file, File Size: %d", decoded_size);
-
-                    ssize_t nbytes = write(fd_out, decoded_message, decoded_size);
-                    assert_M(decoded_size == nbytes, "Partial write occured: %d/%d - %s", nbytes, decoded_size, strerror(errno));
-                    free(decoded_message);
+        if(temp_file_size > 0) {
+            //Map the encoded file to memory
+            void* encoded_data = mmap(NULL, temp_file_size, PROT_WRITE, MAP_SHARED, temp_fd, 0);
+            assert_M(encoded_data != MAP_FAILED, "Failed to map file to memory - %s", strerror(errno));
+            
+            if(state != DXWIFI_RX_ERROR) {
+                if((fd_out = open(path, open_flags, mode)) < 0) {
+                    log_error("Failed to open file: %s", path);
                 }
-                else{
-                    log_error("Failed to Decode Rx'd file, Error: %s", dxwifi_fec_error_to_str(decoded_size));
+                else {
+
+                    void *decoded_message = NULL;
+                    ssize_t decoded_size = dxwifi_decode(encoded_data, temp_file_size, &decoded_message);
+
+                    if(decoded_size > 0) {
+                        log_info("Decoding Success for RX'd file, File Size: %d", decoded_size);
+
+                        ssize_t nbytes = write(fd_out, decoded_message, decoded_size);
+                        assert_M(decoded_size == nbytes, "Partial write occured: %d/%d - %s", nbytes, decoded_size, strerror(errno));
+                        free(decoded_message);
+                    }
+                    else{
+                        log_error("Failed to Decode Rx'd file, Error: %s", dxwifi_fec_error_to_str(decoded_size));
+                    }
+                    close(fd_out);
                 }
-                close(fd_out);
             }
+            munmap(encoded_data, temp_file_size);
+        }
+        else {
+            log_warning("No packets were captured. Verify capture parameters");
         }
         close(temp_fd);
         remove(RX_TEMP_FILE);
-        munmap(encoded_data, temp_file_size);
     }
     return state;
 }

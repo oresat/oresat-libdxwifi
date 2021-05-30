@@ -22,6 +22,7 @@
 #include <libdxwifi/fec.h>
 #include <libdxwifi/dxwifi.h>
 #include <libdxwifi/details/assert.h>
+#include <libdxwifi/details/radiotap.h>
 #include <libdxwifi/details/ieee80211.h>
 
 /************************
