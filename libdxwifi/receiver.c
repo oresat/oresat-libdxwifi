@@ -286,7 +286,9 @@ static void handle_frame_control(frame_controller* fc, dxwifi_control_frame_t ty
     // file for capture.
     case DXWIFI_CONTROL_FRAME_PREAMBLE:
         if(fc->rx_stats.num_packets_processed > 0) {
+            // Somehow we have run into the next files capture.
             fc->end_capture = true;
+            pcap_breakloop(fc->rx->__handle);
         }
         else if(!fc->preamble_recv){
             log_info("Uplink established!");
@@ -297,8 +299,10 @@ static void handle_frame_control(frame_controller* fc, dxwifi_control_frame_t ty
     case DXWIFI_CONTROL_FRAME_EOT:
         if(!fc->eot_reached) {
             log_info("End-Of-Transmission signalled");
+            fc->eot_reached = true;
+            fc->end_capture = true;
+            pcap_breakloop(fc->rx->__handle);
         }
-        fc->eot_reached = true;
         break;
 
     case DXWIFI_CONTROL_FRAME_UNKNOWN:
