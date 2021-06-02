@@ -298,11 +298,16 @@ void dirwatch_listen(dirwatch* dw, int timeout_ms, dirwatch_event_handler handle
 
                     // Cache the filename if it matches the filter
                     if(dir && fnmatch(dir->file_filter, event->name, 0) == 0) {
-                        for(int i = 0; i < DIRWATCH_MAX; ++i) { // Find an empty watchfile
+                        bool added = false;
+                        for(int i = 0; i < DIRWATCH_MAX && !added; ++i) { // Find an empty watchfile
                             if(dir->watchfiles[i] == NULL){
                                 log_debug("File created: %s", event->name);
                                 dir->watchfiles[i] = strdup(event->name);
+                                added = true;
                             }
+                        }
+                        if(!added) {
+                            log_warning("Failed to add newly created file `%s` to watchlist", event->name);
                         }
                     }
                 }
