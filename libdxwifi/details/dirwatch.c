@@ -320,7 +320,7 @@ void dirwatch_listen(dirwatch* dw, int timeout_ms, dirwatch_event_handler handle
                         bool found = false;
                         for(int i = 0; i < DIRWATCH_MAX && !found; ++i) {
                             // TODO: strcmp in linear search is sub-optimal at best
-                            if(dir->watchfiles[i] && strcmp(event->name, dir->watchfiles[i]) == 0) {
+                            if(dir->watchfiles[i] && (strcmp(event->name, dir->watchfiles[i]) == 0)) {
                                 log_debug("File closed: %s", event->name);
 
                                 dw_event.event    = DW_CREATE_AND_CLOSE;
