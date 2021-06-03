@@ -26,7 +26,7 @@ import subprocess
 from time import sleep
 from test.genbytes import genbytes
 
-FEC_SYMBOL_SIZE = 1099
+FEC_SYMBOL_SIZE = 1103
 
 INSTALL_DIR = os.environ.get('DXWIFI_INSTALL_DIR', default='bin/TestDebug')
 TEMP_DIR    = '__temp'
@@ -211,14 +211,6 @@ class TestTxRx(unittest.TestCase):
 
         self.assertEqual(all(results), True)
 
-    """
-    This test will fail until issue #44 is fixed and merged.
-    https://github.com/oresat/oresat-dxwifi-software/issues/44
-    
-    Since the test image is not divisible by the DXWIFI_PAYLOAD_SIZE the final 
-    packet is zero filled. This causes the filecmp to fail since the received
-    file has extra zeroes at the end.
-
     def testSmallImageTransmission(self):
         '''Small (~1mb), uncompressed images can be transmitted and recieved'''
 
@@ -239,7 +231,30 @@ class TestTxRx(unittest.TestCase):
         status = filecmp.cmp(test_file, rx_out)
 
         self.assertEqual(status, True)
-    """
+
+    def testFECRemovesAlignmentPadding(self):
+        '''Tx and Rx can recover and correct for bit errors'''
+
+        test_file   = f'{TEMP_DIR}/test.raw'
+        tx_out      = f'{TEMP_DIR}/tx.raw'
+        rx_out      = f'{TEMP_DIR}/rx.raw'
+
+        tx_command = f'{TX} {test_file} -q --packet-loss 0.1 --error-rate 0.004 --savefile {tx_out}'
+        rx_command = f'{RX} {rx_out} -q -t 2 --savefile {tx_out}'
+
+        # Create a single test file that is not aligned to FEC_SYMBOL_SIZE
+        genbytes(test_file, 10, 1024) 
+
+        # Transmit the test file
+        subprocess.run(tx_command.split()).check_returncode()
+
+        # Receive the test file
+        subprocess.run(rx_command.split()).check_returncode()
+
+        # Verify both files match
+        status = filecmp.cmp(test_file, rx_out)
+
+        self.assertEqual(status, True)
 
     def testForwardErrorCorrection(self):
         '''Tx and Rx can recover and correct for bit errors'''

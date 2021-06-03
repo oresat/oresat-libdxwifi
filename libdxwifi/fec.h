@@ -16,11 +16,16 @@
 #include <stdint.h>
 #include <rscode/ecc.h>
 
+#include <ldpc_staircase/of_codec_profile.h>
+
 #include <libdxwifi/details/assert.h>
 
 /************************
  *  Constants
  ***********************/
+
+// Max number of symbols that OpenFEC can handle, 50000
+#define OFEC_MAX_SYMBOLS OF_LDPC_STAIRCASE_MAX_NB_ENCODING_SYMBOLS_DEFAULT
 
 // Number of RS encoded chunks per LDPC frame
 #define DXWIFI_RSCODE_BLOCKS_PER_FRAME 5
@@ -50,12 +55,14 @@
  *  encoded frame
  */
 typedef struct __attribute__((packed)) {
-    uint32_t esi;   /* Encoding Symbol ID           */
-    uint32_t n;     /* Total number of symbols      */
-    uint32_t k;     /* Number of source symbols     */
+    uint16_t esi;   /* Encoding Symbol ID           */
+    uint16_t n;     /* Total number of symbols      */
+    uint16_t k;     /* Number of source symbols     */
+    uint16_t rem;   /* Length of Kth symbol         */
     uint32_t crc;   /* Computed CRC of the symbol   */
 } dxwifi_oti; 
-compiler_assert(sizeof(dxwifi_oti) == 16, "Mismatch in actual OTI size and calculated size");
+compiler_assert(sizeof(dxwifi_oti) == 12, "Mismatch in actual OTI size and calculated size");
+compiler_assert(65536 > OFEC_MAX_SYMBOLS, "Max number of symbols exceed storage capacity of uint16_t");
 
 
 /**

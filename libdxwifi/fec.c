@@ -10,7 +10,6 @@
 
 #include <rscode/ecc.h>
 #include <of_openfec_api.h>
-#include <ldpc_staircase/of_codec_profile.h>
 
 #include <libdxwifi/fec.h>
 #include <libdxwifi/details/utils.h>
@@ -18,23 +17,30 @@
 #include <libdxwifi/details/assert.h>
 #include <libdxwifi/details/logging.h>
 
-// Max number of symbols that OpenFEC can handle, 50000
-#define OFEC_MAX_SYMBOLS OF_LDPC_STAIRCASE_MAX_NB_ENCODING_SYMBOLS_DEFAULT
-
 #define FEC_PRNG 1804289383
 
 // TODO Add function comments
 static void log_codec_params(const of_ldpc_parameters_t* params) {
     log_info(
         "DxWiFi Codec\n"
-        "\tK:           %d\n"
-        "\tN-K:         %d\n"
-        "\tN1:          %d\n"
-        "\tPRNG Seed:   %d\n",
+        "\tK:                   %d\n"
+        "\tN-K:                 %d\n"
+        "\tN1:                  %d\n"
+        "\tPRNG Seed:           %d\n"
+        "\tRSCODE NPAR:         %d\n"
+        "\tRSCODE Blocks/Frame: %d\n"
+        "\tFEC Symbol Size:     %d\n"
+        "\tLDPC Frame Size:     %d\n"
+        "\tRS-LDPC Frame Size:  %d\n",
         params->nb_source_symbols,
         params->nb_repair_symbols,
         params->N1,
-        params->prng_seed
+        params->prng_seed,
+        RSCODE_NPAR,
+        DXWIFI_RSCODE_BLOCKS_PER_FRAME,
+        DXWIFI_FEC_SYMBOL_SIZE,
+        DXWIFI_LDPC_FRAME_SIZE,
+        DXWIFI_RS_LDPC_FRAME_SIZE
     );
 }
 
@@ -107,8 +113,13 @@ ssize_t dxwifi_encode(void* message, size_t msglen, float coderate, void** out) 
     debug_assert(message && out);
     debug_assert(0.0 < coderate && coderate <= 1.0);
 
-    uint32_t k = ceil((float) msglen / DXWIFI_FEC_SYMBOL_SIZE);
-    uint32_t n = k / coderate;  
+    uint16_t rem = msglen % DXWIFI_FEC_SYMBOL_SIZE;
+    uint16_t k   = ceil((float) msglen / DXWIFI_FEC_SYMBOL_SIZE);
+    uint16_t n   = k / coderate;  
+
+    if(rem) {
+        log_info("Encoded msg will be zero padded with %d bytes", DXWIFI_FEC_SYMBOL_SIZE - rem);
+    }
 
     //check if N > Max Symbols
     if(n > OFEC_MAX_SYMBOLS) {
@@ -116,7 +127,6 @@ ssize_t dxwifi_encode(void* message, size_t msglen, float coderate, void** out) 
     }
     
     of_session_t* openfec_session = init_openfec(n, k, OF_ENCODER);
-
     if(!openfec_session) {
         return FEC_ERROR_BELOW_N1_MIN;
     }
@@ -129,19 +139,25 @@ ssize_t dxwifi_encode(void* message, size_t msglen, float coderate, void** out) 
     void* symbol_table[n];
 
     // Load source symbols into symbol table, and calculate CRCs
-    for(size_t esi = 0; esi < k; ++esi) { 
+    for(uint16_t esi = 0; esi < k - 1; ++esi) { 
         dxwifi_ldpc_frame* frame = &ldpc_frames[esi];
 
-        // Copy symbol size bytes from message, or whatevers left over
-        size_t nbytes = DXWIFI_FEC_SYMBOL_SIZE < msglen ? DXWIFI_FEC_SYMBOL_SIZE : msglen;
-        memcpy(frame->symbol, offset(message, esi, DXWIFI_FEC_SYMBOL_SIZE), nbytes);
+        // Copy symbol size bytes from the original message
+        memcpy(frame->symbol, offset(message, esi, DXWIFI_FEC_SYMBOL_SIZE), DXWIFI_FEC_SYMBOL_SIZE);
 
         symbol_table[esi] = frame->symbol;
 
         crcs[esi] = crc32(frame->symbol, DXWIFI_FEC_SYMBOL_SIZE);
-
-        msglen -= nbytes;
     }
+
+    // Special handling for Kth symbol since it may not be of length symbol size
+    dxwifi_ldpc_frame* frame = &ldpc_frames[k-1];
+    memcpy(frame->symbol, offset(message, k-1, DXWIFI_FEC_SYMBOL_SIZE), rem ? rem : DXWIFI_FEC_SYMBOL_SIZE);
+
+    symbol_table[k-1] = frame->symbol;
+
+    crcs[k-1] = crc32(frame->symbol, DXWIFI_FEC_SYMBOL_SIZE);
+
 
     // Build repair symbols and calculate CRCs
     of_status_t status = OF_STATUS_OK;
@@ -160,11 +176,12 @@ ssize_t dxwifi_encode(void* message, size_t msglen, float coderate, void** out) 
     dxwifi_rs_ldpc_frame* rs_ldpc_frames = calloc(n, sizeof(dxwifi_rs_ldpc_frame));
 
     // Fill out OTI headers and RS Encode each LDPC Frame
-    for(size_t esi = 0; esi < n; ++esi) {
+    for(uint16_t esi = 0; esi < n; ++esi) {
         dxwifi_ldpc_frame* ldpc_frame = &ldpc_frames[esi];
-        ldpc_frame->oti.esi           = htonl(esi);
-        ldpc_frame->oti.n             = htonl(n);
-        ldpc_frame->oti.k             = htonl(k);
+        ldpc_frame->oti.esi           = htons(esi);
+        ldpc_frame->oti.n             = htons(n);
+        ldpc_frame->oti.k             = htons(k);
+        ldpc_frame->oti.rem           = htons(rem);
         ldpc_frame->oti.crc           = htonl(crcs[esi]);
 
         dxwifi_rs_ldpc_frame* rs_ldpc_frame = &rs_ldpc_frames[esi];
@@ -244,10 +261,11 @@ ssize_t dxwifi_decode(void* encoded_msg, size_t msglen, void** out) {
 	}
 
 	dxwifi_oti* oti = &ldpc_frames[idx].oti;
-    uint32_t esi    = ntohl(oti->esi);
-    uint32_t n      = ntohl(oti->n);
-    uint32_t k      = ntohl(oti->k);
-    log_info("OTI Found: esi=%d, n=%d, k=%d", esi, n, k);
+    uint16_t esi    = ntohs(oti->esi);
+    uint16_t n      = ntohs(oti->n);
+    uint16_t k      = ntohs(oti->k);
+    uint16_t rem    = ntohs(oti->rem);
+    log_info("OTI Found: esi=%d, n=%d, k=%d, rem=%d", esi, n, k, rem);
 
     of_session_t* openfec_session = init_openfec(n, k, OF_DECODER);
 
@@ -256,11 +274,11 @@ ssize_t dxwifi_decode(void* encoded_msg, size_t msglen, void** out) {
     for (size_t i = 0; i < nframes; ++i) {
         dxwifi_ldpc_frame* frame = &ldpc_frames[i];
 
-        uint32_t esi = ntohl(frame->oti.esi);
+        uint16_t esi = ntohs(frame->oti.esi);
         if(esi > n) {
             log_debug("Invalid ESI: %u, N: %u", esi, n);
         } else {
-            of_decode_with_new_symbol(openfec_session, frame->symbol, ntohl(frame->oti.esi));
+            of_decode_with_new_symbol(openfec_session, frame->symbol, esi);
         }
     }
     if(!of_is_decoding_complete(openfec_session)) {
@@ -275,19 +293,21 @@ ssize_t dxwifi_decode(void* encoded_msg, size_t msglen, void** out) {
     void* symbol_table[n];
     of_get_source_symbols_tab(openfec_session, symbol_table);
 
-    // TODO if the original file size is not evenly divisible by DXWIFI_FEC_SYMBOL_SIZE then the Kth 
-    // Symbol will have extra zeroes to pad it until it is of size DXWIFI_FEC_SYMBOL_SIZE. We will need 
-    // to find a way to identify and remove the extra padding.
-
     // Copy out the decoded message
     void* decoded_msg = calloc(k, DXWIFI_FEC_SYMBOL_SIZE);
-    for(size_t esi = 0; esi < k; ++esi) {
+    for(uint16_t esi = 0; esi < (k - 1); ++esi) {
         void* symbol = offset(decoded_msg, esi, DXWIFI_FEC_SYMBOL_SIZE);
         memcpy(symbol, symbol_table[esi], DXWIFI_FEC_SYMBOL_SIZE);
     }
+
+    // Special handling for Kth symbol since it may not be of length symbol size
+    uint16_t nbytes = rem ? rem : DXWIFI_FEC_SYMBOL_SIZE;
+    void* symbol = offset(decoded_msg, k-1, DXWIFI_FEC_SYMBOL_SIZE);
+    memcpy(symbol, symbol_table[k-1], nbytes);
+
     *out = decoded_msg;
 
     free(ldpc_frames);
     of_release_codec_instance(openfec_session);
-    return k * DXWIFI_FEC_SYMBOL_SIZE;
+    return ((k-1) * DXWIFI_FEC_SYMBOL_SIZE) + nbytes;
 }
