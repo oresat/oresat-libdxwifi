@@ -138,7 +138,7 @@ class TestTxRx(unittest.TestCase):
 
 
         tx_out     = f'{TEMP_DIR}/tx.raw'
-        rx_out     = [f'{TEMP_DIR}/rx_{x}.raw' for x in range(10)]
+        rx_out     = [f'{TEMP_DIR}/rx_{x:05}.raw' for x in range(10)]
         tx_command = f'{TX} {" ".join(test_files)} -q --savefile {tx_out}'
         rx_command = f'{RX} {TEMP_DIR} -q -c 1 -t 2 --prefix rx --extension raw --savefile {tx_out}'
 
@@ -163,7 +163,7 @@ class TestTxRx(unittest.TestCase):
             genbytes(file, 10, FEC_SYMBOL_SIZE)
 
         tx_out     = f'{TEMP_DIR}/tx.raw'
-        rx_out     = [f'{TEMP_DIR}/rx_{x}.raw' for x in range(10)]
+        rx_out     = [f'{TEMP_DIR}/rx_{x:05}.raw' for x in range(10)]
         tx_command = f'{TX} {TEMP_DIR} -q --filter test_*.raw --include-all --no-listen --savefile {tx_out}'
         rx_command = f'{RX} {TEMP_DIR} -q -t 2 --prefix rx --extension raw --savefile {tx_out}'
 
@@ -183,7 +183,7 @@ class TestTxRx(unittest.TestCase):
         '''Tx can watch for new files in a directory and transmit them'''
 
         tx_out     = f'{TEMP_DIR}/tx.raw'
-        rx_out     = [f'{TEMP_DIR}/rx_{x}.raw' for x in range(10)]
+        rx_out     = [f'{TEMP_DIR}/rx_{x:05}.raw' for x in range(10)]
         tx_command = f'{TX_INSTALL} {TEMP_DIR} -q --watch-timeout 2 --filter=test_*.raw --savefile {tx_out}'
         rx_command = f'{RX} {TEMP_DIR} -q -c 1 -t 2 --prefix rx --extension raw --savefile {tx_out}'
 
