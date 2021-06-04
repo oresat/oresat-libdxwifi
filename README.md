@@ -136,6 +136,10 @@ to something reasonable for your channel. If these parameters are not set then f
 
 ### *Encode / Decode*
 
+
+**Note**: As of Release 1.0, the `transmit` and `receive` programs automatically call the FEC `encode` and `decode` programs internally with preset defaults. The below documentation is provided if manual use of FEC encoding and decoding is necessary outside of the combined programs. 
+
+
 To FEC encode a file at a specific code rate: 
 
 ```
