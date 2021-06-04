@@ -276,7 +276,7 @@ void capture_in_directory(cli_args* args, dxwifi_receiver* rx) {
 
     dxwifi_rx_state_t state = DXWIFI_RX_NORMAL;
     while(state == DXWIFI_RX_NORMAL) {
-        snprintf(path, PATH_MAX, "%s/%s_%d.%s", args->output_path, args->file_prefix, count++, args->file_extension);
+        snprintf(path, PATH_MAX, "%s/%s_%.5d.%s", args->output_path, args->file_prefix, count++, args->file_extension);
 
         state = open_file_and_capture(path, rx, args->append);
     }
