@@ -66,6 +66,7 @@ static struct argp_option opts[] = {
     { "error-rate" ,    'e',  "<float>",            0,  "Numbers bits flipped",                                                          PRIMARY_GROUP },
     { "enable-pa",      'E',  0,                    0,  "Enable Power Amplifer (Only works on OreSat DxWiFi board)",                     PRIMARY_GROUP },
     { "coderate",       'c',  "<float>",            0,  "Coderate for FEC encoding",                                                     PRIMARY_GROUP },
+    { "disable-encode", 'x',  0,                    0,  "Transmit bytes without encoding",                                               PRIMARY_GROUP },
 
     { 0, 0, 0, OPTION_DOC, "The following settings are only applicable when reading from a directory", DIRECTORY_MODE_GROUP },
     { "filter",         GET_KEY(FILE_FILTER,        DIRECTORY_MODE_GROUP),  "<glob>",       OPTION_NO_USAGE,  "Only transmit files whose filename matches the filter",      DIRECTORY_MODE_GROUP },
@@ -219,6 +220,10 @@ static error_t parse_opt(int key, char* arg, struct argp_state *state) {
             argp_error(state, "Error: Coderate must be a decimal between 0 and 1.");
             argp_usage(state);
         }
+        break;
+
+    case 'x':
+        args->coderate = TX_ENCODING_DISABLED;
         break;
 
     case GET_KEY(FILE_FILTER, DIRECTORY_MODE_GROUP):

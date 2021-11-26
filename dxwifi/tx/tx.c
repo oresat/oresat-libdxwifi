@@ -337,12 +337,21 @@ dxwifi_tx_state_t transmit_files(dxwifi_transmitter* tx, char** files, size_t nu
             assert_M(file_data != MAP_FAILED, "Failed to map file to memory - %s", strerror(errno));
 
             void *encoded_message = NULL;
-            size_t msg_size = dxwifi_encode(file_data, file_size, coderate, &encoded_message);
+            size_t msg_size;
+            bool encoding_disabled = (coderate == TX_ENCODING_DISABLED);
+            if(encoding_disabled){
+                msg_size = file_size;
+            }else{
+                msg_size = dxwifi_encode(file_data, file_size, coderate, &encoded_message);
+            }
 
             if(msg_size > 0){
 
-            	log_info("Encoding Success for file: [%s], Filesize: %d", files[i], msg_size);
-
+            	if(encoding_disabled){
+                    log_info("Skipping encoding for file: [%s], Filesize: %d", files[i], msg_size);
+                }else{
+                    log_info("Encoding Success for file: [%s], Filesize: %d", files[i], msg_size);
+                }
             	int count = retransmit_count;
 
             	bool transmit_forever = (retransmit_count == -1);

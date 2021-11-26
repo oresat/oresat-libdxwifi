@@ -50,6 +50,10 @@ typedef struct {
     float               coderate;
 } cli_args;
 
+// Flag value assigned to cli_args.coderate to signify encoding will be skipped
+// No valid coderate will ever hold this value
+#define TX_ENCODING_DISABLED -1.0
+
 
 #define DEFAULT_CLI_ARGS  {\
         .tx_mode                    = TX_STREAM_MODE,\
