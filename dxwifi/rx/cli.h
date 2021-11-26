@@ -29,6 +29,7 @@ typedef struct {
     const char*     file_prefix;
     const char*     file_extension;
     dxwifi_receiver rx;
+    bool            disable_decode;
 } cli_args;
 
 
@@ -42,7 +43,8 @@ typedef struct {
         .output_path    = ".",\
         .file_prefix    = "rx",\
         .file_extension = "cap",\
-        .rx = DXWIFI_RECEIVER_DFLT_INITIALIZER\
+        .rx = DXWIFI_RECEIVER_DFLT_INITIALIZER,\
+        .disable_decode = false\
     }\
 
 

@@ -340,6 +340,7 @@ dxwifi_tx_state_t transmit_files(dxwifi_transmitter* tx, char** files, size_t nu
             size_t msg_size;
             bool encoding_disabled = (coderate == TX_ENCODING_DISABLED);
             if(encoding_disabled){
+                encoded_message = file_data;
                 msg_size = file_size;
             }else{
                 msg_size = dxwifi_encode(file_data, file_size, coderate, &encoded_message);

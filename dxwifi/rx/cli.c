@@ -53,6 +53,7 @@ static struct argp_option opts[] = {
     { "append",         'a', 0,                     0, "Open files in append mode",                                             PRIMARY_GROUP },
     { "ordered",        'o', 0,                     0, "Expect packets to have sequence informations",                          PRIMARY_GROUP },
     { "add-noise",      'n', 0,                     0, "Add noise for missing packets",                                         PRIMARY_GROUP },
+    { "disable-decode", 'x', 0,                     0, "Receive bytes without decoding them",                                   PRIMARY_GROUP },
 
     { 0, 0, 0, 0, "The following settings are only applicable when outputting to a directory",      DIRECTORY_MODE_GROUP },
     { "prefix",         'p', "<file-prefix>",       0, "What to name each created file",            DIRECTORY_MODE_GROUP },
@@ -171,6 +172,10 @@ static error_t parse_opt(int key, char* arg, struct argp_state *state) {
 
     case 's':
         args->use_syslog = true;
+        break;
+
+    case 'x':
+        args->disable_decode = true;
         break;
 
     case GET_KEY(SNAPLEN, PCAP_SETTINGS_GROUP):

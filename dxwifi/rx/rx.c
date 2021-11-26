@@ -187,23 +187,25 @@ dxwifi_rx_state_t setup_handlers_and_capture(dxwifi_receiver* rx, int fd) {
 }
 
 /**
- *  DESCRIPTION:    Attempts to open or create a file and listen for activate 
- *                  packet capture
+ *  DESCRIPTION:        Attempts to open or create a file and listen for activate 
+ *                      packet capture
  * 
  *  ARGUMENTS: 
  *      
- *      path:       Path to the file to be opened or created
+ *      path:           Path to the file to be opened or created
  * 
- *      rx:         Initialized reciever
+ *      rx:             Initialized reciever
  * 
- *      append:     Oppen file in append mode?
+ *      append:         Open file in append mode?
+ * 
+ *      disable_decode: Receive files without decoding?
  * 
  *  RETURNS:
  *     
  *      dxwifi_rx_state_t:  Last reported state of the receiver
  * 
  */
-dxwifi_rx_state_t open_file_and_capture(const char* path, dxwifi_receiver* rx, bool append) {
+dxwifi_rx_state_t open_file_and_capture(const char* path, dxwifi_receiver* rx, bool append, bool disable_decode) {
     int fd_out      = 0;
     int temp_fd     = 0;
 
@@ -233,11 +235,20 @@ dxwifi_rx_state_t open_file_and_capture(const char* path, dxwifi_receiver* rx, b
                 else {
 
                     void *decoded_message = NULL;
-                    ssize_t decoded_size = dxwifi_decode(encoded_data, temp_file_size, &decoded_message);
+                    ssize_t decoded_size;
+                    if(disable_decode){
+                        decoded_message = encoded_data;
+                        decoded_size = temp_file_size;
+                    }else{
+                        ssize_t decoded_size = dxwifi_decode(encoded_data, temp_file_size, &decoded_message);
+                    }
 
                     if(decoded_size > 0) {
-                        log_info("Decoding Success for RX'd file, File Size: %d", decoded_size);
-
+                        if(disable_decode){
+                            log_info("Decoding skipped for RX'd file, File Size: %d", decoded_size);
+                        }else{
+                            log_info("Decoding Success for RX'd file, File Size: %d", decoded_size);
+                        }
                         ssize_t nbytes = write(fd_out, decoded_message, decoded_size);
                         assert_M(decoded_size == nbytes, "Partial write occured: %d/%d - %s", nbytes, decoded_size, strerror(errno));
                         free(decoded_message);
@@ -278,7 +289,7 @@ void capture_in_directory(cli_args* args, dxwifi_receiver* rx) {
     while(state == DXWIFI_RX_NORMAL) {
         snprintf(path, PATH_MAX, "%s/%s_%.5d.%s", args->output_path, args->file_prefix, count++, args->file_extension);
 
-        state = open_file_and_capture(path, rx, args->append);
+        state = open_file_and_capture(path, rx, args->append, args->disable_decode);
     }
 }
 
@@ -302,7 +313,7 @@ void receive(cli_args* args, dxwifi_receiver* rx) {
         break;
 
     case RX_FILE_MODE: // Capture everything into a single file
-        open_file_and_capture(args->output_path, rx, args->append);
+        open_file_and_capture(args->output_path, rx, args->append, args->disable_decode);
         break;
 
     case RX_DIRECTORY_MODE: // Create new files whenever an EOT is signalled
