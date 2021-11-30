@@ -336,11 +336,11 @@ dxwifi_tx_state_t transmit_files(dxwifi_transmitter* tx, char** files, size_t nu
             void* file_data = mmap(NULL, file_size, PROT_READ, MAP_SHARED, fd, 0);
             assert_M(file_data != MAP_FAILED, "Failed to map file to memory - %s", strerror(errno));
 
-            void *encoded_message = NULL;
+            void *encoded_message = malloc(sizeof(void*));
             size_t msg_size;
             bool encoding_disabled = (coderate == TX_ENCODING_DISABLED);
             if(encoding_disabled){
-                encoded_message = file_data;
+                memcpy(encoded_message, file_data, file_size);
                 msg_size = file_size;
             }else{
                 msg_size = dxwifi_encode(file_data, file_size, coderate, &encoded_message);
