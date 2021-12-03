@@ -20,10 +20,11 @@
 
 
 typedef enum {
-    TX_TEST_MODE,       // Sanity check, transmit a test sequence of bytes
-    TX_FILE_MODE,       // Transmit a file or list of files
-    TX_STREAM_MODE,     // Transmit all data from stdin
-    TX_DIRECTORY_MODE,  // Transmit contents of a directory
+    TX_TEST_MODE,           // Sanity check, transmit a test sequence of bytes
+    TX_FILE_MODE,           // Transmit a file or list of files
+    TX_STREAM_MODE,         // Transmit all data from stdin
+    TX_DIRECTORY_MODE,      // Transmit contents of a directory
+    TX_NETWORK_TEST_MODE    // Perform a test of the network
 } tx_mode_t;
 
 

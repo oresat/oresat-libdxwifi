@@ -60,6 +60,7 @@ static struct argp_option opts[] = {
     { "redundancy",     'r', "<number>",            0,  "Number of extra control frames to send",                                        PRIMARY_GROUP },
     { "retransmit",     'R', "<number>",            0,  "Number of times to retransmit, -1 for infinity",                                PRIMARY_GROUP },
     { "test",           'T',  0,                    0,  "Transmit a test sequence of bytes, use -c to retransmit it multiple times",     PRIMARY_GROUP },
+    { "network-test",   'N',  0,                    0,  "Perform a network test using an incremental test sequence",                     PRIMARY_GROUP },
     { "daemon",         'D',  "<start|stop>",       0,  "Run the tx program as a forked daemon process (Sets logger to syslog as well)", PRIMARY_GROUP },
     { "pid-file",       'P',  "<file-path>",        0,  "Location of the Daemon's PID File",                                             PRIMARY_GROUP },
     { "packet-loss",    'p',  "<float>",            0,  "Numbers of packets dropped",                                                    PRIMARY_GROUP },
@@ -111,7 +112,7 @@ static error_t parse_opt(int key, char* arg, struct argp_state *state) {
     {
     case ARGP_KEY_END:
         // Determine TX Mode
-        if(!(args->tx_mode == TX_TEST_MODE)) {
+        if(!(args->tx_mode == TX_TEST_MODE || args->tx_mode == TX_NETWORK_TEST_MODE)) {
             if(args->file_count > 0) {
                 // TODO Dirwatch now supports multiple directories we don't need to limit to 1 anymore
                 if(args->file_count == 1 && is_directory(args->files[0])) {
@@ -188,6 +189,10 @@ static error_t parse_opt(int key, char* arg, struct argp_state *state) {
 
     case 'T':
         args->tx_mode = TX_TEST_MODE;
+        break;
+
+    case 'N':
+        args->tx_mode = TX_NETWORK_TEST_MODE;
         break;
 
     case 'D':

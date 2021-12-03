@@ -511,6 +511,43 @@ void transmit_test_sequence(dxwifi_transmitter* tx, int retransmit) {
 }
 
 
+/**
+ *  DESCRIPTION:    Send a test sequence to be received and analyzed by RX. The
+ *                  transmission starts at some seed and increments with each
+ *                  retransmission.
+ * 
+ *  ARGUMENTS:
+ *      
+ *      tx:         Initialized transmitter
+ *
+ *      retransmit: Number of times to transmit test sequence     
+ * 
+ */
+void transmit_network_test(dxwifi_transmitter* tx, int retransmit){
+
+    dxwifi_tx_stats stats;
+
+    bool transmit_forever = (retransmit == -1);
+
+    uint32_t count = 0;
+
+    // TODO determine proper starting seed for the counter
+    uint64_t seed = 20000;
+
+    log_info("Transmitting network test sequence...");
+    while (count <= retransmit || transmit_forever) {
+
+        transmit_bytes(tx, &seed, sizeof(seed), &stats);
+
+        log_tx_stats(stats);
+
+        ++seed;
+        ++count;
+    }
+    log_info("Test sequence completed, transmitted %d times", count);
+
+}
+
 
 /**
  *  DESCRIPTION:    Determine the transmission mode and transmit files
@@ -560,6 +597,10 @@ void transmit(cli_args* args, dxwifi_transmitter* tx) {
 
     case TX_TEST_MODE:
         transmit_test_sequence(tx, args->retransmit_count);
+        break;
+
+    case TX_NETWORK_TEST_MODE:
+        transmit_network_test(tx, args->retransmit_count);
         break;
 
     default:
