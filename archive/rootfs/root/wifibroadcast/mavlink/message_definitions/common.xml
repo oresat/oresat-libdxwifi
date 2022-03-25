@@ -4043,7 +4043,7 @@
       <field type="float" name="z" units="m">Z Position of the landing target on MAV_FRAME</field>
       <field type="float[4]" name="q">Quaternion of landing target orientation (w, x, y, z order, zero-rotation is 1, 0, 0, 0)</field>
       <field type="uint8_t" name="type" enum="LANDING_TARGET_TYPE">LANDING_TARGET_TYPE enum specifying the type of landing target</field>
-      <field type="uint8_t" name="position_valid">Boolean indicating known position (1) or default unkown position (0), for validation of positioning of the landing target</field>
+      <field type="uint8_t" name="position_valid">Boolean indicating known position (1) or default unknown position (0), for validation of positioning of the landing target</field>
     </message>
     <!-- MESSAGE IDs 180 - 229: Space for custom messages in individual projectname_messages.xml files -->
     <message id="230" name="ESTIMATOR_STATUS">
