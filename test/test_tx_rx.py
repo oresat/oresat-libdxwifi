@@ -212,7 +212,7 @@ class TestTxRx(unittest.TestCase):
         self.assertEqual(all(results), True)
 
     def testSmallImageTransmission(self):
-        '''Small (~1mb), uncompressed images can be transmitted and recieved'''
+        '''Small (~1mb), uncompressed images can be transmitted and received'''
 
         test_file   = f'test/data/daisy.bmp'
         tx_out      = f'{TEMP_DIR}/tx.raw'
