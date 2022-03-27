@@ -167,7 +167,7 @@ bool log_frame_stats(dxwifi_tx_frame* frame, dxwifi_tx_stats stats, void* user) 
         log_debug("Frame: %d - (Read: %ld, Sent: %ld)", stats.data_frame_count, stats.prev_bytes_read, stats.prev_bytes_sent);
     }
     else {
-        frame_size = DXWIFI_FRAME_CONTROL_SIZE;
+        frame_size = DXWIFI_FRAME_CONTROL_SIZE + DXWIFI_TX_HEADER_SIZE + IEEE80211_FCS_SIZE;
         log_debug("%s Frame Sent: %d", control_frame_type_to_str(stats.frame_type), stats.prev_bytes_sent);
     }
     log_hexdump(frame, frame_size);
