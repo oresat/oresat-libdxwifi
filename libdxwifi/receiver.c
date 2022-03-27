@@ -482,7 +482,12 @@ static void process_frame(uint8_t* args, const struct pcap_pkthdr* pkt_stats, co
     if(verify_sender(frame, fc->rx->sender_addr, fc->rx->max_hamming_dist)) {
         dxwifi_control_frame_t ctrl_frame = check_frame_control(frame, pkt_stats, 0.66);
 
-        if(ctrl_frame != DXWIFI_CONTROL_FRAME_NONE) {
+        if(ctrl_frame == DXWIFI_CONTROL_FRAME_UNKNOWN) {
+            // Payload size is incorrect, log the frame but don't process it
+            log_warning("caplen: %d, len: %d", pkt_stats->caplen, pkt_stats->len);
+            log_hexdump(frame, pkt_stats->caplen);
+        }
+        else if(ctrl_frame != DXWIFI_CONTROL_FRAME_NONE) {
             handle_frame_control(fc, ctrl_frame);
         }
         else {
