@@ -162,7 +162,11 @@ static dxwifi_rx_frame parse_rx_frame_fields(const struct pcap_pkthdr* pkt_stats
     frame.rtap_hdr  = (ieee80211_radiotap_hdr*) data;
     frame.mac_hdr   = (ieee80211_hdr*)(data + frame.rtap_hdr->it_len);
     frame.payload   = data + frame.rtap_hdr->it_len + sizeof(ieee80211_hdr);
+#if defined(DXWIFI_TESTS)
+    frame.fcs       = data + pkt_stats->caplen;
+#else
     frame.fcs       = data + pkt_stats->caplen - IEEE80211_FCS_SIZE;
+#endif
     return frame;
 }
 
@@ -221,7 +225,11 @@ static dxwifi_control_frame_t check_frame_control(const uint8_t* frame, const st
     // Get info we need from the raw data frame
     const ieee80211_radiotap_hdr* rtap = (const ieee80211_radiotap_hdr*)frame;
     const uint8_t* payload = frame + rtap->it_len + sizeof(ieee80211_hdr);
+#if defined(DXWIFI_TESTS)
+    size_t payload_size = pkt_stats->caplen - rtap->it_len - sizeof(ieee80211_hdr);
+#else
     size_t payload_size = pkt_stats->caplen - rtap->it_len - sizeof(ieee80211_hdr) - IEEE80211_FCS_SIZE;
+#endif
 
     unsigned eot                = 0;
     unsigned preamble           = 0;
@@ -484,7 +492,7 @@ static void process_frame(uint8_t* args, const struct pcap_pkthdr* pkt_stats, co
 
         if(ctrl_frame == DXWIFI_CONTROL_FRAME_UNKNOWN) {
             // Payload size is incorrect, log the frame but don't process it
-            log_warning("caplen: %d, len: %d", pkt_stats->caplen, pkt_stats->len);
+            log_warning("Warning, unknown frame encountered. caplen: %d, len: %d", pkt_stats->caplen, pkt_stats->len);
             log_hexdump(frame, pkt_stats->caplen);
         }
         else if(ctrl_frame != DXWIFI_CONTROL_FRAME_NONE) {
