@@ -120,7 +120,7 @@ typedef struct {
 
 
 /**
- *  Receiver is responsible for handling packet capture. The reciever must be
+ *  Receiver is responsible for handling packet capture. The receiver must be
  *  initialized before use and torn down after. It is the user's responsibility 
  *  to fill in the fields with the correct capture settings they want. 
  * 
@@ -183,7 +183,7 @@ typedef struct {
  * 
  *  ARGUMENTS:
  * 
- *     reciever:    pointer to an allocated reciever object
+ *     receiver:    pointer to an allocated receiver object
  * 
  *     device_name: Name of the WiFi device to capture packets on. The 
  *                  specified device must be enabled in monitor mode.
@@ -193,11 +193,11 @@ void init_receiver(dxwifi_receiver* receiver, const char* device_name);
 
 
 /**
- *  DESCRIPTION:    Tearsdown any resources associated with the reciever
+ *  DESCRIPTION:    Tearsdown any resources associated with the receiver
  * 
  *  ARGUMENTS: 
  * 
- *      reciever:   pointer to an allocated reciever object
+ *      receiver:   pointer to an allocated receiver object
  * 
  */
 void close_receiver(dxwifi_receiver* receiver);

@@ -1010,7 +1010,7 @@ sub read_inline_params(\%params)
 			/-v$/ && do {$$param{"verbose"}=1; print "\n\e[1m[VERBOSE MODE ACTIVATED]\e[0m\n\n"; last;}; #verbose mode ; to leave after all parameters beggining with 'v' in this subroutine
 			/-f$/ && do {$$param{"force"}=1;last;};
 			#if parameter don't match anything, raise warning
-			warn "\e[31m\e[1mERROR:\e[0m\e[31m unkown parameter in expression '$arg'\e[0m\n";
+			warn "\e[31m\e[1mERROR:\e[0m\e[31m unknown parameter in expression '$arg'\e[0m\n";
 			$nb_warning++;
 		}
 	}

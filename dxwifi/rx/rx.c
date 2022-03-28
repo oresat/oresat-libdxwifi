@@ -194,7 +194,7 @@ dxwifi_rx_state_t setup_handlers_and_capture(dxwifi_receiver* rx, int fd) {
  *      
  *      path:       Path to the file to be opened or created
  * 
- *      rx:         Initialized reciever
+ *      rx:         Initialized receiver
  * 
  *      append:     Oppen file in append mode?
  * 
@@ -267,7 +267,7 @@ dxwifi_rx_state_t open_file_and_capture(const char* path, dxwifi_receiver* rx, b
  *      
  *      args:       Parsed command line arguments
  * 
- *      rx:         Initialized reciever
+ *      rx:         Initialized receiver
  * 
  */
 void capture_in_directory(cli_args* args, dxwifi_receiver* rx) {
@@ -290,7 +290,7 @@ void capture_in_directory(cli_args* args, dxwifi_receiver* rx) {
  *      
  *      args:       Parsed command line arguments
  * 
- *      rx:         Initialized reciever
+ *      rx:         Initialized receiver
  * 
  */
 void receive(cli_args* args, dxwifi_receiver* rx) {

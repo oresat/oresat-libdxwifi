@@ -268,7 +268,7 @@ static dxwifi_control_frame_t check_frame_control(const uint8_t* frame, const st
  *      fc:         Frame controller contains state information about the current
  *                  capture
  * 
- *      type:       The type of control frame recieved
+ *      type:       The type of control frame received
  *  
  */
 static void handle_frame_control(frame_controller* fc, dxwifi_control_frame_t type) {
@@ -276,7 +276,7 @@ static void handle_frame_control(frame_controller* fc, dxwifi_control_frame_t ty
 
     switch (type) 
     {
-    // TODO if the dispatch count is greater than 1 then the reciever will 
+    // TODO if the dispatch count is greater than 1 then the receiver will 
     // continue to process packets until number of packets processed is greater
     // than the dispatch count. If we encounter the EOT before we've processed 
     // all the packets we will end up processing the next files packets as 
@@ -307,14 +307,14 @@ static void handle_frame_control(frame_controller* fc, dxwifi_control_frame_t ty
 
     case DXWIFI_CONTROL_FRAME_UNKNOWN:
     default: 
-        log_info("Unkown control frame recieved");
+        log_info("Unknown control frame received");
         break;
     }
 }
 
 
 /**
- *  DESCRIPTION:    Write all the payload data recieved into a sink
+ *  DESCRIPTION:    Write all the payload data received into a sink
  * 
  *  ARGUMENTS:
  * 
