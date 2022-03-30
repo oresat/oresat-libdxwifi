@@ -82,7 +82,7 @@ static struct argp_option opts[] = {
     { "short-preamble", GET_KEY(IEEE80211_RADIOTAP_F_SHORTPRE,      RTAP_FLAGS_GROUP),      0,          OPTION_NO_USAGE,  "Sent with short preamble",               RTAP_FLAGS_GROUP },
     { "wep",            GET_KEY(IEEE80211_RADIOTAP_F_WEP,           RTAP_FLAGS_GROUP),      0,          OPTION_NO_USAGE,  "Sent with WEP encryption",               RTAP_FLAGS_GROUP },
     { "frag",           GET_KEY(IEEE80211_RADIOTAP_F_FRAG,          RTAP_FLAGS_GROUP),      0,          OPTION_NO_USAGE,  "Sent with fragmentation",                RTAP_FLAGS_GROUP },
-    { "nofcs",          GET_KEY(IEEE80211_RADIOTAP_F_FCS,           RTAP_FLAGS_GROUP),      0,          OPTION_NO_USAGE,  "Frame does not includes FCS",            RTAP_FLAGS_GROUP },
+    { "fcs",            GET_KEY(IEEE80211_RADIOTAP_F_FCS,           RTAP_FLAGS_GROUP),      0,          OPTION_NO_USAGE,  "Frame includes an FCS",                  RTAP_FLAGS_GROUP },
     { "ack",            GET_KEY(IEEE80211_RADIOTAP_F_TX_NOACK,      RTAP_TX_FLAGS_GROUP),   0,          OPTION_NO_USAGE,  "Tx expects an ACK frame",                RTAP_TX_FLAGS_GROUP },
     { "sequence",       GET_KEY(IEEE80211_RADIOTAP_F_TX_NOSEQNO,    RTAP_TX_FLAGS_GROUP),   0,          OPTION_NO_USAGE,  "Tx includes preconfigured sequence id",  RTAP_TX_FLAGS_GROUP },
     { "ordered",        GET_KEY(IEEE80211_RADIOTAP_F_TX_ORDER,      RTAP_TX_FLAGS_GROUP),   0,          OPTION_NO_USAGE,  "Tx should not be reordered",             RTAP_TX_FLAGS_GROUP },

@@ -37,7 +37,7 @@
 #define DXWIFI_TX_BLOCKSIZE DXWIFI_TX_PAYLOAD_SIZE
 
 #define DXWIFI_TX_FRAME_SIZE \
-    (DXWIFI_TX_HEADER_SIZE + DXWIFI_TX_PAYLOAD_SIZE + IEEE80211_FCS_SIZE)
+    (DXWIFI_TX_HEADER_SIZE + DXWIFI_TX_PAYLOAD_SIZE)
 
 #define DXWIFI_TX_RADIOTAP_PRESENCE_BIT_FIELD \
     ( 0x1 << IEEE80211_RADIOTAP_FLAGS    \
@@ -93,8 +93,8 @@ typedef struct __attribute__((packed)) {
     // Actual Data Frame
     dxwifi_tx_radiotap_hdr  radiotap_hdr;  /* frame metadata               */
     ieee80211_hdr           mac_hdr;       /* link-layer header            */
-    uint8_t                 payload[DXWIFI_TX_PAYLOAD_SIZE + IEEE80211_FCS_SIZE];       
-                                            /* packet data and FCS          */
+    uint8_t                 payload[DXWIFI_TX_PAYLOAD_SIZE];       
+                                           /* packet data, driver attaches FCS */
 } dxwifi_tx_frame;
 compiler_assert(sizeof(dxwifi_tx_frame) == DXWIFI_TX_FRAME_SIZE, 
     "Mismatch in actual tx frame size and calculated size");
@@ -194,7 +194,7 @@ typedef struct {
     .transmit_timeout       = -1,\
     .redundant_ctrl_frames  = 0,\
     .enable_pa              = false,\
-    .rtap_flags             = IEEE80211_RADIOTAP_F_FCS,\
+    .rtap_flags             = 0x00,\
     .rtap_rate_mbps         = 1,\
     .rtap_tx_flags          = IEEE80211_RADIOTAP_F_TX_NOACK,\
     .fctl = {\

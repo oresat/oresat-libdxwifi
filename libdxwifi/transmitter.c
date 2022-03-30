@@ -224,7 +224,7 @@ static int inject_packet(dxwifi_transmitter* tx, dxwifi_tx_frame* frame, dxwifi_
 
     size_t frame_size = DXWIFI_TX_FRAME_SIZE;
     if(stats->frame_type != DXWIFI_CONTROL_FRAME_NONE) {
-        frame_size = DXWIFI_TX_HEADER_SIZE + DXWIFI_FRAME_CONTROL_SIZE + IEEE80211_FCS_SIZE;
+        frame_size = DXWIFI_TX_HEADER_SIZE + DXWIFI_FRAME_CONTROL_SIZE;
     }
 
     if(transmit) {
