@@ -15,6 +15,7 @@ typedef enum {
     RX_FILE_MODE,
     RX_STREAM_MODE,
     RX_DIRECTORY_MODE,
+    RX_BIT_ERROR_MODE
 } rx_mode_t;
 
 

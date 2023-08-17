@@ -100,7 +100,8 @@ static error_t parse_opt(int key, char* arg, struct argp_state *state) {
     case ARGP_KEY_END:
         if(state->arg_num > 0) {
             if (is_directory(args->output_path) ) {
-                args->rx_mode = RX_DIRECTORY_MODE;
+                // args->rx_mode = RX_DIRECTORY_MODE;
+                args->rx_mode = RX_BIT_ERROR_MODE;
             }
             else {
                 args->rx_mode = RX_FILE_MODE;

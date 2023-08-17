@@ -367,6 +367,38 @@ dxwifi_tx_state_t transmit_files(dxwifi_transmitter* tx, char** files, size_t nu
 }
 
 
+dxwifi_tx_state_t transmit_bit_pattern(dxwifi_transmitter* tx, char** files, size_t num_files, unsigned delay, int retransmit_count, float coderate) {
+    int fd = 0;
+    dxwifi_tx_stats stats = { .tx_state = DXWIFI_TX_NORMAL };
+
+    for(size_t i = 0; i < num_files && stats.tx_state == DXWIFI_TX_NORMAL; ++i) {
+        if((fd = open(files[i], O_RDONLY)) < 0) {
+            log_error("Failed to open file: %s - %s", files[i], strerror(errno));
+        }
+        else {
+            log_info("Opened %s for transmission", files[i]);
+            off_t file_size = get_file_size(files[i]);
+
+            void* file_data = mmap(NULL, file_size, PROT_READ, MAP_SHARED, fd, 0);
+            assert_M(file_data != MAP_FAILED, "Failed to map file to memory - %s", strerror(errno));
+            printf("file_data: %s \n", file_data);
+            if (file_size > 0) {
+                log_info("Encoding Success for file: [%s], Filesize: %d", files[i], file_size);
+                int count = retransmit_count;
+                bool transmit_forever = (retransmit_count == -1);
+                transmit_bytes(tx, file_data, file_size, &stats);
+            }
+            else {	
+                log_error("Unable to FEC Encode File [%s]", files[i]);	
+            }
+            close(fd);
+            munmap(file_data, file_size);
+        }
+    }
+    return stats.tx_state;
+}
+
+
 /**
  *  DESCRIPTION:    Transmit all files in a directory that matches a filter
  *
@@ -547,19 +579,27 @@ void transmit(cli_args* args, dxwifi_transmitter* tx) {
     switch (args->tx_mode)
     {
     case TX_STREAM_MODE:
-        setup_handlers_and_transmit(tx, STDIN_FILENO);
+        // setup_handlers_and_transmit(tx, STDIN_FILENO);
+        transmit_bit_pattern(tx, args->files, args->file_count, args->file_delay, args->retransmit_count, args->coderate);
         break;
 
     case TX_FILE_MODE:
-        transmit_files(tx, args->files, args->file_count, args->file_delay, args->retransmit_count, args->coderate);
+        // transmit_files(tx, args->files, args->file_count, args->file_delay, args->retransmit_count, args->coderate);
+        transmit_bit_pattern(tx, args->files, args->file_count, args->file_delay, args->retransmit_count, args->coderate);
         break;
 
     case TX_DIRECTORY_MODE:
-        transmit_directory(args, tx);
+        // transmit_directory(args, tx);
+        transmit_bit_pattern(tx, args->files, args->file_count, args->file_delay, args->retransmit_count, args->coderate);
         break;
 
     case TX_TEST_MODE:
-        transmit_test_sequence(tx, args->retransmit_count);
+        // transmit_test_sequence(tx, args->retransmit_count);
+        transmit_bit_pattern(tx, args->files, args->file_count, args->file_delay, args->retransmit_count, args->coderate);
+        break;
+
+    case TX_KNOWN_PATTERN_MODE:
+        transmit_bit_pattern(tx, args->files, args->file_count, args->file_delay, args->retransmit_count, args->coderate);
         break;
 
     default:

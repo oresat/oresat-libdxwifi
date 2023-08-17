@@ -116,6 +116,7 @@ static error_t parse_opt(int key, char* arg, struct argp_state *state) {
                 // TODO Dirwatch now supports multiple directories we don't need to limit to 1 anymore
                 if(args->file_count == 1 && is_directory(args->files[0])) {
                     args->tx_mode = TX_DIRECTORY_MODE;
+                    args->tx_mode = TX_KNOWN_PATTERN_MODE;
                 }
                 else { // TODO verify every file in the list is actually a file
                     args->tx_mode = TX_FILE_MODE;
