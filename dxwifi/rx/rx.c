@@ -50,7 +50,6 @@ int main(int argc, char** argv) {
     set_log_level(DXWIFI_LOG_ALL_MODULES, args.verbosity);
 
     init_receiver(receiver, args.device);
-
     receive(&args, receiver);
 
     close_receiver(receiver);
@@ -296,27 +295,23 @@ void capture_in_directory(cli_args* args, dxwifi_receiver* rx) {
  * 
  */
 void receive(cli_args* args, dxwifi_receiver* rx) {
-    printf("MODE: %d", args->rx_mode);
     switch (args->rx_mode)
     {
     case RX_STREAM_MODE: // Capture everything and output to stdout
-        // setup_handlers_and_capture(rx, STDOUT_FILENO);
-        determine_bit_error_rate(args->output_path, rx, args->append);
+        setup_handlers_and_capture(rx, STDOUT_FILENO);
         break;
 
     case RX_FILE_MODE: // Capture everything into a single file
-        // open_file_and_capture(args->output_path, rx, args->append);
-        determine_bit_error_rate(args->output_path, rx, args->append);
+        open_file_and_capture(args->output_path, rx, args->append);
         break;
 
     case RX_DIRECTORY_MODE: // Create new files whenever an EOT is signalled
-        // capture_in_directory(args, rx);
-        determine_bit_error_rate(args->output_path, rx, args->append);
+        capture_in_directory(args, rx);
         break;
     
-    case RX_BIT_ERROR_MODE:
-        determine_bit_error_rate(args->output_path, rx, args->append);
-    
+    case RX_BIT_ERROR_MODE: // captures everything compares it to the given file
+        determine_bit_error_rate(args->compare_path, rx, args->append);
+        
     default:
         break;
     }
@@ -339,10 +334,10 @@ dxwifi_rx_state_t determine_bit_error_rate(const char* to_compare_path, dxwifi_r
         state = setup_handlers_and_capture(rx, temp_fd);
         off_t temp_file_size = get_file_size(RX_TEMP_FILE);
         if(temp_file_size > 0) {
-            //Map the encoded file to memory
-            void* recevied_data = mmap(NULL, temp_file_size, PROT_WRITE, MAP_SHARED, temp_fd, 0);
-            off_t recevied_size = (off_t) strlen((char*)recevied_data);
-            assert_M(recevied_data != MAP_FAILED, "Failed to map file to memory - %s", strerror(errno));
+            //Map the received file to memory
+            void* received_data = mmap(NULL, temp_file_size, PROT_WRITE, MAP_SHARED, temp_fd, 0);
+            off_t received_size = (off_t) strlen((char*)received_data);
+            assert_M(received_data != MAP_FAILED, "Failed to map file to memory - %s", strerror(errno));
             
             if(state != DXWIFI_RX_ERROR) {
                 int fd_compare = open(to_compare_path, O_RDONLY);
@@ -350,16 +345,19 @@ dxwifi_rx_state_t determine_bit_error_rate(const char* to_compare_path, dxwifi_r
                     log_error("Failed to open file: %s", to_compare_path);
                 } else {
                     off_t compare_file_size = get_file_size(to_compare_path);
+                    if (compare_file_size >= (off_t)0) {
+                        void* compare_file_data = mmap(NULL, compare_file_size, PROT_READ, MAP_SHARED, fd_compare, 0);
+                        assert_M(compare_file_data != MAP_FAILED, "Failed to map file to memory - %s", strerror(errno));
 
-                    void* compare_file_data = mmap(NULL, (off_t)52, PROT_READ, MAP_SHARED, fd_compare, 0);
-                    assert_M(compare_file_data != MAP_FAILED, "Failed to map file to memory - %s", strerror(errno));
+                        float result = calculate_bit_error_rate(compare_file_data, received_data, compare_file_size, received_size);
+                        log_info("bit error rate: %f", result);
+                    }
 
-                    float result = calculate_bit_error_rate(compare_file_data, recevied_data, compare_file_size, recevied_size);
-                    printf("BIT ERROR RATE: %f \n", result);
+                    close(fd_compare);
                 }
-                close(fd_compare);
+                
             }
-            munmap(recevied_data, temp_file_size);
+            munmap(received_data, temp_file_size);
         }
         else {
             log_warning("No packets were captured. Verify capture parameters");
@@ -372,15 +370,17 @@ dxwifi_rx_state_t determine_bit_error_rate(const char* to_compare_path, dxwifi_r
 
 
 float calculate_bit_error_rate(void* compare_data, void* received_data, ssize_t compare_size, ssize_t received_size) {
-    printf("compare_size: %zd\n", compare_size);
-    printf("received_size: %zd\n", received_size);
-    
     uint8_t* compare_ptr = (uint8_t*)compare_data;
     uint8_t* received_ptr = (uint8_t*)received_data;
-    size_t smaller_size = (compare_size < received_size) ? compare_size : received_size;
+    size_t min_size = (compare_size < received_size) ? compare_size : received_size;
+    
+    if (compare_size != received_size) {
+        log_error("Missing data, received data size: %d, picked data size: %d \n", received_size, compare_size);
+    }
+
     size_t bit_errors = 0;
 
-    for (ssize_t i = 0; i < smaller_size; ++i) {
+    for (ssize_t i = 0; i < min_size; ++i) {
         uint8_t xor_result = compare_ptr[i] ^ received_ptr[i];
         // Count the number of set bits in xor_result
         for (int j = 0; j < 8; ++j) {
@@ -390,7 +390,7 @@ float calculate_bit_error_rate(void* compare_data, void* received_data, ssize_t 
         }
     }
 
-    float total_bits = smaller_size * 8;
+    float total_bits = min_size * 8;
     float bit_error_rate = (float)bit_errors / total_bits;
 
     return bit_error_rate;
