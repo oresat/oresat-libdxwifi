@@ -118,19 +118,19 @@ void log_rx_stats(dxwifi_rx_stats stats) {
     free(channel_flags_str);
 }
 
-
 /**
  *  DESCRIPTION:    Signals to the receiver to stop capture
- * 
- *  ARGUMENTS: 
- *      
- *      signum:     Received signal  
- * 
+ *
+ *  ARGUMENTS:
+ *
+ *      signum:     Received signal
+ *
  */
-void sigint_handler(int signum) {
+static void
+sigint_handler(int signum)
+{
     receiver_stop_capture(receiver);
 }
-
 
 /**
  *  DESCRIPTION:    Sets SIGINT handler, captures packets, and restores original
