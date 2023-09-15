@@ -29,8 +29,6 @@
 
 static dxwifi_receiver *receiver = NULL;
 
-void receive(cli_args* args, dxwifi_receiver* rx);
-
 /**
  *  DESCRIPTION:    Logs info about the current capture session
  * 
@@ -259,32 +257,35 @@ void capture_in_directory(cli_args* args, dxwifi_receiver* rx) {
 
 /**
  *  DESCRIPTION:    Determine receive mode and activate packet capture
- * 
- *  ARGUMENTS: 
- *      
+ *
+ *  ARGUMENTS:
+ *
  *      args:       Parsed command line arguments
- * 
+ *
  *      rx:         Initialized receiver
- * 
+ *
  */
-void receive(cli_args* args, dxwifi_receiver* rx) {
+static void
+receive(cli_args *args, dxwifi_receiver *rx)
+{
+    switch (args->rx_mode) {
+        case RX_STREAM_MODE:
+            // Capture everything and output to stdout
+            setup_handlers_and_capture(rx, STDOUT_FILENO);
+            break;
 
-    switch (args->rx_mode)
-    {
-    case RX_STREAM_MODE: // Capture everything and output to stdout
-        setup_handlers_and_capture(rx, STDOUT_FILENO);
-        break;
+        case RX_FILE_MODE:
+            // Capture everything into a single file
+            open_file_and_capture(args->output_path, rx, args->append);
+            break;
 
-    case RX_FILE_MODE: // Capture everything into a single file
-        open_file_and_capture(args->output_path, rx, args->append);
-        break;
+        case RX_DIRECTORY_MODE:
+            // Create new files whenever an EOT is signalled
+            capture_in_directory(args, rx);
+            break;
 
-    case RX_DIRECTORY_MODE: // Create new files whenever an EOT is signalled
-        capture_in_directory(args, rx);
-        break;
-    
-    default:
-        break;
+        default:
+            break;
     }
 }
 
