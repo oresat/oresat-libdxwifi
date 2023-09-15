@@ -1,10 +1,10 @@
 /**
  *  rx.c
- * 
+ *
  *  DESCRIPTION: DxWiFi Receiver program
- * 
+ *
  *  https://github.com/oresat/oresat-dxwifi-software
- * 
+ *
  */
 
 #include <stdio.h>
@@ -25,37 +25,11 @@
 #include <libdxwifi/details/logging.h>
 #include <libdxwifi/details/syslogger.h>
 
-
 #define RX_TEMP_FILE "/tmp/rx.raw"
 
-
-dxwifi_receiver* receiver = NULL;
-
+static dxwifi_receiver *receiver = NULL;
 
 void receive(cli_args* args, dxwifi_receiver* rx);
-
-
-int main(int argc, char** argv) {
-    cli_args args = DEFAULT_CLI_ARGS;
-    receiver = &args.rx;
-
-    parse_args(argc, argv, &args);
-
-    if(args.use_syslog) {
-        set_logger(DXWIFI_LOG_ALL_MODULES, syslogger);
-    }
-
-    set_log_level(DXWIFI_LOG_ALL_MODULES, args.verbosity);
-
-    init_receiver(receiver, args.device);
-
-    receive(&args, receiver);
-
-    close_receiver(receiver);
-
-    exit(0);
-}
-
 
 /**
  *  DESCRIPTION:    Logs info about the current capture session
@@ -312,4 +286,24 @@ void receive(cli_args* args, dxwifi_receiver* rx) {
     default:
         break;
     }
+}
+
+int
+main(int argc, char **argv)
+{
+    cli_args args = DEFAULT_CLI_ARGS;
+    receiver = &args.rx;
+
+    parse_args(argc, argv, &args);
+
+    if (args.use_syslog) {
+        set_logger(DXWIFI_LOG_ALL_MODULES, syslogger);
+    }
+    set_log_level(DXWIFI_LOG_ALL_MODULES, args.verbosity);
+
+    init_receiver(receiver, args.device);
+    receive(&args, receiver);
+    close_receiver(receiver);
+
+    exit(0);
 }
