@@ -12,6 +12,7 @@
 #include <signal.h>
 
 #include <fcntl.h>
+#include <inttypes.h>   // PRIu8, etc.
 #include <unistd.h>
 
 #include <sys/mman.h>
@@ -31,90 +32,94 @@ static dxwifi_receiver *receiver = NULL;
 
 /**
  *  DESCRIPTION:    Logs info about the current capture session
- * 
- *  ARGUMENTS: 
- *      
+ *
+ *  ARGUMENTS:
+ *
  *      stats:      Stats about the entire capture session
- * 
+ *
  */
-void log_rx_stats(dxwifi_rx_stats stats) {
-    char* channel_flags_str = radiotap_channel_flags_to_str(stats.rtap.channel.flags);
+static void
+log_rx_stats(dxwifi_rx_stats stats)
+{
+    char *channel_flags_str = NULL;
 
-    log_debug(
-        "Receiver Capture Stats\n"
-        "\tTotal Payload Size:          %d\n"
-        "\tTotal Write length:          %d\n"
-        "\tTotal Capture Size:          %d\n"
-        "\tTotal Blocks Lost:           %d\n"
-        "\tTotal Noise Added:           %d\n"
-        "\tBad CRC Count:               %d\n"
-        "\tChannel Frequency:           %d\n"
-        "\tChannel Mode:                %s\n"
-        "\tAntenna:                     %d\n"
-        "\tAntenna Signal:              %ddBm\n"
-        "\tPackets Processed:           %d\n"
-        "\tPackets Received:            %d\n"
-        "\tPackets Dropped (receiver):  %d\n"
-        "\tPackets Dropped (Kernel):    %d\n"
-        "\tPackets Dropped (NIC):       %d\n"
-        "\tNote: Packet drop data is platform dependent.\n"
-        "\tBlocks lost is only tracked when `ordered` flag is set",
-        stats.total_payload_size,
-        stats.total_writelen,
-        stats.total_caplen,
-        stats.total_blocks_lost,
-        stats.total_noise_added,
-        stats.bad_crcs,
-        stats.rtap.channel.frequency,
-        channel_flags_str,
-        stats.rtap.antenna,
-        stats.rtap.ant_signal,
-        stats.num_packets_processed,
-        stats.pcap_stats.ps_recv,
-        stats.packets_dropped,
-        stats.pcap_stats.ps_drop,
-        stats.pcap_stats.ps_ifdrop
-    );
-    if((stats.rtap.mcs.flags & 0x03) == 0){
-        log_debug("MCS Bandwidth = 20");
+    channel_flags_str = radiotap_channel_flags_to_str(stats.rtap.channel.flags);
+
+    log_debug("Receiver Capture Stats\n"
+              "\tTotal Payload Size:          %d\n"
+              "\tTotal Write length:          %d\n"
+              "\tTotal Capture Size:          %d\n"
+              "\tTotal Blocks Lost:           %d\n"
+              "\tTotal Noise Added:           %d\n"
+              "\tBad CRC Count:               %d\n"
+              "\tChannel Frequency:           %d\n"
+              "\tChannel Mode:                %s\n"
+              "\tAntenna:                     %d\n"
+              "\tAntenna Signal:              %ddBm\n"
+              "\tPackets Processed:           %d\n"
+              "\tPackets Received:            %d\n"
+              "\tPackets Dropped (receiver):  %d\n"
+              "\tPackets Dropped (Kernel):    %d\n"
+              "\tPackets Dropped (NIC):       %d\n"
+              "\tNote: Packet drop data is platform dependent.\n"
+              "\tBlocks lost is tracked only when 'ordered' flag is set",
+              stats.total_payload_size, stats.total_writelen,
+              stats.total_caplen, stats.total_blocks_lost,
+              stats.total_noise_added, stats.bad_crcs,
+              stats.rtap.channel.frequency, channel_flags_str,
+              stats.rtap.antenna, stats.rtap.ant_signal,
+              stats.num_packets_processed, stats.pcap_stats.ps_recv,
+              stats.packets_dropped, stats.pcap_stats.ps_drop,
+              stats.pcap_stats.ps_ifdrop);
+
+    // Key for known and flags: https://www.radiotap.org/fields/MCS.html
+
+    if ((stats.rtap.mcs.flags & 0x03) == 0) {
+        log_debug("MCS bandwidth = 20");
     }
-    if((stats.rtap.mcs.flags & 0x03) == 1){
-        log_debug("MCS Bandwith = 40");
+    if ((stats.rtap.mcs.flags & 0x03) == 1) {
+        log_debug("MCS bandwidth = 40");
     }
-    if((stats.rtap.mcs.flags & 0x03) == 2){
-        log_debug("MCS Bandwith = 20L");
+    if ((stats.rtap.mcs.flags & 0x03) == 2) {
+        log_debug("MCS bandwidth = 20L");
     }
-    if((stats.rtap.mcs.flags & 0x03) == 3){
-        log_debug("MCS Bandwidth = 20U");
+    if ((stats.rtap.mcs.flags & 0x03) == 3) {
+        log_debug("MCS bandwidth = 20U");
     }
-    if((stats.rtap.mcs.flags & 0x04) == 0){
-        log_debug("MCS Guard Interval: Long");
+
+    if ((stats.rtap.mcs.flags & 0x04) != 0) {
+        log_debug("MCS guard interval: Short");
+    } else {
+        log_debug("MCS guard interval: Long");
     }
-    if((stats.rtap.mcs.flags & 0x04) != 0){
-        log_debug("MCS Guard Interval: Short");
+
+    if ((stats.rtap.mcs.flags & 0x08) != 0) {
+        log_debug("MCS HT format: greenfield");
+    } else {
+        log_debug("MCS HT format: mixed");
     }
-    if((stats.rtap.mcs.flags & 0x08) == 0){
-        log_debug("MCS HT Format: Mixed");
+
+    if ((stats.rtap.mcs.flags & 0x10) != 0) {
+        log_debug("MCS FEC type: LDPC");
+    } else {
+        log_debug("MCS FEC type: BCC");
     }
-    if((stats.rtap.mcs.flags & 0x08) != 0){
-        log_debug("MCS HT Format: Greenfield");
+
+    if (((stats.rtap.mcs.known & 0x20) != 0)
+        && ((stats.rtap.mcs.flags & 0x60) != 0)) {
+
+        log_debug("Number of STBC streams: %" PRIu8,
+                  (stats.rtap.mcs.flags & 0x60));
     }
-    if((stats.rtap.mcs.flags & 0x10) == 0){
-        log_debug("MCS FEC Type: BCC");
+
+    if (((stats.rtap.mcs.known & 0x40) != 0)
+        && ((stats.rtap.mcs.flags & 0x80) != 0)) {
+
+        log_debug("Number of extension spatial streams: %" PRIu8,
+                  (stats.rtap.mcs.flags & 0x80));
     }
-    if((stats.rtap.mcs.flags & 0x10) != 0){
-        log_debug("MCS FEC Type: LDPC");
-    }
-    if((stats.rtap.mcs.known & 0x20) && ((stats.rtap.mcs.flags & 0x60) != 0)){
-        log_debug("Number of STBC Streams: %u", (stats.rtap.mcs.flags & 0x60));
-    }
-    if((stats.rtap.mcs.known & 0x40) && ((stats.rtap.mcs.flags & 0x80) != 0)){
-        log_debug("Number of Extension Spatial Streams: %u", (stats.rtap.mcs.flags & 0x80));
-    }
-    log_debug(
-        "MCS Rate Index Data (Flags): 0x%02x",   
-        stats.rtap.mcs.flags
-    );
+
+    log_debug("MCS rate index data (flags): 0x%02x", stats.rtap.mcs.flags);
     free(channel_flags_str);
 }
 
