@@ -41,9 +41,7 @@ static dxwifi_receiver *receiver = NULL;
 static void
 log_rx_stats(dxwifi_rx_stats stats)
 {
-    char *channel_flags_str = NULL;
-
-    channel_flags_str = radiotap_channel_flags_to_str(stats.rtap.channel.flags);
+    char *flags_str = radiotap_channel_flags_to_str(stats.rtap.channel.flags);
 
     log_debug("Receiver Capture Stats\n"
               "\tTotal Payload Size:          %d\n"
@@ -66,61 +64,12 @@ log_rx_stats(dxwifi_rx_stats stats)
               stats.total_payload_size, stats.total_writelen,
               stats.total_caplen, stats.total_blocks_lost,
               stats.total_noise_added, stats.bad_crcs,
-              stats.rtap.channel.frequency, channel_flags_str,
-              stats.rtap.antenna, stats.rtap.ant_signal,
-              stats.num_packets_processed, stats.pcap_stats.ps_recv,
-              stats.packets_dropped, stats.pcap_stats.ps_drop,
-              stats.pcap_stats.ps_ifdrop);
+              stats.rtap.channel.frequency, flags_str, stats.rtap.antenna,
+              stats.rtap.ant_signal, stats.num_packets_processed,
+              stats.pcap_stats.ps_recv, stats.packets_dropped,
+              stats.pcap_stats.ps_drop, stats.pcap_stats.ps_ifdrop);
 
-    // Key for known and flags: https://www.radiotap.org/fields/MCS.html
-
-    if ((stats.rtap.mcs.flags & 0x03) == 0) {
-        log_debug("MCS bandwidth = 20");
-    }
-    if ((stats.rtap.mcs.flags & 0x03) == 1) {
-        log_debug("MCS bandwidth = 40");
-    }
-    if ((stats.rtap.mcs.flags & 0x03) == 2) {
-        log_debug("MCS bandwidth = 20L");
-    }
-    if ((stats.rtap.mcs.flags & 0x03) == 3) {
-        log_debug("MCS bandwidth = 20U");
-    }
-
-    if ((stats.rtap.mcs.flags & 0x04) != 0) {
-        log_debug("MCS guard interval: Short");
-    } else {
-        log_debug("MCS guard interval: Long");
-    }
-
-    if ((stats.rtap.mcs.flags & 0x08) != 0) {
-        log_debug("MCS HT format: greenfield");
-    } else {
-        log_debug("MCS HT format: mixed");
-    }
-
-    if ((stats.rtap.mcs.flags & 0x10) != 0) {
-        log_debug("MCS FEC type: LDPC");
-    } else {
-        log_debug("MCS FEC type: BCC");
-    }
-
-    if (((stats.rtap.mcs.known & 0x20) != 0)
-        && ((stats.rtap.mcs.flags & 0x60) != 0)) {
-
-        log_debug("Number of STBC streams: %" PRIu8,
-                  (stats.rtap.mcs.flags & 0x60));
-    }
-
-    if (((stats.rtap.mcs.known & 0x40) != 0)
-        && ((stats.rtap.mcs.flags & 0x80) != 0)) {
-
-        log_debug("Number of extension spatial streams: %" PRIu8,
-                  (stats.rtap.mcs.flags & 0x80));
-    }
-
-    log_debug("MCS rate index data (flags): 0x%02x", stats.rtap.mcs.flags);
-    free(channel_flags_str);
+    free(flags_str);
 }
 
 /**
