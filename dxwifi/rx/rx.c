@@ -233,27 +233,31 @@ dxwifi_rx_state_t open_file_and_capture(const char* path, dxwifi_receiver* rx, b
 
 
 /**
- *  DESCRIPTION:    Attempts to open a directory and create files for capture output
- * 
- *  ARGUMENTS: 
- *      
+ *  DESCRIPTION:    Attempts to open a directory and create files for capture
+ *                  output
+ *
+ *  ARGUMENTS:
+ *
  *      args:       Parsed command line arguments
- * 
+ *
  *      rx:         Initialized receiver
- * 
+ *
  */
-void capture_in_directory(cli_args* args, dxwifi_receiver* rx) {
-    int count = 0;
-    char path[PATH_MAX]; 
-
+static void
+capture_in_directory(cli_args *args, dxwifi_receiver *rx)
+{
     dxwifi_rx_state_t state = DXWIFI_RX_NORMAL;
-    while(state == DXWIFI_RX_NORMAL) {
-        snprintf(path, PATH_MAX, "%s/%s_%.5d.%s", args->output_path, args->file_prefix, count++, args->file_extension);
+    char path[PATH_MAX];
+    int count = 0;
+
+    while (state == DXWIFI_RX_NORMAL) {
+        snprintf(path, PATH_MAX, "%s/%s_%.5d.%s",
+                 args->output_path, args->file_prefix, count++,
+                 args->file_extension);
 
         state = open_file_and_capture(path, rx, args->append);
     }
 }
-
 
 /**
  *  DESCRIPTION:    Determine receive mode and activate packet capture
