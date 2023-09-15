@@ -159,78 +159,116 @@ dxwifi_rx_state_t setup_handlers_and_capture(dxwifi_receiver* rx, int fd) {
 }
 
 /**
- *  DESCRIPTION:    Attempts to open or create a file and listen for activate 
+ *  DESCRIPTION:    Attempts to open or create a file and listen for activate
  *                  packet capture
- * 
- *  ARGUMENTS: 
- *      
+ *
+ *  ARGUMENTS:
+ *
  *      path:       Path to the file to be opened or created
- * 
+ *
  *      rx:         Initialized receiver
- * 
- *      append:     Oppen file in append mode?
- * 
+ *
+ *      append:     If true, open file in append mode; otherwise, truncate file
+ *
  *  RETURNS:
- *     
+ *
  *      dxwifi_rx_state_t:  Last reported state of the receiver
- * 
+ *
  */
-dxwifi_rx_state_t open_file_and_capture(const char* path, dxwifi_receiver* rx, bool append) {
-    int fd_out      = 0;
-    int temp_fd     = 0;
+static dxwifi_rx_state_t
+open_file_and_capture(const char *path, dxwifi_receiver *rx, bool append)
+{
+    const mode_t mode = S_IRUSR|S_IWUSR|S_IROTH|S_IWOTH;
 
-    int temp_flags  = O_RDWR   | O_CREAT | O_TRUNC;
-    int open_flags  = O_WRONLY | O_CREAT | (append ? O_APPEND : O_TRUNC);
-    mode_t mode     = S_IRUSR  | S_IWUSR | S_IROTH | S_IWOTH; 
-    
     dxwifi_rx_state_t state = DXWIFI_RX_ERROR;
 
-    if((temp_fd = open(RX_TEMP_FILE, temp_flags, mode)) < 0) {
-        log_error("Failed to open temp file for capture");
+    int encoded_fd = 0;
+    void *encoded_data = NULL;
+    off_t encoded_size = 0;
+
+    int decoded_fd = 0;
+    void *decoded_data = NULL;
+    ssize_t decoded_size = 0;
+    ssize_t bytes_written = 0;
+
+    // Receive encoded data to a temp file and map to memory
+    encoded_fd = open(RX_TEMP_FILE, O_RDWR|O_CREAT|O_TRUNC, mode);
+    if (encoded_fd < 0) {
+        log_error("Failed to open " RX_TEMP_FILE " for receiving encoded data: "
+                  "%s",
+                  strerror(errno));
+        goto done;
     }
-    else {
 
-        state = setup_handlers_and_capture(rx, temp_fd);
-        off_t temp_file_size = get_file_size(RX_TEMP_FILE);
-
-        if(temp_file_size > 0) {
-            //Map the encoded file to memory
-            void* encoded_data = mmap(NULL, temp_file_size, PROT_WRITE, MAP_SHARED, temp_fd, 0);
-            assert_M(encoded_data != MAP_FAILED, "Failed to map file to memory - %s", strerror(errno));
-            
-            if(state != DXWIFI_RX_ERROR) {
-                if((fd_out = open(path, open_flags, mode)) < 0) {
-                    log_error("Failed to open file: %s", path);
-                }
-                else {
-
-                    void *decoded_message = NULL;
-                    ssize_t decoded_size = dxwifi_decode(encoded_data, temp_file_size, &decoded_message);
-
-                    if(decoded_size > 0) {
-                        log_info("Decoding Success for RX'd file, File Size: %d", decoded_size);
-
-                        ssize_t nbytes = write(fd_out, decoded_message, decoded_size);
-                        assert_M(decoded_size == nbytes, "Partial write occured: %d/%d - %s", nbytes, decoded_size, strerror(errno));
-                        free(decoded_message);
-                    }
-                    else{
-                        log_error("Failed to Decode Rx'd file, Error: %s", dxwifi_fec_error_to_str(decoded_size));
-                    }
-                    close(fd_out);
-                }
-            }
-            munmap(encoded_data, temp_file_size);
-        }
-        else {
-            log_warning("No packets were captured. Verify capture parameters");
-        }
-        close(temp_fd);
-        remove(RX_TEMP_FILE);
+    state = setup_handlers_and_capture(rx, encoded_fd);
+    if (state == DXWIFI_RX_ERROR) {
+        log_error("Error in packet capture");
+        goto done;
     }
+
+    encoded_size = get_file_size(RX_TEMP_FILE);
+    if (encoded_size <= 0) {
+        log_warning("No packets were captured. Verify capture parameters");
+        goto done;
+    }
+
+    encoded_data = mmap(NULL, encoded_size, PROT_WRITE, MAP_SHARED, encoded_fd,
+                        0);
+    if (encoded_data == MAP_FAILED) {
+        log_error("Failed to map encoded data file " RX_TEMP_FILE " to memory: "
+                  "%s",
+                  strerror(errno));
+        goto done;
+    }
+
+    // Decode received data and store in output file
+    decoded_fd = open(path, O_WRONLY|O_CREAT|(append ? O_APPEND : O_TRUNC),
+                      mode);
+    if (decoded_fd < 0) {
+        log_error("Failed to open %s for storing decoded data: %s",
+                  path, strerror(errno));
+        goto done;
+    }
+
+    decoded_size = dxwifi_decode(encoded_data, encoded_size, &decoded_data);
+    if (decoded_size <= 0) {
+        log_error("Failed to decode received data: %s",
+                  dxwifi_fec_error_to_str(decoded_size));
+        goto done;
+    }
+
+    log_info("Successfully decoded received data (size=%lld)",
+             (long long) decoded_size);
+
+    bytes_written = write(decoded_fd, decoded_data, decoded_size);
+    if (bytes_written < 0) {
+        log_error("Write of decoded data to %s failed: %s",
+                  path, strerror(errno));
+        goto done;
+    }
+
+    // @TODO If the event of a partial write, try to write the remaining data
+    if (bytes_written < decoded_size) {
+        log_error("Partial write: %lld of %lld decoded bytes written to %s",
+                  (long long) bytes_written, (long long) decoded_size, path);
+    }
+
+done:
+    if (encoded_fd >= 0) {
+        close(encoded_fd);
+        if ((encoded_data != NULL) && (encoded_data != MAP_FAILED)) {
+            munmap(encoded_data, encoded_size);
+            remove(RX_TEMP_FILE);
+        }
+    }
+
+    if (decoded_fd >= 0) {
+        close(decoded_fd);
+        free(decoded_data);
+    }
+
     return state;
 }
-
 
 /**
  *  DESCRIPTION:    Attempts to open a directory and create files for capture
