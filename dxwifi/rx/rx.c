@@ -133,19 +133,23 @@ void sigint_handler(int signum) {
 
 
 /**
- *  DESCRIPTION:    Setups and tearsdown SIGINT handlers to control capture
- * 
- *  ARGUMENTS: 
- *      
+ *  DESCRIPTION:    Sets SIGINT handler, captures packets, and restores original
+ *                  handler
+ *
+ *  ARGUMENTS:
+ *
  *      rx:         Initialized receiver
- * 
- *      fd:         Opened file descriptor to output capture data
- * 
+ *
+ *      fd:         Open file descriptor to output capture data
+ *
  */
-dxwifi_rx_state_t setup_handlers_and_capture(dxwifi_receiver* rx, int fd) {
-    dxwifi_rx_stats stats;
+static dxwifi_rx_state_t
+set_handler_and_capture(dxwifi_receiver *rx, int fd)
+{
+    dxwifi_rx_stats stats = { 0 };
+    struct sigaction action = { 0 };
+    struct sigaction prev_action = { 0 };
 
-    struct sigaction action = { 0 }, prev_action = { 0 };
     sigemptyset(&action.sa_mask);
     sigaddset(&action.sa_mask, SIGINT);
     action.sa_handler = sigint_handler;
@@ -153,7 +157,7 @@ dxwifi_rx_state_t setup_handlers_and_capture(dxwifi_receiver* rx, int fd) {
     sigaction(SIGINT, &action, &prev_action);
     receiver_activate_capture(rx, fd, &stats);
     sigaction(SIGINT, &prev_action, NULL);
-    
+
     log_rx_stats(stats);
     return stats.capture_state;
 }
@@ -200,7 +204,7 @@ open_file_and_capture(const char *path, dxwifi_receiver *rx, bool append)
         goto done;
     }
 
-    state = setup_handlers_and_capture(rx, encoded_fd);
+    state = set_handler_and_capture(rx, encoded_fd);
     if (state == DXWIFI_RX_ERROR) {
         log_error("Error in packet capture");
         goto done;
@@ -313,7 +317,7 @@ receive(cli_args *args, dxwifi_receiver *rx)
     switch (args->rx_mode) {
         case RX_STREAM_MODE:
             // Capture everything and output to stdout
-            setup_handlers_and_capture(rx, STDOUT_FILENO);
+            set_handler_and_capture(rx, STDOUT_FILENO);
             break;
 
         case RX_FILE_MODE:
