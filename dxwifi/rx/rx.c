@@ -41,8 +41,6 @@ static dxwifi_receiver *receiver = NULL;
 static void
 log_rx_stats(dxwifi_rx_stats stats)
 {
-    char *flags_str = radiotap_channel_flags_to_str(stats.rtap.channel.flags);
-
     log_debug("Receiver Capture Stats\n"
               "\tTotal Payload Size:          %d\n"
               "\tTotal Write length:          %d\n"
@@ -64,12 +62,12 @@ log_rx_stats(dxwifi_rx_stats stats)
               stats.total_payload_size, stats.total_writelen,
               stats.total_caplen, stats.total_blocks_lost,
               stats.total_noise_added, stats.bad_crcs,
-              stats.rtap.channel.frequency, flags_str, stats.rtap.antenna,
-              stats.rtap.ant_signal, stats.num_packets_processed,
-              stats.pcap_stats.ps_recv, stats.packets_dropped,
-              stats.pcap_stats.ps_drop, stats.pcap_stats.ps_ifdrop);
-
-    free(flags_str);
+              stats.rtap.channel.frequency,
+              radiotap_channel_flags_to_str(stats.rtap.channel.flags),
+              stats.rtap.antenna, stats.rtap.ant_signal,
+              stats.num_packets_processed, stats.pcap_stats.ps_recv,
+              stats.packets_dropped, stats.pcap_stats.ps_drop,
+              stats.pcap_stats.ps_ifdrop);
 }
 
 /**

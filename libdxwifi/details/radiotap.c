@@ -372,30 +372,50 @@ int ieee80211_radiotap_iterator_next(
     }
 }
 
+/**
+ * DESCRIPTION:         Converts radiotap channel flags to a string
+ *
+ * ARGUMENTS:
+ *
+ *      flags:          Bitmask of the channel flags
+ *
+ * RETURNS:
+ *
+ *      const char *:   String represenation of channel flags
+ *
+ */
+const char *
+radiotap_channel_flags_to_str(uint16_t flags)
+{
+    static char result[512] = { 0 };
 
-char* radiotap_channel_flags_to_str(uint16_t flags) {
-    char* result = calloc(512, sizeof(char));
-    if(IEEE80211_CHAN_CCK & flags) {
+    result[0] = '\0';
+
+    /* @TODO What actually sets these flags in our Frankensteined, mostly
+     * borrowed radiotap implementation?
+     *
+     * @TODO Avoid strcat(). It's safe here, but it's not a best practice.
+     */
+    if ((flags & IEEE80211_CHAN_CCK) != 0) {
         strcat(result, "CCK ");
     }
-    if(IEEE80211_CHAN_OFDM & flags) {
+    if ((flags & IEEE80211_CHAN_OFDM) != 0) {
         strcat(result, "OFDM ");
     }
-    if(IEEE80211_CHAN_2GHZ & flags) {
+    if ((flags & IEEE80211_CHAN_2GHZ) != 0) {
         strcat(result, "2 GHz spectrum ");
     }
-    if(IEEE80211_CHAN_5GHZ & flags) {
-        strcat(result, "5 GHz spectrum");
+    if ((flags & IEEE80211_CHAN_5GHZ) != 0) {
+        strcat(result, "5 GHz spectrum ");
     }
-    if(IEEE80211_CHAN_DYN & flags) {
+    if ((flags & IEEE80211_CHAN_DYN) != 0) {
         strcat(result, "Dynamic CCK-OFDM ");
     }
-    if(IEEE80211_CHAN_HALF & flags) {
+    if ((flags & IEEE80211_CHAN_HALF) != 0) {
         strcat(result, "Half CCK-OFDM ");
     }
-    if(IEEE80211_CHAN_QUARTER & flags) {
+    if ((flags & IEEE80211_CHAN_QUARTER) != 0) {
         strcat(result, "Quarter CCK-OFDM ");
     }
     return result;
 }
-

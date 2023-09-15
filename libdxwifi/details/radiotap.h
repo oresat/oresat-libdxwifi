@@ -442,22 +442,6 @@ extern CALLING_CONVENTION int ieee80211_radiotap_iterator_init(
 extern CALLING_CONVENTION int ieee80211_radiotap_iterator_next(
     struct ieee80211_radiotap_iterator *iterator);
 
-/**
- * DESCRIPTION: Converts radio tap channel flags to a string
- * 
- * ARGUMENTS:
- *    
- *      flags:  bitmask of the channel flags
- * 
- * 
- * RETURNS: 
- * 
- *      char*: Allocated string of the channel 
- * 
- * NOTES:
- *      It is the callers responsibility to free the returned string.
- * 
- */
-extern char* radiotap_channel_flags_to_str(uint16_t flags);
+char *radiotap_channel_flags_to_str(uint16_t flags);
 
 #endif // LIBDXWIFI_RADIOTAP_H
