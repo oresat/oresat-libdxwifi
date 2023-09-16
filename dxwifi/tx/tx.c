@@ -362,29 +362,27 @@ void transmit_directory_contents(dxwifi_transmitter* tx, const char* filter, con
     free(path_buffer);
 }
 
-
 /**
- *  DESCRIPTION:    Dirwatch callback, transmits newly created file
+ *  DESCRIPTION:    Transmits newly created file (used as dirwatch callback)
  *
  *  ARGUMENTS:
  *
  *      event:      Creation and close event
  *
- *      user:       Command line arguments
+ *      user_data:  Command line arguments
  *
  */
-static void transmit_new_file(const dirwatch_event* event, void* user) {
-    cli_args* args = (cli_args*) user;
-
-    char* path_buffer = calloc(PATH_MAX, sizeof(char));
+static void
+transmit_new_file(const dirwatch_event *event, void *user_data)
+{
+    cli_args *args = user_data;
+    char *path_buffer[PATH_MAX] = { 0 };
 
     combine_path(path_buffer, PATH_MAX, event->dirname, event->filename);
 
-    transmit_files(&args->tx, &path_buffer, 1, args->file_delay, args->retransmit_count, args-> coderate);
-
-    free(path_buffer);
+    transmit_files(&args->tx, &path_buffer, 1, args->file_delay,
+                   args->retransmit_count, args->coderate);
 }
-
 
 /**
  *  DESCRIPTION:    Transmits current directory contents and listens for newly
