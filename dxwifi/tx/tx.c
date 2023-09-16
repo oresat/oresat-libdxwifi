@@ -464,10 +464,8 @@ void transmit_test_sequence(dxwifi_transmitter* tx, int retransmit) {
     log_info("Test sequence completed, transmitted %d times", count);
 }
 
-
-
 /**
- *  DESCRIPTION:    Determine the transmission mode and transmit files
+ *  DESCRIPTION:    Setup handlers and transmit data
  *
  *  ARGUMENTS:
  *
@@ -476,51 +474,59 @@ void transmit_test_sequence(dxwifi_transmitter* tx, int retransmit) {
  *      tx:         Initialized transmitter
  *
  */
-void transmit(cli_args* args, dxwifi_transmitter* tx) {
-
+static void
+transmit(cli_args *args, dxwifi_transmitter *tx)
+{
     packet_loss_stats plstats = {
         .packet_loss_rate = args->packet_loss,
         .count = 0
     };
 
-    if(args->tx_delay > 0 ) {
-        attach_preinject_handler(transmitter, delay_transmission, &args->tx_delay);
+    if (args->tx_delay > 0) {
+        attach_preinject_handler(transmitter, delay_transmission,
+                                 &args->tx_delay);
     }
-    if(args->tx.rtap_tx_flags & IEEE80211_RADIOTAP_F_TX_ORDER) {
+
+    if ((args->tx.rtap_tx_flags & IEEE80211_RADIOTAP_F_TX_ORDER) != 0) {
         attach_preinject_handler(transmitter, attach_frame_number, NULL);
     }
-    if(args->verbosity > DXWIFI_LOG_INFO ) {
-        attach_postinject_handler(transmitter, log_frame_stats, NULL);
-    }
-    if(args->packet_loss > 0){
+
+    if (args->packet_loss > 0) {
         attach_preinject_handler(transmitter, packet_loss_sim, &plstats);
     }
-    if(args->error_rate > 0){
-        attach_preinject_handler(transmitter, bit_error_rate_sim, &args->error_rate);
-    }
-    switch (args->tx_mode)
-    {
-    case TX_STREAM_MODE:
-        setup_handlers_and_transmit(tx, STDIN_FILENO);
-        break;
 
-    case TX_FILE_MODE:
-        transmit_files(tx, args->files, args->file_count, args->file_delay, args->retransmit_count, args->coderate);
-        break;
-
-    case TX_DIRECTORY_MODE:
-        transmit_directory(args, tx);
-        break;
-
-    case TX_TEST_MODE:
-        transmit_test_sequence(tx, args->retransmit_count);
-        break;
-
-    default:
-        break;
+    if (args->error_rate > 0) {
+        attach_preinject_handler(transmitter, bit_error_rate_sim,
+                                 &args->error_rate);
     }
 
-    if(plstats.count > 0){
+    if (args->verbosity > DXWIFI_LOG_INFO) {
+        attach_postinject_handler(transmitter, log_frame_stats, NULL);
+    }
+
+    switch (args->tx_mode) {
+        case TX_STREAM_MODE:
+            setup_handlers_and_transmit(tx, STDIN_FILENO);
+            break;
+
+        case TX_FILE_MODE:
+            transmit_files(tx, args->files, args->file_count, args->file_delay,
+                           args->retransmit_count, args->coderate);
+            break;
+
+        case TX_DIRECTORY_MODE:
+            transmit_directory(args, tx);
+            break;
+
+        case TX_TEST_MODE:
+            transmit_test_sequence(tx, args->retransmit_count);
+            break;
+
+        default:
+            break;
+    }
+
+    if (plstats.count > 0) {
         log_info("Number of packets dropped: %d", plstats.count);
     }
 }
