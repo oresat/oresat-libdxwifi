@@ -324,42 +324,57 @@ dxwifi_tx_state_t transmit_files(dxwifi_transmitter* tx, char** files, size_t nu
 
 
 /**
- *  DESCRIPTION:    Transmit all files in a directory that matches a filter
+ *  DESCRIPTION:            Transmit all files in a directory that match a
+ *                          filter
  *
  *  ARGUMENTS:
  *
- *      tx:         Initialized transmitter
+ *      tx:                 Initialized transmitter
  *
- *      filter:     Glob pattern to filter which files should be transmitted
+ *      filter:             Glob pattern to filter which files should be
+ *                          transmitted
  *
- *      dirname:    Name of target directory
+ *      dirname:            Name of target directory
  *
- *      delay:      Inter-file transmission delay in milliseconds
+ *      delay:              Inter-file transmission delay in milliseconds
  *
- *		coderate:   Coderate for FEC Encoding
+ *      retransmit_count:   Number of times to retransmit each matching file (-1
+ *                          to retransmit until a timeout or error occurs)
+ *
+ *      code_rate:          Code rate for FEC encoding
  *
  */
-void transmit_directory_contents(dxwifi_transmitter* tx, const char* filter, const char* dirname, unsigned delay, int retransmit_count, float coderate) {
-    DIR* dir;
-    struct dirent* file;
+static void
+transmit_directory_contents(dxwifi_transmitter *tx, const char *filter,
+                            const char *dirname, unsigned delay,
+                            int retransmit_count, float code_rate)
+{
+    DIR *dir = NULL;
+    struct dirent *file = NULL;
     dxwifi_tx_state_t state = DXWIFI_TX_NORMAL;
-    char* path_buffer = calloc(PATH_MAX, sizeof(char));
 
-    if((dir = opendir(dirname)) == NULL) {
-        log_error("Failed to open directory: %s - %s", dirname, strerror(errno));
+    char path_buffer[PATH_MAX] = { 0 };
+
+    dir = opendir(dirname);
+    if (dir == NULL) {
+        log_error("Failed to open directory %s for transmission: %s",
+                  dirname, strerror(errno));
+        return;
     }
-    else {
-        while((file = readdir(dir)) && state == DXWIFI_TX_NORMAL) {
-            if(fnmatch(filter, file->d_name, 0) == 0) {
-                combine_path(path_buffer, PATH_MAX, dirname, file->d_name);
-                if(is_regular_file(path_buffer)) {
-                    state = transmit_files(tx, &path_buffer, 1, delay, retransmit_count, coderate);
-                }
+
+    file = readdir(dir);
+    while ((file != NULL) && (state == DXWIFI_TX_NORMAL)) {
+        if (fnmatch(filter, file->d_name, 0) == 0) {
+            combine_path(path_buffer, PATH_MAX, dirname, file->d_name);
+
+            if (is_regular_file(path_buffer)) {
+                state = transmit_files(tx, &path_buffer, 1, delay,
+                                       retransmit_count, code_rate);
             }
         }
-        closedir(dir);
+        file = readdir(dir);
     }
-    free(path_buffer);
+    closedir(dir);
 }
 
 /**
