@@ -21,6 +21,7 @@
 
 #include <arpa/inet.h>
 #include <linux/limits.h>
+#include <sys/mman.h>
 
 #include <dxwifi/tx/cli.h>
 
@@ -32,60 +33,13 @@
 #include <libdxwifi/details/dirwatch.h>
 #include <libdxwifi/details/syslogger.h>
 
-//Syscalls for Memory Mapping
-#include <sys/mman.h>
-
-
 typedef struct {
     float packet_loss_rate;
     unsigned count;
 } packet_loss_stats;
 
-dirwatch* dirwatch_handle = NULL;
-dxwifi_transmitter* transmitter = NULL;
-
-
-// Forward declare
-void terminate(int signum);
-void transmit(cli_args* args, dxwifi_transmitter* tx);
-
-int main(int argc, char** argv) {
-
-    cli_args args = DEFAULT_CLI_ARGS;
-    transmitter = &args.tx;
-
-    parse_args(argc, argv, &args);
-
-    set_log_level(DXWIFI_LOG_ALL_MODULES, args.verbosity);
-
-    if(args.use_syslog) {
-        set_logger(DXWIFI_LOG_ALL_MODULES, syslogger);
-    }
-    if(args.daemon) {
-        daemon_run(args.pid_file, args.daemon);
-        signal(SIGTERM, terminate);
-    }
-
-#if defined(DXWIFI_TESTS)
-    unsigned seed = 1621981756;
-#else
-    unsigned seed = time(0);
-#endif
-
-    srand(seed);
-
-    init_transmitter(transmitter, args.device);
-
-    transmit(&args, transmitter);
-
-    close_transmitter(transmitter);
-
-    if(args.daemon == DAEMON_START) { // This process is the daemon, tear it down
-        stop_daemon(args.pid_file);
-    }
-
-    exit(0);
-}
+static dirwatch *dirwatch_handle = NULL;
+static dxwifi_transmitter *transmitter = NULL;
 
 /**
  *  DESCRIPTION:    SIGTERM handler for daemonized process. Ensures transmitter
@@ -569,4 +523,43 @@ void transmit(cli_args* args, dxwifi_transmitter* tx) {
     if(plstats.count > 0){
         log_info("Number of packets dropped: %d", plstats.count);
     }
+}
+
+int
+main(int argc, char **argv)
+{
+    cli_args args = DEFAULT_CLI_ARGS;
+    transmitter = &args.tx;
+#if defined(DXWIFI_TESTS)
+    unsigned seed = 1621981756;
+#else
+    unsigned seed = time(0);
+#endif
+
+    parse_args(argc, argv, &args);
+
+    set_log_level(DXWIFI_LOG_ALL_MODULES, args.verbosity);
+
+    if (args.use_syslog) {
+        set_logger(DXWIFI_LOG_ALL_MODULES, syslogger);
+    }
+
+    if (args.daemon != DAEMON_UNKNOWN_CMD) {
+        // @TODO Do we really need to proceed if we're stopping the daemon?
+        daemon_run(args.pid_file, args.daemon);
+        signal(SIGTERM, terminate);
+    }
+
+    srand(seed);
+
+    init_transmitter(transmitter, args.device);
+    transmit(&args, transmitter);
+    close_transmitter(transmitter);
+
+    if (args.daemon == DAEMON_START) {
+        // Tear down before exit
+        stop_daemon(args.pid_file);
+    }
+
+    exit(0);
 }
