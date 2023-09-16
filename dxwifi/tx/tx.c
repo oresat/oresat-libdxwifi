@@ -253,73 +253,132 @@ dxwifi_tx_state_t setup_handlers_and_transmit(dxwifi_transmitter* tx, int fd) {
     return stats.tx_state;
 }
 
-
 /**
- *  DESCRIPTION:    Iterates through a list of file names, opens them, and
- *                  transmits them
+ *  DESCRIPTION:            Opens and transmits a file
  *
  *  ARGUMENTS:
  *
- *      tx:         Initialized transmitter
+ *      tx:                 Initialized transmitter
  *
- *      files:      List of files to transmit
+ *      file_path:          Path of file to transmit
  *
- *      delay:      Millisecond delay to add between file transmission.
+ *      delay:              Millisecond delay to add between file transmissions
  *
- *      retransmit_count:
- *                  Number of times to retransmit the file. If the count is -1
- *                  then the file will be retransmitted forever or until the
- *                  transmitter reports a timeout or error
- *		coderate:
- *					Coderate for FEC encoding.
+ *      retransmit_count:   Number of times to retransmit each matching file (-1
+ *                          to retransmit until a timeout or error occurs)
+ *
+ *      code_rate:          Code rate for FEC encoding
+ *
  *  RETURNS:
  *
- *      dxwifi_tx_state_t: The last reported state of the transmitter
+ *      dxwifi_tx_state_t:  Last reported state of the transmitter
  *
  */
-dxwifi_tx_state_t transmit_files(dxwifi_transmitter* tx, char** files, size_t num_files, unsigned delay, int retransmit_count, float coderate) {
+static dxwifi_tx_state_t
+transmit_file(dxwifi_transmitter *tx, char *file_path, unsigned delay,
+              int retransmit_count, float code_rate)
+{
+    const bool transmit_forever = (retransmit_count == -1);
+
     int fd = 0;
+    void *file_data = NULL;
+    off_t file_size = 0;
+
+    void *encoded_data = NULL;
+    size_t encoded_size = 0;
+
     dxwifi_tx_stats stats = { .tx_state = DXWIFI_TX_NORMAL };
 
-    for(size_t i = 0; i < num_files && stats.tx_state == DXWIFI_TX_NORMAL; ++i) {
-        if((fd = open(files[i], O_RDONLY)) < 0) {
-            log_error("Failed to open file: %s - %s", files[i], strerror(errno));
-        }
-        else {
-            log_info("Opened %s for transmission", files[i]);
-            off_t file_size = get_file_size(files[i]);
+    // Open file and map to memory
+    file_size = get_file_size(file_path);
+    if (file_size <= 0) {
+        log_error("File %s intended for transmission is %s",
+                  ((file_size < 0) ? "not a regular file" : "empty"),
+                  file_path);
+        goto done;
+    }
 
-            void* file_data = mmap(NULL, file_size, PROT_READ, MAP_SHARED, fd, 0);
-            assert_M(file_data != MAP_FAILED, "Failed to map file to memory - %s", strerror(errno));
+    fd = open(file_path, O_RDONLY);
+    if (fd < 0) {
+        log_error("Failed to open file %s for transmission: %s",
+                  files[i], strerror(errno));
+        goto done;
+    }
 
-            void *encoded_message = NULL;
-            size_t msg_size = dxwifi_encode(file_data, file_size, coderate, &encoded_message);
+    file_data = mmap(NULL, file_size, PROT_READ, MAP_SHARED, fd, 0);
+    if (file_data == MAP_FAILED) {
+        log_error("Failed to map file %s to memory for transmission: %s",
+                  file_path, sterror(errno));
+        goto done;
+    }
 
-            if(msg_size > 0){
+    // Encode and transmit file
+    encoded_size = dxwifi_encode(file_data, file_size, code_rate,
+                                 &encoded_data);
+    if (encoded_size <= 0) {
+        log_error("Unable to FEC-encode file %s", file_path);
+    }
 
-            	log_info("Encoding Success for file: [%s], Filesize: %d", files[i], msg_size);
+    log_info("Successfully encoded file %s (file size=%lld)",
+             file_path, (long long) encoded_size);
 
-            	int count = retransmit_count;
+    for (int count = 0;
+         (transmit_forever || (count <= retransmit_count))
+         && (stats.tx_state == DXWIFI_TX_NORMAL);
+         count++) {
 
-            	bool transmit_forever = (retransmit_count == -1);
-                while((count >= 0 || transmit_forever) && stats.tx_state == DXWIFI_TX_NORMAL) {
+        transmit_bytes(tx, encoded_data, encoded_size, &stats);
+        msleep(delay, false);
+    }
 
-                	transmit_bytes(tx, encoded_message, msg_size, &stats);
-                	
-                	msleep(delay, false);
-
-                	free(encoded_message);
-                	--count;
-                }
-            }
-            else {	
-                log_error("Unable to FEC Encode File [%s]", files[i]);	
-            }
-            close(fd);
+done:
+    if (fd >= 0) {
+        close(fd);
+        if ((file_data != NULL) && (file_data != MAP_FAILED)) {
             munmap(file_data, file_size);
         }
     }
+
+    free(encoded_data);
     return stats.tx_state;
+}
+
+/**
+ *  DESCRIPTION:            Iterates through a list of file names, opens them,
+ *                          and transmits them
+ *
+ *  ARGUMENTS:
+ *
+ *      tx:                 Initialized transmitter
+ *
+ *      file_paths:         Paths of files to transmit
+ *
+ *      num_files:          Number of items in file_paths
+ *
+ *      delay:              Millisecond delay to add between file transmissions
+ *
+ *      retransmit_count:   Number of times to retransmit each matching file (-1
+ *                          to retransmit until a timeout or error occurs)
+ *
+ *      code_rate:          Code rate for FEC encoding
+ *
+ *  RETURNS:
+ *
+ *      dxwifi_tx_state_t:  Last reported state of the transmitter
+ *
+ */
+static dxwifi_tx_state_t
+transmit_files(dxwifi_transmitter *tx, char **file_paths, size_t num_files,
+               unsigned delay, int retransmit_count, float code_rate)
+{
+    dxwifi_tx_state_t state = DXWIFI_TX_NORMAL;
+
+    for (size_t i = 0; (i < num_files) && (state == DXWIFI_TX_NORMAL); i++) {
+
+        state = transmit_file(tx, file_paths[i], delay, retransmit_count,
+                              code_rate);
+    }
+    return state;
 }
 
 
@@ -368,8 +427,8 @@ transmit_directory_contents(dxwifi_transmitter *tx, const char *filter,
             combine_path(path_buffer, PATH_MAX, dirname, file->d_name);
 
             if (is_regular_file(path_buffer)) {
-                state = transmit_files(tx, &path_buffer, 1, delay,
-                                       retransmit_count, code_rate);
+                state = transmit_file(tx, path_buffer, delay, retransmit_count,
+                                      code_rate);
             }
         }
         file = readdir(dir);
@@ -395,8 +454,8 @@ transmit_new_file(const dirwatch_event *event, void *user_data)
 
     combine_path(path_buffer, PATH_MAX, event->dirname, event->filename);
 
-    transmit_files(&args->tx, &path_buffer, 1, args->file_delay,
-                   args->retransmit_count, args->coderate);
+    transmit_file(&args->tx, &path_buffer, args->file_delay,
+                  args->retransmit_count, args->coderate);
 }
 
 /**
