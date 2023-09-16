@@ -14,8 +14,10 @@
 #include <poll.h>
 #include <errno.h>
 #include <fcntl.h>
+#include <inttypes.h>   // PRIu32, etc.
 #include <unistd.h>
 #include <signal.h>
+#include <stdint.h>     // uint32_t, etc.
 #include <dirent.h>
 #include <fnmatch.h>
 
@@ -424,9 +426,8 @@ void transmit_directory(cli_args* args, dxwifi_transmitter* tx) {
     }
 }
 
-
 /**
- *  DESCRIPTION:    Transmit a test sequence of bytes. The test sequence is a
+ *  DESCRIPTION:    Transmits a test sequence of bytes. The test sequence is a
  *                  10Kb block of data with the transmission count encoded in
  *                  every four bytes as the payload
  *
@@ -434,34 +435,32 @@ void transmit_directory(cli_args* args, dxwifi_transmitter* tx) {
  *
  *      tx:         Initialized transmitter
  *
- *      retransmit: Number of times to transmit test sequence
+ *      retransmit: Number of times to retransmit test sequence (-1 to
+ *                  retransmit until a timeout or error occurs)
  *
  */
-void transmit_test_sequence(dxwifi_transmitter* tx, int retransmit) {
+static void
+transmit_test_sequence(dxwifi_transmitter *tx, int retransmit)
+{
+    const bool transmit_forever = (retransmit == -1);
 
-    dxwifi_tx_stats stats;
-
-    bool transmit_forever = (retransmit == -1);
-
-    uint32_t count = 0;
-
-    // TODO magic number
+    // @TODO Remove magic number
     uint32_t transmit_buffer[10240 / sizeof(uint32_t)];
 
-    log_info("Transmitting test sequence...");
-    while (count <= retransmit || transmit_forever) {
+    dxwifi_tx_stats stats = { 0 };
 
-        for(size_t i = 0; i < NELEMS(transmit_buffer); ++i) {
+    log_info("Transmitting test sequence...");
+
+    for (uint32_t count = 0; transmit_forever || (count <= retransmit);
+         count++) {
+
+        for (size_t i = 0; i < NELEMS(transmit_buffer); i++) {
             transmit_buffer[i] = count;
         }
-
         transmit_bytes(tx, transmit_buffer, 10240, &stats);
-
         log_tx_stats(stats);
-
-        ++count;
     }
-    log_info("Test sequence completed, transmitted %d times", count);
+    log_info("Test sequence completed, transmitted %" PRIu32 " times", count);
 }
 
 /**
