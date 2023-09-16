@@ -397,31 +397,35 @@ static void transmit_new_file(const dirwatch_event* event, void* user) {
  *      tx:         Initialized transmitter
  *
  */
-void transmit_directory(cli_args* args, dxwifi_transmitter* tx) {
+static void
+transmit_directory(cli_args *args, dxwifi_transmitter *tx)
+{
+    const char *dirname = args->files[0];
 
-    const char* dirname = args->files[0];
-
-    if(args->transmit_current_files) {
-        transmit_directory_contents(tx, args->file_filter, dirname, args->file_delay, args->retransmit_count, args->coderate);
+    if (args->transmit_current_files) {
+        transmit_directory_contents(tx, args->file_filter, dirname,
+                                    args->file_delay, args->retransmit_count,
+                                    args->coderate);
     }
-    if(args->listen_for_new_files) {
+
+    if (args->listen_for_new_files) {
+        struct sigaction action = { 0 };
+        struct sigaction prev_action = { 0 };
 
         dirwatch_handle = dirwatch_init();
+        dirwatch_add(dirwatch_handle, dirname, args->file_filter,
+                     DW_CREATE_AND_CLOSE, true);
 
-        dirwatch_add(dirwatch_handle, dirname, args->file_filter, DW_CREATE_AND_CLOSE, true);
-
-        // Setup handlers for exiting loop
-        struct sigaction action = { 0 }, prev_action = { 0 };
-        memset(&prev_action, 0x00, sizeof(sigaction));
+        // Set up handlers for exiting loop
         sigemptyset(&action.sa_mask);
         sigaddset(&action.sa_mask, SIGINT);
         action.sa_handler = watchdir_sigint_handler;
         sigaction(SIGINT, &action, &prev_action);
 
-        dirwatch_listen(dirwatch_handle, args->dirwatch_timeout * 1000, transmit_new_file, args);
+        dirwatch_listen(dirwatch_handle, (args->dirwatch_timeout * 1000),
+                        transmit_new_file, args);
 
         sigaction(SIGINT, &prev_action, NULL);
-
         dirwatch_close(dirwatch_handle);
     }
 }
