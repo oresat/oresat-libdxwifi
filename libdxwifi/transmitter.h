@@ -46,8 +46,6 @@
 
 #define DXWIFI_TX_FRAME_HANDLER_MAX 8
 
-#define DXWIFI_TX_RADIOTAP_HDR_SIZE 12
-
 /************************
  *  Data structures
  ***********************/
@@ -69,10 +67,6 @@ typedef struct  __attribute__((packed)) {
     uint8_t                 rate;     /* data rate (500Kbps)      */
     uint16_t                tx_flags; /* transmission flags       */
 } dxwifi_tx_radiotap_hdr;
-
-compiler_assert(sizeof(dxwifi_tx_radiotap_hdr) == DXWIFI_TX_RADIOTAP_HDR_SIZE, 
-    "Mismatch in actual radiotap header size and calculated size");
-
 
 /**
  *  The DxWifi frame structure looks like this:
