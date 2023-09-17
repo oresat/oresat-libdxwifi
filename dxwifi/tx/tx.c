@@ -225,21 +225,23 @@ bool attach_frame_number(dxwifi_tx_frame* frame, dxwifi_tx_stats stats, void* us
     return true;
 }
 
-
 /**
- *  DESCRIPTION:    Setups and tearsdown SIGINT handlers to control transmission
+ *  DESCRIPTION:    Sets SIGINT handler, transmits a file, and restores original
+ *                  handler
  *
  *  ARGUMENTS:
  *
  *      tx:         Initialized transmitter
  *
- *      fd:         Opened file descriptor of the file to be transmitted
+ *      fd:         Open file descriptor of the file to be transmitted
  *
  */
-dxwifi_tx_state_t setup_handlers_and_transmit(dxwifi_transmitter* tx, int fd) {
-    dxwifi_tx_stats stats;
-
-    struct sigaction action = { 0 }, prev_action = { 0 };
+static dxwifi_tx_state_t
+set_handler_and_transmit(dxwifi_transmitter *tx, int fd)
+{
+    dxwifi_tx_stats stats = { 0 };
+    struct sigaction action = { 0 };
+    struct sigaction prev_action = { 0 };
 
     sigemptyset(&action.sa_mask);
     sigaddset(&action.sa_mask, SIGINT);
@@ -581,7 +583,7 @@ transmit(cli_args *args, dxwifi_transmitter *tx)
 
     switch (args->tx_mode) {
         case TX_STREAM_MODE:
-            setup_handlers_and_transmit(tx, STDIN_FILENO);
+            set_handler_and_transmit(tx, STDIN_FILENO);
             break;
 
         case TX_FILE_MODE:
