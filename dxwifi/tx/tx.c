@@ -208,19 +208,32 @@ bool bit_error_rate_sim(dxwifi_tx_frame* frame, dxwifi_tx_stats stats, void* use
 
 
 /**
- *  DESCRIPTION:    Called before every frame is injected, packs the current
- *                  frame count into the last four bytes of the MAC headers
- *                  addr1 field
+ *  DESCRIPTION:    Packs the current frame count into the last four bytes of
+ *                  the MAC header's addr1 field.
  *
  *  ARGUMENTS:
  *
- *      See definition of dxwifi_tx_frame_cb in transmitter.h
+ *      frame       Data frame
+ *
+ *      stats       Stats for the current transmission
+ *
+ *      user_data   Ignored
+ *
+ *  RETURNS:
+ *
+ *      bool        True (indicates to transmit the packet)
+ *
+ *  NOTES:          This is an implementation of dxwifi_tx_frame_cb.
  *
  */
-bool attach_frame_number(dxwifi_tx_frame* frame, dxwifi_tx_stats stats, void* user) {
-    uint32_t frame_no = htonl(stats.data_frame_count);
+static bool
+attach_frame_number_cb(dxwifi_tx_frame *frame, dxwifi_tx_stats stats,
+                       void *user_data)
+{
+    uint32_t frame_number = htonl(stats.data_frame_count);
 
-    memcpy(frame->mac_hdr.addr1 + 2, &frame_no, sizeof(uint32_t));
+    // @TODO Fix magic number (assumes IEEE80211_MAC_ADDR_LEN defined as 6)
+    memcpy(frame->mac_hdr.addr1 + 2, &frame_number, sizeof(uint32_t));
 
     return true;
 }
@@ -565,7 +578,7 @@ transmit(cli_args *args, dxwifi_transmitter *tx)
     }
 
     if ((args->tx.rtap_tx_flags & IEEE80211_RADIOTAP_F_TX_ORDER) != 0) {
-        attach_preinject_handler(transmitter, attach_frame_number, NULL);
+        attach_preinject_handler(transmitter, attach_frame_number_cb, NULL);
     }
 
     if (args->packet_loss > 0) {
