@@ -174,35 +174,44 @@ bool packet_loss_sim(dxwifi_tx_frame* frame, dxwifi_tx_stats stats, void* user) 
  *
  *  ARGUMENTS:
  *
- *     error_rate:      Float percentage of bits flipped
+ *      frame       Data frame
+ *
+ *      stats       Stats for the current transmission
+ *
+ *      user_data   Percentage of bits to be flipped (float)
  *
  */
-bool bit_error_rate_sim(dxwifi_tx_frame* frame, dxwifi_tx_stats stats, void* user) {
-    float error_rate = *(float*) user;
+static bool
+bit_error_rate_sim_cb(dxwifi_tx_frame *frame, dxwifi_tx_stats stats,
+                      void *user_data)
+{
+    // Skip the bits in the radiotap header since this is discarded pre-flight
+    static const size_t frame_size = DXWIFI_TX_FRAME_SIZE
+                                     - sizeof(dxwifi_tx_radiotap_hdr);
 
-    int frame_size = DXWIFI_TX_FRAME_SIZE - sizeof(dxwifi_tx_radiotap_hdr);
-    int total_num_errors = DXWIFI_TX_FRAME_SIZE * 8 * error_rate; //Get total number of errors
-    uint8_t bit_array[frame_size]; //Make an array of bits equal to the number in the frame
+    const float error_rate = *((float *) user_data);
+    const size_t num_to_flip = frame_size * CHAR_BIT * error_rate;
 
-    // Initialize every bit to zero
-    memset(bit_array, 0, frame_size);
+    unsigned char buffer = (unsigned char *) frame
+                           + sizeof(dxwifi_tx_radiotap_hdr);
+    unsigned char flipped_bits[frame_size] = { 0 };
+    int num_flipped = 0;
 
-    // Skip the bits in the radiotap header since this is discarded pre-flight anyways
-    uint8_t* buffer = ((uint8_t*)frame) + sizeof(dxwifi_tx_radiotap_hdr);
+    /* @TODO Use a more efficient way to flip given proportion of bits. This is
+     * grossly inefficient for high error rate.
+     */
+    while (num_flipped < num_to_flip) {
+        int chosen_byte = rand() % frame_size;
+        int chosen_bit = 1 << (rand() % CHAR_BIT);
 
-    for(int i = 0; i < total_num_errors; ++i){
-        uint32_t chosen_byte = rand() % frame_size;
-        int chosen_bit = 1 << (rand() % 8);
-
-        if((bit_array[chosen_byte] & chosen_bit) == 0) { //Flip bit if unseen
-            buffer[chosen_byte] ^= chosen_bit; // Toggle bit in frame
-            bit_array[chosen_byte] &= chosen_bit;   // Set bit in the set
-        }
-        else{ //Reroll for different bit
-            --i;
+        // Flip bit if unseen
+        if ((flipped_bits[chosen_byte] & chosen_bit) == 0) {
+            frame[chosen_byte] ^= chosen_bit; // Toggle bit in frame
+            flipped_bits[chosen_byte] |= chosen_bit;   // Set bit in the set
+            num_flipped++;
         }
     }
-    log_debug("Bits in frame: %d, bits flipped: %d", frame_size * 8, total_num_errors);
+    log_debug("Bits in frame: %d, bits flipped: %d", frame_size * 8, num_to_flip);
     return true;
 }
 
@@ -586,7 +595,7 @@ transmit(cli_args *args, dxwifi_transmitter *tx)
     }
 
     if (args->error_rate > 0) {
-        attach_preinject_handler(transmitter, bit_error_rate_sim,
+        attach_preinject_handler(transmitter, bit_error_rate_sim_cb,
                                  &args->error_rate);
     }
 
