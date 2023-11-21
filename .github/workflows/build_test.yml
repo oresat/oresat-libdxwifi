@@ -21,8 +21,13 @@ jobs:
         with: 
           submodules: recursive
       
+      - name: Update Packages
+        run: sudo apt -y update
+
       - name: Get Dependencies
-        run: sudo apt update && sudo apt install build-essential libpcap-dev libgpiod-dev cmake python3 valgrind -y
+        run: >
+          sudo apt -y install build-essential cmake libgpiod-dev libpcap-dev
+          pybind11-dev python3 python3-dev valgrind
 
       - name: Configure CMake
         shell: bash

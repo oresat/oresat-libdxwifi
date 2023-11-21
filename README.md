@@ -61,8 +61,13 @@ A diagram of the process is available [here](https://drive.google.com/file/d/1OS
 - 2 Linux devices (Raspberry Pi, BeagleBone Black, laptop, etc.)
 - 2 WiFi adapters that support monitor mode (tested with Atheros AR9271)
 - [CMake](https://cmake.org/)
-- [`libpcap-dev`](https://www.tcpdump.org/), [`libgpiod-dev`](https://git.kernel.org/pub/scm/libs/libgpiod/libgpiod.git/), [`iw`](https://wireless.wiki.kernel.org/en/users/documentation/iw), [`ip`](https://linux.die.net/man/8/ip)
-- [Python 3.6](https://www.python.org/) or higher (for test scripts)
+- [`ip`](https://linux.die.net/man/8/ip)
+- [`iw`](https://wireless.wiki.kernel.org/en/users/documentation/iw)
+- [`libgpiod-dev`](https://git.kernel.org/pub/scm/libs/libgpiod/libgpiod.git/)
+- [`libpcap-dev`](https://www.tcpdump.org/)
+- [`pybind11-dev`](https://github.com/pybind/pybind11)
+- [Python 3.6](https://www.python.org/) or higher and `python3-dev` (for tests
+  and bindings)
 
 ## Building
 
