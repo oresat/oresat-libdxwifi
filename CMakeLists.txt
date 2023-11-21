@@ -3,6 +3,7 @@ cmake_minimum_required(VERSION 3.10)
 # Define Test Variants
 set(CMAKE_C_FLAGS_TESTDEBUG "-Wall -Werror -g -DDXWIFI_TESTS")
 set(CMAKE_C_FLAGS_TESTREL   "-Wall -Werror -O3 -DNDEBUG -DDXWIFI_TESTS")
+set(CMAKE_POSITION_INDEPENDENT_CODE ON)
 
 # Cross-Compilation support, only supports armhf at the moment
 if(PLATFORM STREQUAL "armhf")

@@ -7,50 +7,22 @@
  *
  */
 
-#include <stdio.h>
-#include <string.h>
-#include <stdlib.h>
-
-#include <poll.h>
-#include <errno.h>
-#include <fcntl.h>
-#include <unistd.h>
-#include <signal.h>
-#include <dirent.h>
-#include <fnmatch.h>
-
-#include <arpa/inet.h>
-#include <linux/limits.h>
-
-#include <dxwifi/tx/cli.h>
-
-#include <libdxwifi/dxwifi.h>
-#include <libdxwifi/transmitter.h>
-#include <libdxwifi/details/utils.h>
-#include <libdxwifi/details/daemon.h>
-#include <libdxwifi/details/logging.h>
-#include <libdxwifi/details/dirwatch.h>
-#include <libdxwifi/details/syslogger.h>
-
-//Syscalls for Memory Mapping
-#include <sys/mman.h>
-
+#include "tx.h"
 
 typedef struct {
     float packet_loss_rate;
     unsigned count;
 } packet_loss_stats;
 
-dirwatch* dirwatch_handle = NULL;
-dxwifi_transmitter* transmitter = NULL;
+static dirwatch* dirwatch_handle = NULL;
+static dxwifi_transmitter* transmitter = NULL;
 
-
-// Forward declare
-void terminate(int signum);
-void transmit(cli_args* args, dxwifi_transmitter* tx);
 
 int main(int argc, char** argv) {
+    exit(main_worker(argc, argv));
+}
 
+int main_worker(int argc, char** argv) {
     cli_args args = DEFAULT_CLI_ARGS;
     transmitter = &args.tx;
 
@@ -84,7 +56,7 @@ int main(int argc, char** argv) {
         stop_daemon(args.pid_file);
     }
 
-    exit(0);
+    return 0;
 }
 
 /**
@@ -523,12 +495,10 @@ void transmit_test_sequence(dxwifi_transmitter* tx, int retransmit) {
  *
  */
 void transmit(cli_args* args, dxwifi_transmitter* tx) {
-
     packet_loss_stats plstats = {
         .packet_loss_rate = args->packet_loss,
         .count = 0
     };
-
     if(args->tx_delay > 0 ) {
         attach_preinject_handler(transmitter, delay_transmission, &args->tx_delay);
     }

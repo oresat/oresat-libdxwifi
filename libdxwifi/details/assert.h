@@ -34,7 +34,11 @@
 #include <libdxwifi/details/logging.h>
 
 
-#define compiler_assert(expr, msg) _Static_assert(expr, msg)
+#ifdef __cplusplus
+    #define compiler_assert(expr, msg)
+#else
+    #define compiler_assert(expr, msg) _Static_assert(expr, msg)
+#endif
 
 #define DXWIFI_ASSERT_MSG_MAX_LEN 256
 
@@ -67,6 +71,9 @@
     }))
 
 
+#ifdef assert
+#undef assert
+#endif
 #define assert(expr) assert_M(expr, "")
 
 
