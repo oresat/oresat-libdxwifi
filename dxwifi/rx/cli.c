@@ -53,6 +53,7 @@ static struct argp_option opts[] = {
     { "append",         'a', 0,                     0, "Open files in append mode",                                             PRIMARY_GROUP },
     { "ordered",        'o', 0,                     0, "Expect packets to have sequence informations",                          PRIMARY_GROUP },
     { "add-noise",      'n', 0,                     0, "Add noise for missing packets",                                         PRIMARY_GROUP },
+    { "compare",        'z', "<path>",              0, "Path of the file to compare against for BER",                           PRIMARY_GROUP },
 
     { 0, 0, 0, 0, "The following settings are only applicable when outputting to a directory",      DIRECTORY_MODE_GROUP },
     { "prefix",         'p', "<file-prefix>",       0, "What to name each created file",            DIRECTORY_MODE_GROUP },
@@ -98,15 +99,15 @@ static error_t parse_opt(int key, char* arg, struct argp_state *state) {
         break;
 
     case ARGP_KEY_END:
-        if(state->arg_num > 0) {
+        if (args->compare_path != NULL) {
+            args->rx_mode = RX_BIT_ERROR_MODE;
+        } else if(state->arg_num > 0) {
             if (is_directory(args->output_path) ) {
                 args->rx_mode = RX_DIRECTORY_MODE;
-            }
-            else {
+            } else {
                 args->rx_mode = RX_FILE_MODE;
             }
-        }
-        else {
+        } else {
             args->rx_mode = RX_STREAM_MODE;
         }
         if(args->quiet) {
@@ -171,6 +172,10 @@ static error_t parse_opt(int key, char* arg, struct argp_state *state) {
 
     case 's':
         args->use_syslog = true;
+        break;
+    
+    case 'z':
+        args->compare_path = arg;
         break;
 
     case GET_KEY(SNAPLEN, PCAP_SETTINGS_GROUP):

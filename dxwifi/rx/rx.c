@@ -33,6 +33,8 @@ dxwifi_receiver* receiver = NULL;
 
 
 void receive(cli_args* args, dxwifi_receiver* rx);
+dxwifi_rx_state_t determine_bit_error_rate(const char* path, dxwifi_receiver* rx, bool append);
+float calculate_bit_error_rate(void* compare_data, void* received_data, ssize_t compare_size, ssize_t received_size);
 
 
 int main(int argc, char** argv) {
@@ -48,7 +50,6 @@ int main(int argc, char** argv) {
     set_log_level(DXWIFI_LOG_ALL_MODULES, args.verbosity);
 
     init_receiver(receiver, args.device);
-
     receive(&args, receiver);
 
     close_receiver(receiver);
@@ -294,7 +295,6 @@ void capture_in_directory(cli_args* args, dxwifi_receiver* rx) {
  * 
  */
 void receive(cli_args* args, dxwifi_receiver* rx) {
-
     switch (args->rx_mode)
     {
     case RX_STREAM_MODE: // Capture everything and output to stdout
@@ -309,7 +309,89 @@ void receive(cli_args* args, dxwifi_receiver* rx) {
         capture_in_directory(args, rx);
         break;
     
+    case RX_BIT_ERROR_MODE: // captures everything compares it to the given file
+        determine_bit_error_rate(args->compare_path, rx, args->append);
+        
     default:
         break;
     }
+}
+
+dxwifi_rx_state_t determine_bit_error_rate(const char* to_compare_path, dxwifi_receiver* rx, bool append) {
+    int fd_out      = 0;
+    int temp_fd     = 0;
+
+    int temp_flags  = O_RDWR   | O_CREAT | O_TRUNC;
+    int open_flags  = O_WRONLY | O_CREAT | (append ? O_APPEND : O_TRUNC);
+    mode_t mode     = S_IRUSR  | S_IWUSR | S_IROTH | S_IWOTH; 
+    
+    dxwifi_rx_state_t state = DXWIFI_RX_ERROR;
+
+    if((temp_fd = open(RX_TEMP_FILE, temp_flags, mode)) < 0) {
+        log_error("Failed to open temp file for capture");
+    }
+    else {
+        state = setup_handlers_and_capture(rx, temp_fd);
+        off_t temp_file_size = get_file_size(RX_TEMP_FILE);
+        if(temp_file_size > 0) {
+            //Map the received file to memory
+            void* received_data = mmap(NULL, temp_file_size, PROT_WRITE, MAP_SHARED, temp_fd, 0);
+            off_t received_size = (off_t) strlen((char*)received_data);
+            assert_M(received_data != MAP_FAILED, "Failed to map file to memory - %s", strerror(errno));
+            
+            if(state != DXWIFI_RX_ERROR) {
+                int fd_compare = open(to_compare_path, O_RDONLY);
+                if (fd_compare < 0) {
+                    log_error("Failed to open file: %s", to_compare_path);
+                } else {
+                    off_t compare_file_size = get_file_size(to_compare_path);
+                    if (compare_file_size >= (off_t)0) {
+                        void* compare_file_data = mmap(NULL, compare_file_size, PROT_READ, MAP_SHARED, fd_compare, 0);
+                        assert_M(compare_file_data != MAP_FAILED, "Failed to map file to memory - %s", strerror(errno));
+
+                        float result = calculate_bit_error_rate(compare_file_data, received_data, compare_file_size, received_size);
+                        log_info("bit error rate: %f", result);
+                    }
+
+                    close(fd_compare);
+                }
+                
+            }
+            munmap(received_data, temp_file_size);
+        }
+        else {
+            log_warning("No packets were captured. Verify capture parameters");
+        }
+        close(temp_fd);
+        remove(RX_TEMP_FILE);
+    }
+    return state;
+}
+
+
+float calculate_bit_error_rate(void* compare_data, void* received_data, ssize_t compare_size, ssize_t received_size) {
+    uint8_t* compare_ptr = (uint8_t*)compare_data;
+    uint8_t* received_ptr = (uint8_t*)received_data;
+    size_t min_size = (compare_size < received_size) ? compare_size : received_size;
+    
+    if (compare_size != received_size) {
+        log_error("Missing data, received data size: %d, picked data size: %d \n", received_size, compare_size);
+    }
+
+    size_t bit_errors = 0;
+
+    for (ssize_t i = 0; i < min_size; ++i) {
+        uint8_t xor_result = compare_ptr[i] ^ received_ptr[i];
+        // Count the number of set bits in xor_result
+        for (int j = 0; j < 8; ++j) {
+            if ((xor_result >> j) & 0x01) {
+                bit_errors++;
+            }
+        }
+    }
+
+    float total_bits = min_size * 8;
+    float bit_error_rate = (float)bit_errors / total_bits;
+
+    return bit_error_rate;
 }

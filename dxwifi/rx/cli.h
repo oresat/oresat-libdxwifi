@@ -15,6 +15,7 @@ typedef enum {
     RX_FILE_MODE,
     RX_STREAM_MODE,
     RX_DIRECTORY_MODE,
+    RX_BIT_ERROR_MODE
 } rx_mode_t;
 
 
@@ -24,6 +25,7 @@ typedef struct {
     bool            quiet;
     bool            append;
     bool            use_syslog;
+    const char*     compare_path;
     const char*     device;
     const char*     output_path;
     const char*     file_prefix;
@@ -42,7 +44,8 @@ typedef struct {
         .output_path    = ".",\
         .file_prefix    = "rx",\
         .file_extension = "cap",\
-        .rx = DXWIFI_RECEIVER_DFLT_INITIALIZER\
+        .rx = DXWIFI_RECEIVER_DFLT_INITIALIZER,\
+        .compare_path      = NULL \
     }\
 
 
